@@ -1,0 +1,91 @@
+import { notFound } from "next/navigation";
+import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
+import FichaCliente from "./FichaCliente";
+import type { Alerta, Dieta, Ejercicio, Medida, Perfil } from "@/lib/tipos";
+
+export const dynamic = "force-dynamic";
+
+/** Ficha de cliente: carga todos los datos y los pasa al componente de pestañas. */
+export default async function PaginaFichaCliente({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const supabase = await crearClienteServidor();
+
+  const inicioSemana = new Date();
+  // Semana de lunes a domingo
+  const diaSemana = (inicioSemana.getDay() + 6) % 7;
+  inicioSemana.setDate(inicioSemana.getDate() - diaSemana);
+  inicioSemana.setHours(0, 0, 0, 0);
+
+  const [
+    { data: perfil },
+    { data: medidas },
+    { data: alertas },
+    { data: adherencia },
+    { data: sesionesSemana },
+    { data: rutina },
+    { data: dieta },
+    { data: biblioteca },
+  ] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
+    supabase
+      .from("medidas")
+      .select("*")
+      .eq("cliente_id", id)
+      .order("fecha", { ascending: true }),
+    supabase.from("v_alertas").select("*").eq("cliente_id", id),
+    supabase
+      .from("v_adherencia")
+      .select("adherencia")
+      .eq("cliente_id", id)
+      .maybeSingle(),
+    supabase
+      .from("sesiones")
+      .select("fecha_inicio")
+      .eq("cliente_id", id)
+      .gte("fecha_inicio", inicioSemana.toISOString()),
+    supabase
+      .from("rutinas")
+      .select(SELECT_RUTINA_COMPLETA)
+      .eq("cliente_id", id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("dietas")
+      .select("*, dieta_comidas ( id, dieta_id, orden, nombre, descripcion_libre )")
+      .eq("cliente_id", id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("ejercicios").select("*").order("nombre"),
+  ]);
+
+  if (!perfil) notFound();
+
+  // Días de la semana (L-D) con sesión registrada
+  const diasEntrenados = [false, false, false, false, false, false, false];
+  for (const s of sesionesSemana ?? []) {
+    const d = (new Date(s.fecha_inicio).getDay() + 6) % 7;
+    diasEntrenados[d] = true;
+  }
+
+  return (
+    <FichaCliente
+      perfil={perfil as Perfil}
+      medidas={(medidas ?? []) as Medida[]}
+      alertas={(alertas ?? []) as Alerta[]}
+      adherencia={adherencia?.adherencia ?? 0}
+      diasEntrenados={diasEntrenados}
+      rutina={rutina ? aRutinaUI(rutina as unknown as FilaRutina) : null}
+      dieta={(dieta as Dieta | null) ?? null}
+      biblioteca={(biblioteca ?? []) as Ejercicio[]}
+    />
+  );
+}
