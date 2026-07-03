@@ -7,6 +7,7 @@ const RUTAS_PUBLICAS = [
   "/recuperar",
   "/restablecer",
   "/alta",
+  "/auth", // callback de OAuth (Google)
   "/aviso-legal",
   "/politica-privacidad",
   "/politica-cookies",

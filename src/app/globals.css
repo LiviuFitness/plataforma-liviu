@@ -15,9 +15,9 @@
   --color-peligro: #e25529;
   --color-aviso: #e2b429;
 
-  --font-display: "Anton", "Arial Narrow", Impact, sans-serif;
-  --font-serifa: "Playfair Display", Georgia, serif;
-  --font-cuerpo: "Barlow", -apple-system, "Segoe UI", sans-serif;
+  /* Tipografía limpia única: Inter (variable, self-hosted) */
+  --font-display: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  --font-cuerpo: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
 }
 
 body {
@@ -36,22 +36,21 @@ body {
    Piezas repetidas del panel (estética de los prototipos v1/v2)
    ============================================================ */
 @layer components {
-  /* Titulares Anton itálica en mayúsculas */
+  /* Titulares limpios en Inter */
   .h1 {
     font-family: var(--font-display);
-    font-style: italic;
-    font-size: 32px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: -0.3px;
   }
   .num-grande {
     font-family: var(--font-display);
-    font-style: italic;
+    font-weight: 800;
     font-size: 24px;
+    letter-spacing: -0.3px;
   }
   .serifa {
-    font-family: var(--font-serifa);
-    font-style: italic;
+    color: var(--color-atenuado);
   }
   .sub {
     color: var(--color-atenuado);
@@ -69,9 +68,9 @@ body {
   }
   .titulo-tarjeta {
     font-family: var(--font-display);
-    font-style: italic;
-    font-size: 13px;
-    letter-spacing: 1.5px;
+    font-weight: 600;
+    font-size: 11.5px;
+    letter-spacing: 1.2px;
     color: var(--color-atenuado);
     margin-bottom: 12px;
     text-transform: uppercase;

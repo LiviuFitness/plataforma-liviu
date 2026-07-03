@@ -143,7 +143,7 @@ export default function EditorDia({
       </div>
 
       <input
-        className="input !font-display italic uppercase !text-[20px] tracking-wide mt-3"
+        className="input !font-bold !text-[19px] tracking-tight mt-3"
         value={borrador.nombre}
         onChange={(e) => cambiar({ ...borrador, nombre: e.target.value })}
         aria-label="Nombre del día"

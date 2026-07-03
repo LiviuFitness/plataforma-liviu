@@ -1,6 +1,6 @@
 {
-  "name": "LIVIU Fitness Studio",
-  "short_name": "LIVIU",
+  "name": "LivFit",
+  "short_name": "LivFit",
   "description": "Plataforma de coaching de LIVIU Fitness Studio",
   "start_url": "/",
   "display": "standalone",

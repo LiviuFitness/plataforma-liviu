@@ -1,6 +1,6 @@
-# PLATAFORMA LIVIU — Fase 1: Panel de entrenador
+# LivFit — Fase 1: Panel de entrenador
 
-Plataforma de coaching de **LIVIU Fitness Studio**. Esta fase incluye el panel
+**LivFit**, la plataforma de coaching de LIVIU Fitness Studio. Esta fase incluye el panel
 de entrenador completo: clientes con alta por invitación, constructor de
 rutinas estilo Hevy, dietas (objetivos + comidas), medidas y progreso,
 plantillas reutilizables y alertas.
@@ -57,7 +57,23 @@ pantalla «Clientes» del panel).
 > por API; la plataforma ya exige invitación válida mediante el trigger de
 > base de datos.
 
-## 5. Arrancar en local
+## 5. Activar el inicio de sesión con Google (opcional)
+
+1. En [Google Cloud Console](https://console.cloud.google.com) crea un
+   proyecto → **APIs & Services → Credentials → Create OAuth client ID**
+   (tipo *Web application*).
+2. En *Authorized redirect URIs* añade la URL que te da Supabase en
+   **Authentication → Sign In / Providers → Google** (tiene la forma
+   `https://tu-proyecto.supabase.co/auth/v1/callback`).
+3. Copia el *Client ID* y el *Client Secret* en esa misma pantalla de
+   Supabase y activa el proveedor.
+
+> Google solo sirve para **entrar** con una cuenta ya existente (o la del
+> entrenador). El alta de clientes nuevos sigue siendo únicamente por
+> invitación: si alguien sin cuenta intenta entrar con Google, la base de
+> datos lo rechaza y vuelve al login con un aviso.
+
+## 6. Arrancar en local
 
 ```bash
 npm install
@@ -67,7 +83,7 @@ npm run dev
 Abre [http://localhost:3000](http://localhost:3000) e inicia sesión con la
 cuenta del entrenador.
 
-## 6. Desplegar en Vercel
+## 7. Desplegar en Vercel
 
 1. Sube el repositorio a GitHub y conéctalo en [vercel.com](https://vercel.com).
 2. Añade las dos variables de entorno de `.env.local`.

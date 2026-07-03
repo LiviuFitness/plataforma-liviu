@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <!-- Icono provisional de la PWA. Sustituir por el logo PNG oficial de LIVIU. -->
+  <!-- Icono provisional de la PWA. Sustituir por el logo PNG oficial. -->
   <rect width="512" height="512" rx="96" fill="#0A0C0E"/>
-  <text x="256" y="300" text-anchor="middle" font-family="Anton, 'Arial Narrow', Impact, sans-serif" font-style="italic" font-size="150" letter-spacing="4">
-    <tspan fill="#FFFFFF">LIVI</tspan><tspan fill="#29ABE2">U</tspan>
+  <text x="256" y="298" text-anchor="middle" font-family="'Inter Variable', Inter, -apple-system, sans-serif" font-weight="800" font-size="132" letter-spacing="-3">
+    <tspan fill="#FFFFFF">Liv</tspan><tspan fill="#29ABE2">Fit</tspan>
   </text>
 </svg>

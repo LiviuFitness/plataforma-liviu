@@ -30,7 +30,7 @@ export default function LayoutLegal({
         [corchetes] están pendientes de completar.
       </div>
 
-      <article className="legal text-texto-2 text-[14.5px] leading-relaxed [&_h1]:text-white [&_h1]:text-[26px] [&_h1]:font-display [&_h1]:italic [&_h1]:uppercase [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-white [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_li]:mb-1">
+      <article className="legal text-texto-2 text-[14.5px] leading-relaxed [&_h1]:text-white [&_h1]:text-[26px] [&_h1]:font-bold [&_h1]:tracking-tight [&_h1]:mt-6 [&_h1]:mb-3 [&_h2]:text-white [&_h2]:text-[17px] [&_h2]:font-bold [&_h2]:mt-6 [&_h2]:mb-2 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:mb-3 [&_li]:mb-1">
         {children}
       </article>
 

@@ -47,7 +47,7 @@ export default function EditorPlantillaEntreno({
             </span>
           </div>
           <input
-            className="input !font-display italic uppercase !text-[20px] tracking-wide"
+            className="input !font-bold !text-[19px] tracking-tight"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             onBlur={guardarCabecera}

@@ -81,7 +81,7 @@ export default async function PaginaHoy() {
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-2.5 my-[18px] mb-[22px]">
         <div className="tarjeta !mb-0 text-center !p-3.5">
-          <div className="font-display italic text-[26px]">
+          <div className="num-grande !text-[26px]">
             {listaClientes.length}
           </div>
           <div className="text-[10.5px] text-atenuado mt-1">
@@ -89,7 +89,7 @@ export default async function PaginaHoy() {
           </div>
         </div>
         <div className="tarjeta !mb-0 text-center !p-3.5">
-          <div className="font-display italic text-[26px] text-acento">
+          <div className="num-grande !text-[26px] text-acento">
             {media}%
           </div>
           <div className="text-[10.5px] text-atenuado mt-1">
@@ -98,7 +98,7 @@ export default async function PaginaHoy() {
         </div>
         <div className="tarjeta !mb-0 text-center !p-3.5">
           <div
-            className={`font-display italic text-[26px] ${
+            className={`num-grande !text-[26px] ${
               listaAlertas.length ? "text-peligro" : ""
             }`}
           >

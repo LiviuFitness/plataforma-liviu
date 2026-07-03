@@ -23,7 +23,7 @@ export default function BarraInferior() {
           <Link
             key={p.ruta}
             href={p.ruta}
-            className={`flex-1 text-center font-display italic uppercase tracking-wider text-[14px] py-2.5 rounded-[10px] ${
+            className={`flex-1 text-center font-semibold text-[13.5px] py-2.5 rounded-[10px] ${
               activa ? "text-acento bg-acento/10" : "text-atenuado"
             }`}
           >

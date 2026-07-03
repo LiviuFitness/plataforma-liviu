@@ -4,14 +4,14 @@
 
 const CIAN = "#29ABE2";
 
-/** Logo de marca: "LIVI" blanco + "U" cian, Anton itálica. */
+/** Logo de marca: "Liv" blanco + "Fit" cian, Inter bold. */
 export function Logo({ tamano = 20 }: { tamano?: number }) {
   return (
     <span
-      className="font-display italic text-white"
-      style={{ fontSize: tamano, letterSpacing: 1 }}
+      className="font-display font-extrabold text-white"
+      style={{ fontSize: tamano, letterSpacing: -0.5 }}
     >
-      LIVI<span style={{ color: CIAN }}>U</span>
+      Liv<span style={{ color: CIAN }}>Fit</span>
     </span>
   );
 }

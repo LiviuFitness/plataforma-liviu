@@ -1,20 +1,16 @@
 import type { Metadata, Viewport } from "next";
-// Tipografías self-hosted (sin CDN de Google — RGPD, especificación §2)
-import "@fontsource/anton";
-import "@fontsource/playfair-display/400-italic.css";
-import "@fontsource/barlow/400.css";
-import "@fontsource/barlow/600.css";
-import "@fontsource/barlow/700.css";
+// Tipografía self-hosted (sin CDN de Google — RGPD, especificación §2)
+import "@fontsource-variable/inter";
 import "./globals.css";
 import RegistroSW from "@/componentes/RegistroSW";
 
 export const metadata: Metadata = {
-  title: "LIVIU Fitness Studio",
+  title: "LivFit",
   description: "Plataforma de coaching de LIVIU Fitness Studio",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    title: "LIVIU",
+    title: "LivFit",
     statusBarStyle: "black-translucent",
   },
 };
