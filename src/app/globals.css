@@ -1,0 +1,240 @@
+@import "tailwindcss";
+
+/* ============================================================
+   LIVIU FITNESS STUDIO — Tokens de marca (especificación §4)
+   ============================================================ */
+@theme {
+  --color-fondo: #0a0c0e;
+  --color-panel: #111519;
+  --color-borde: #1b2127;
+  --color-borde-2: #1e252b;
+  --color-campo: #0c0f12;
+  --color-acento: #29abe2;
+  --color-texto-2: #b9c2c9;
+  --color-atenuado: #8a949c;
+  --color-peligro: #e25529;
+  --color-aviso: #e2b429;
+
+  --font-display: "Anton", "Arial Narrow", Impact, sans-serif;
+  --font-serifa: "Playfair Display", Georgia, serif;
+  --font-cuerpo: "Barlow", -apple-system, "Segoe UI", sans-serif;
+}
+
+body {
+  background-color: var(--color-fondo);
+  background-image: radial-gradient(
+    ellipse at 50% 120%,
+    rgba(41, 171, 226, 0.1),
+    transparent 55%
+  );
+  color: #fff;
+  font-family: var(--font-cuerpo);
+  min-height: 100vh;
+}
+
+/* ============================================================
+   Piezas repetidas del panel (estética de los prototipos v1/v2)
+   ============================================================ */
+@layer components {
+  /* Titulares Anton itálica en mayúsculas */
+  .h1 {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 32px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .num-grande {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 24px;
+  }
+  .serifa {
+    font-family: var(--font-serifa);
+    font-style: italic;
+  }
+  .sub {
+    color: var(--color-atenuado);
+    font-size: 14px;
+    margin-top: 2px;
+  }
+
+  /* Tarjetas */
+  .tarjeta {
+    background: var(--color-panel);
+    border: 1px solid var(--color-borde);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+  .titulo-tarjeta {
+    font-family: var(--font-display);
+    font-style: italic;
+    font-size: 13px;
+    letter-spacing: 1.5px;
+    color: var(--color-atenuado);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+  }
+
+  /* Botones */
+  .cta {
+    width: 100%;
+    background: var(--color-acento);
+    color: var(--color-fondo);
+    border: none;
+    border-radius: 12px;
+    padding: 13px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 14px;
+  }
+  .cta:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .cta-mini {
+    width: auto;
+    padding: 8px 14px;
+    font-size: 13.5px;
+    margin: 0;
+  }
+  .ghost {
+    background: none;
+    border: 1px solid var(--color-borde-2);
+    color: #fff;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .ghost-peligro {
+    color: var(--color-peligro);
+    border-color: rgba(226, 85, 41, 0.4);
+  }
+  .mini {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid var(--color-borde-2);
+    background: var(--color-campo);
+    color: var(--color-texto-2);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .mini-peligro {
+    color: var(--color-peligro);
+    border-color: rgba(226, 85, 41, 0.35);
+  }
+
+  /* Campos de formulario */
+  .input {
+    width: 100%;
+    background: var(--color-campo);
+    border: 1px solid var(--color-borde-2);
+    border-radius: 10px;
+    color: #fff;
+    padding: 11px 12px;
+    font-family: inherit;
+    font-size: 14.5px;
+    margin-bottom: 10px;
+  }
+  .input:focus,
+  .campo-serie:focus,
+  textarea:focus {
+    outline: 2px solid var(--color-acento);
+    outline-offset: 1px;
+  }
+  .campo-serie {
+    width: 100%;
+    background: var(--color-campo);
+    border: 1px solid var(--color-borde-2);
+    border-radius: 8px;
+    color: #fff;
+    padding: 8px 6px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  /* Chips y pestañas */
+  .chip {
+    flex-shrink: 0;
+    background: var(--color-campo);
+    border: 1px solid var(--color-borde-2);
+    color: var(--color-atenuado);
+    border-radius: 20px;
+    padding: 7px 13px;
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .chip-activo {
+    color: var(--color-fondo);
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+  }
+  .tab {
+    flex: 1;
+    background: none;
+    border: 1px solid var(--color-borde-2);
+    color: var(--color-atenuado);
+    padding: 9px 4px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
+  .tab-activa {
+    color: var(--color-fondo);
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+  }
+
+  /* Raíl vertical cian — firma visual de la marca */
+  .rail {
+    width: 3px;
+    border-radius: 2px;
+    background: linear-gradient(var(--color-acento), rgba(41, 171, 226, 0.15));
+    box-shadow: 0 0 12px rgba(41, 171, 226, 0.5);
+  }
+  .rail-punto {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-acento);
+    box-shadow: 0 0 10px rgba(41, 171, 226, 0.8);
+    margin-top: 5px;
+    flex-shrink: 0;
+  }
+
+  /* Stepper − valor + */
+  .stepper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .stepper button {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--color-borde-2);
+    background: var(--color-campo);
+    color: #fff;
+    font-size: 17px;
+    cursor: pointer;
+  }
+  .stepper span {
+    font-weight: 700;
+    min-width: 52px;
+    text-align: center;
+    font-size: 14.5px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
