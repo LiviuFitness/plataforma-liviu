@@ -18,6 +18,11 @@ export interface Perfil {
   estado: Estado;
   notas_entrenador: string | null;
   consentimiento_salud: string | null;
+  // Datos físicos (para el auto-cálculo de macros)
+  fecha_nacimiento: string | null;
+  altura_cm: number | null;
+  sexo: "hombre" | "mujer" | null;
+  factor_actividad: number;
 }
 
 export interface Invitacion {

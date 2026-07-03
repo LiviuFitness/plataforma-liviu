@@ -3,6 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import {
+  calcularMacros,
+  datosQueFaltan,
+  type DatosAutoCalculo,
+} from "@/lib/macros";
 import type { Dieta } from "@/lib/tipos";
 
 interface ComidaUI {
@@ -19,9 +24,11 @@ const COMIDAS_SUGERIDAS = ["Desayuno", "Comida", "Merienda", "Cena"];
 export default function EditorDieta({
   dieta,
   clienteId,
+  autoCalculo,
 }: {
   dieta: Dieta | null;
   clienteId?: string | null; // null => plantilla
+  autoCalculo?: DatosAutoCalculo; // datos físicos del cliente (no aplica a plantillas)
 }) {
   const router = useRouter();
   const [kcal, setKcal] = useState(dieta?.kcal_obj ?? 2000);
@@ -41,6 +48,32 @@ export default function EditorDieta({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [ok, setOk] = useState(false);
+  const [notaCalculo, setNotaCalculo] = useState("");
+
+  /* --- Auto-cálculo de macros (Mifflin-St Jeor + actividad + objetivo) --- */
+  function autoCalcular() {
+    if (!autoCalculo) return;
+    const faltan = datosQueFaltan(autoCalculo);
+    if (faltan.length > 0) {
+      setError(`Para auto-calcular faltan datos: ${faltan.join(", ")}. Rellénalos en la pestaña Resumen.`);
+      return;
+    }
+    const r = calcularMacros(autoCalculo);
+    if (!r) {
+      setError("No se pudo calcular con esos datos. Revisa la fecha de nacimiento y la altura.");
+      return;
+    }
+    setError("");
+    setKcal(r.kcal);
+    setProt(r.prot);
+    setCarb(r.carb);
+    setGras(r.gras);
+    setSucio(true);
+    setOk(false);
+    setNotaCalculo(
+      `Basal ${r.tmb} kcal · mantenimiento ${r.tdee} kcal · ajustado a "${autoCalculo.objetivo ?? "mantenimiento"}". Revísalo y guarda.`
+    );
+  }
 
   function marcar<T>(setter: (v: T) => void) {
     return (v: T) => {
@@ -137,6 +170,18 @@ export default function EditorDieta({
 
   return (
     <>
+      {autoCalculo && (
+        <button
+          className="w-full flex items-center justify-center gap-2 bg-panel border border-acento/40 text-acento rounded-[12px] py-3 font-semibold text-[14px] cursor-pointer mb-3.5"
+          onClick={autoCalcular}
+        >
+          ✨ Auto-calcular kcal y macros
+        </button>
+      )}
+      {notaCalculo && (
+        <div className="text-atenuado text-[12.5px] mb-3 -mt-1">{notaCalculo}</div>
+      )}
+
       <section className="tarjeta">
         <div className="titulo-tarjeta">OBJETIVO DIARIO</div>
         <div className="flex justify-between items-center mb-3.5">

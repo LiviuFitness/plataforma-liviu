@@ -99,7 +99,24 @@ export default function FichaCliente({
       )}
 
       {pestana === "dieta" && (
-        <EditorDieta dieta={dieta} clienteId={perfil.id} />
+        <EditorDieta
+          dieta={dieta}
+          clienteId={perfil.id}
+          autoCalculo={{
+            pesoKg: (() => {
+              // Último peso registrado en medidas
+              const conPeso = medidas.filter((m) => m.peso !== null);
+              return conPeso.length > 0
+                ? Number(conPeso[conPeso.length - 1].peso)
+                : null;
+            })(),
+            alturaCm: perfil.altura_cm,
+            fechaNacimiento: perfil.fecha_nacimiento,
+            sexo: perfil.sexo,
+            factorActividad: Number(perfil.factor_actividad ?? 1.55),
+            objetivo: perfil.objetivo,
+          }}
+        />
       )}
 
       {pestana === "progreso" && (

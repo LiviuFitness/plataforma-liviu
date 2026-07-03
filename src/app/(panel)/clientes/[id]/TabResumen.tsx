@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Sparkline } from "@/componentes/ui";
 import { OBJETIVOS, type Alerta, type Estado, type Medida, type Perfil, type Plan } from "@/lib/tipos";
+import { FACTORES_ACTIVIDAD } from "@/lib/macros";
 
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -54,15 +55,31 @@ export default function TabResumen({
   const [objetivo, setObjetivo] = useState(perfil.objetivo ?? OBJETIVOS[0]);
   const [plan, setPlan] = useState<Plan>(perfil.plan ?? "mensual");
   const [estado, setEstado] = useState<Estado>(perfil.estado);
+  const [nacimiento, setNacimiento] = useState(perfil.fecha_nacimiento ?? "");
+  const [altura, setAltura] = useState(
+    perfil.altura_cm === null ? "" : String(perfil.altura_cm)
+  );
+  const [sexo, setSexo] = useState<string>(perfil.sexo ?? "");
+  const [factor, setFactor] = useState(String(perfil.factor_actividad ?? 1.55));
   const [guardandoDatos, setGuardandoDatos] = useState(false);
   const [datosOk, setDatosOk] = useState(false);
 
   async function guardarDatos() {
     setGuardandoDatos(true);
     const supabase = crearClienteNavegador();
+    const alturaNum = Number(altura.replace(",", "."));
     const { error } = await supabase
       .from("profiles")
-      .update({ nombre: nombre.trim(), objetivo, plan, estado })
+      .update({
+        nombre: nombre.trim(),
+        objetivo,
+        plan,
+        estado,
+        fecha_nacimiento: nacimiento || null,
+        altura_cm: altura && Number.isFinite(alturaNum) ? alturaNum : null,
+        sexo: sexo || null,
+        factor_actividad: Number(factor),
+      })
       .eq("id", perfil.id);
     setGuardandoDatos(false);
     if (!error) {
@@ -180,6 +197,59 @@ export default function TabResumen({
           <option value="pausado">Pausado</option>
           <option value="baja">Baja</option>
         </select>
+
+        {/* Datos físicos: alimentan el auto-cálculo de macros de la dieta */}
+        <div className="titulo-tarjeta !mb-2 mt-3">DATOS FÍSICOS</div>
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <label className="text-[13px] text-texto-2 block mb-1">
+              Fecha de nacimiento
+            </label>
+            <input
+              type="date"
+              className="input"
+              value={nacimiento}
+              onChange={(e) => setNacimiento(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-[13px] text-texto-2 block mb-1">
+              Altura (cm)
+            </label>
+            <input
+              className="input"
+              inputMode="decimal"
+              placeholder="175"
+              value={altura}
+              onChange={(e) => setAltura(e.target.value)}
+            />
+          </div>
+        </div>
+        <label className="text-[13px] text-texto-2 block mb-1">Sexo</label>
+        <select
+          className="input"
+          value={sexo}
+          onChange={(e) => setSexo(e.target.value)}
+        >
+          <option value="">Sin indicar</option>
+          <option value="hombre">Hombre</option>
+          <option value="mujer">Mujer</option>
+        </select>
+        <label className="text-[13px] text-texto-2 block mb-1">
+          Nivel de actividad
+        </label>
+        <select
+          className="input"
+          value={factor}
+          onChange={(e) => setFactor(e.target.value)}
+        >
+          {FACTORES_ACTIVIDAD.map((f) => (
+            <option key={f.valor} value={String(f.valor)}>
+              {f.etiqueta}
+            </option>
+          ))}
+        </select>
+
         <button className="cta" onClick={guardarDatos} disabled={guardandoDatos}>
           {datosOk ? "Guardado ✓" : guardandoDatos ? "Guardando…" : "Guardar datos"}
         </button>
