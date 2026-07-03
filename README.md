@@ -1,36 +1,119 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# PLATAFORMA LIVIU — Fase 1: Panel de entrenador
 
-## Getting Started
+Plataforma de coaching de **LIVIU Fitness Studio**. Esta fase incluye el panel
+de entrenador completo: clientes con alta por invitación, constructor de
+rutinas estilo Hevy, dietas (objetivos + comidas), medidas y progreso,
+plantillas reutilizables y alertas.
 
-First, run the development server:
+**Stack:** Next.js (App Router) + Tailwind CSS + Supabase (PostgreSQL, Auth,
+RLS). PWA instalable. Todo en español.
+
+---
+
+## 1. Crear el proyecto Supabase (una sola vez)
+
+1. Entra en [supabase.com](https://supabase.com) y crea un proyecto nuevo.
+2. **Región: elige Frankfurt o París (UE)** — obligatorio por RGPD.
+3. Apunta la contraseña de la base de datos en un lugar seguro.
+
+## 2. Ejecutar las migraciones
+
+En el panel de Supabase → **SQL Editor** → pega y ejecuta, **en este orden**,
+el contenido de:
+
+1. `supabase/migrations/20260702090000_esquema.sql` — tablas y trigger de alta
+2. `supabase/migrations/20260702090100_rls_y_funciones.sql` — seguridad RLS, vistas y funciones
+3. `supabase/migrations/20260702090200_semilla_ejercicios.sql` — biblioteca de ~150 ejercicios
+
+> Alternativa con CLI: `npx supabase db push` si tienes el proyecto vinculado.
+
+## 3. Configurar las variables de entorno
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+copy .env.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Rellena en `.env.local` los valores de Supabase → **Project Settings → API**:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-clave-anon
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 4. Crear la cuenta del entrenador
 
-## Learn More
+**El primer usuario que se registra en el proyecto se convierte
+automáticamente en entrenador.** Para crearlo:
 
-To learn more about Next.js, take a look at the following resources:
+1. Supabase → **Authentication → Users → Add user → Create new user**.
+2. Email y contraseña de Liviu. Marca **Auto Confirm User**.
+3. Listo: ese usuario ya puede entrar en la plataforma como entrenador.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Todos los usuarios posteriores necesitan una invitación (se crean desde la
+pantalla «Clientes» del panel).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+> Recomendado: en **Authentication → Sign In / Up**, desactiva
+> «Allow new users to sign up» solo si se quiere cerrar del todo el registro
+> por API; la plataforma ya exige invitación válida mediante el trigger de
+> base de datos.
 
-## Deploy on Vercel
+## 5. Arrancar en local
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+npm install
+npm run dev
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Abre [http://localhost:3000](http://localhost:3000) e inicia sesión con la
+cuenta del entrenador.
+
+## 6. Desplegar en Vercel
+
+1. Sube el repositorio a GitHub y conéctalo en [vercel.com](https://vercel.com).
+2. Añade las dos variables de entorno de `.env.local`.
+3. En Supabase → **Authentication → URL Configuration**, añade la URL de
+   producción como *Site URL* y en *Redirect URLs* (necesario para la
+   recuperación de contraseña).
+
+---
+
+## Flujo de trabajo diario (Liviu)
+
+1. **Clientes → + Invitar**: crea la invitación y envía el enlace por WhatsApp.
+2. El cliente abre el enlace, acepta el consentimiento de datos de salud y crea su cuenta.
+3. **Ficha del cliente → Entreno**: crea la rutina día a día (o asigna una plantilla).
+4. **Ficha → Dieta**: objetivos kcal/macros y comidas.
+5. **Ficha → Progreso**: registra medidas en cada valoración.
+6. **Hoy**: cada mañana, un vistazo a las alertas.
+
+## Legal (RGPD)
+
+- Los textos de `/aviso-legal`, `/politica-privacidad`, `/politica-cookies` y
+  `/terminos` son **borradores**: deben completarse los [corchetes] y
+  **revisarse por un profesional antes del lanzamiento**.
+- `docs/registro-actividades-tratamiento.md` contiene la base del registro de
+  actividades de tratamiento (art. 30 RGPD).
+- El consentimiento de datos de salud se recoge en el alta (checkbox separado,
+  sin premarcar) y se guarda con fecha y hora en `profiles.consentimiento_salud`.
+
+## Estructura
+
+```
+src/
+  app/
+    (auth)/       login, recuperar, restablecer, alta/[token]
+    (panel)/      hoy, clientes, clientes/[id], plantillas
+    (legal)/      aviso legal, privacidad, cookies, términos
+  componentes/    EditorRutina, EditorDia (estilo Hevy), EditorDieta, ui…
+  lib/            clientes de Supabase, tipos, transformaciones
+supabase/
+  migrations/     esquema, RLS + vistas + funciones, semilla de ejercicios
+docs/             registro de actividades de tratamiento
+```
+
+## Fases siguientes
+
+- **Fase 2:** app del cliente (sesión en curso con prescrito vs. realizado,
+  temporizador de descanso, PRs, registro de peso propio).
+- **Fase 3:** nutrición completa (base de alimentos, registro por gramos).
+- **Fase 4:** fotos de progreso, informes PDF, notificaciones push.
