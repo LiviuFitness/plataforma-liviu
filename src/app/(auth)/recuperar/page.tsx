@@ -30,7 +30,7 @@ export default function PaginaRecuperar() {
   return (
     <div className="max-w-[480px] w-full mx-auto px-[18px] flex flex-col justify-center min-h-screen">
       <div className="text-center mb-8">
-        <Logo tamano={40} />
+        <Logo tamano={80} />
       </div>
 
       {enviado ? (

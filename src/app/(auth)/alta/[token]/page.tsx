@@ -22,7 +22,7 @@ export default async function PaginaAlta({
   return (
     <div className="max-w-[480px] w-full mx-auto px-[18px] py-10 min-h-screen flex flex-col justify-center">
       <div className="text-center mb-8">
-        <Logo tamano={40} />
+        <Logo tamano={80} />
         <div className="sub serifa mt-1">empieza tu seguimiento —</div>
       </div>
 

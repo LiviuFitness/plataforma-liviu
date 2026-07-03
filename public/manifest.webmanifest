@@ -9,6 +9,12 @@
   "lang": "es",
   "icons": [
     {
+      "src": "/icono-192.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icono.svg",
       "sizes": "any",
       "type": "image/svg+xml",

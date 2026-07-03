@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: "LivFit",
   description: "Plataforma de coaching de LIVIU Fitness Studio",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icono-192.png",
+    apple: "/icono-192.png",
+  },
   appleWebApp: {
     capable: true,
     title: "LivFit",

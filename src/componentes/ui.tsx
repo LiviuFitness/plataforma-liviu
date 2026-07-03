@@ -2,17 +2,21 @@
    Piezas visuales compartidas (portadas de los prototipos v1/v2)
    ============================================================ */
 
+import Image from "next/image";
+
 const CIAN = "#29ABE2";
 
-/** Logo de marca: "Liv" blanco + "Fit" cian, Inter bold. */
-export function Logo({ tamano = 20 }: { tamano?: number }) {
+/** Logo oficial LIVIU Fitness Studio (versión para fondo oscuro). */
+export function Logo({ tamano = 32 }: { tamano?: number }) {
   return (
-    <span
-      className="font-display font-extrabold text-white"
-      style={{ fontSize: tamano, letterSpacing: -0.5 }}
-    >
-      Liv<span style={{ color: CIAN }}>Fit</span>
-    </span>
+    <Image
+      src="/logo-marca.png"
+      alt="LIVIU Fitness Studio"
+      width={416}
+      height={408}
+      priority
+      style={{ height: tamano, width: "auto", display: "inline-block" }}
+    />
   );
 }
 

@@ -86,7 +86,7 @@ export default function PaginaLogin() {
   return (
     <div className="max-w-[480px] w-full mx-auto px-[18px] flex flex-col justify-center min-h-screen py-10">
       <div className="text-center mb-10">
-        <Logo tamano={40} />
+        <Logo tamano={80} />
       </div>
 
       <h1 className="h1 text-center">Iniciar sesión</h1>

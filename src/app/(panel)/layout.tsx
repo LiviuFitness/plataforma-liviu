@@ -29,7 +29,7 @@ export default async function LayoutPanel({
   if (perfil?.rol !== "entrenador") {
     return (
       <div className="max-w-[480px] w-full mx-auto px-[18px] min-h-screen flex flex-col items-center justify-center text-center">
-        <Logo tamano={36} />
+        <Logo tamano={72} />
         <p className="text-texto-2 text-[15px] mt-6 mb-2">
           ¡Hola{perfil?.nombre ? `, ${perfil.nombre.split(" ")[0]}` : ""}! Tu
           cuenta ya está creada.
@@ -47,7 +47,7 @@ export default async function LayoutPanel({
     <div className="max-w-[480px] md:max-w-[760px] w-full mx-auto relative min-h-screen">
       <header className="flex justify-between items-center px-[18px] pt-4 pb-2.5 sticky top-0 z-10 bg-fondo/90 backdrop-blur-md border-b border-borde">
         <div>
-          <Logo tamano={22} />
+          <Logo tamano={38} />
           <div className="text-[10px] tracking-[2.5px] uppercase text-atenuado mt-0.5">
             Panel de entrenador
           </div>

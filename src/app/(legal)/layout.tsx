@@ -16,7 +16,7 @@ export default function LayoutLegal({
     <div className="max-w-[720px] w-full mx-auto px-[18px] py-8">
       <header className="mb-6 flex items-center justify-between">
         <Link href="/">
-          <Logo tamano={24} />
+          <Logo tamano={34} />
         </Link>
         <Link href="/login" className="ghost">
           Iniciar sesión
