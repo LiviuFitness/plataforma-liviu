@@ -24,6 +24,8 @@ export interface EjercicioSesion {
   grupo: string;
   descansoSeg: number;
   notas: string;
+  tecnica: string | null; // criterios de técnica del entrenador
+  videoUrl: string | null;
   anterior: string | null; // lo realizado la última vez ("90×8 · 90×7")
   series: SerieSesion[];
 }
@@ -294,9 +296,33 @@ export default function SesionEnCurso({
               {ex.notas ? ` · ${ex.notas}` : ""}
             </div>
             {ex.anterior && (
-              <div className="text-[12.5px] text-acento/90 mb-2">
+              <div className="text-[12.5px] text-acento/90 mb-1">
                 Última vez: {ex.anterior}
               </div>
+            )}
+
+            {/* Técnica del entrenador y vídeo, plegados para no estorbar */}
+            {(ex.tecnica || ex.videoUrl) && (
+              <details className="mb-2">
+                <summary className="text-[12.5px] text-atenuado cursor-pointer select-none py-0.5">
+                  📋 Técnica{ex.videoUrl ? " y vídeo" : ""}
+                </summary>
+                {ex.tecnica && (
+                  <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
+                    {ex.tecnica}
+                  </div>
+                )}
+                {ex.videoUrl && (
+                  <a
+                    href={ex.videoUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-block text-acento text-[13px] underline underline-offset-2 mt-1.5"
+                  >
+                    🎥 Ver vídeo del ejercicio
+                  </a>
+                )}
+              </details>
             )}
 
             <div className="grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pb-1">

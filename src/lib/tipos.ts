@@ -40,6 +40,7 @@ export interface Invitacion {
 export interface Ejercicio {
   id: string;
   nombre: string;
+  nombre_en: string | null;
   grupo_muscular: string;
   material: string | null;
   instrucciones: string | null;
@@ -145,13 +146,22 @@ export const OBJETIVOS = [
   "Salud general",
 ];
 
+/* Grupos musculares del método de Liviu (como en su SUMMARY_MESO) */
 export const GRUPOS_MUSCULARES = [
-  "Pecho",
-  "Espalda",
-  "Hombro",
+  "Pectoral",
+  "Dorsales",
+  "Trapecio",
+  "Lumbares",
+  "Deltoides Lateral",
+  "Deltoides Posterior",
+  "Deltoides Anterior",
   "Bíceps",
   "Tríceps",
-  "Pierna",
-  "Glúteo",
-  "Core",
+  "Antebrazo",
+  "Abdomen",
+  "Cuádriceps",
+  "Isquiosurales",
+  "Glúteos",
+  "Aductores",
+  "Gemelos",
 ];

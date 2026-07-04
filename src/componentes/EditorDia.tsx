@@ -391,7 +391,8 @@ function HojaBiblioteca({
                 <div className="font-bold text-[15px]">{e.nombre}</div>
                 <div className="text-atenuado text-[12.5px]">
                   {e.grupo_muscular}
-                  {e.material ? ` · ${e.material}` : ""}
+                  {e.nombre_en ? ` · ${e.nombre_en}` : e.material ? ` · ${e.material}` : ""}
+                  {e.video_url ? " · 🎥" : ""}
                 </div>
               </div>
               <span className="text-acento text-[20px]">+</span>

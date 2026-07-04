@@ -23,7 +23,12 @@ interface FilaEjercicio {
   descanso_seg: number;
   notas: string | null;
   ejercicio_id: string;
-  ejercicios: { nombre: string; grupo_muscular: string } | null;
+  ejercicios: {
+    nombre: string;
+    grupo_muscular: string;
+    instrucciones: string | null;
+    video_url: string | null;
+  } | null;
   series_prescritas: FilaSerie[];
 }
 
@@ -64,7 +69,7 @@ export default async function PaginaSesion({
         `id, nombre,
          rutina_ejercicios (
            id, orden, descanso_seg, notas, ejercicio_id,
-           ejercicios ( nombre, grupo_muscular ),
+           ejercicios ( nombre, grupo_muscular, instrucciones, video_url ),
            series_prescritas ( orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto )
          )`
       )
@@ -129,6 +134,8 @@ export default async function PaginaSesion({
       grupo: e.ejercicios?.grupo_muscular ?? "",
       descansoSeg: e.descanso_seg,
       notas: e.notas ?? "",
+      tecnica: e.ejercicios?.instrucciones ?? null,
+      videoUrl: e.ejercicios?.video_url ?? null,
       anterior: anterior.get(e.ejercicio_id) ?? null,
       series: (e.series_prescritas ?? [])
         .slice()
