@@ -12,6 +12,11 @@ import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
 
 export interface SerieSesion {
   tipo: TipoSerie;
+  // Lo prescrito por el entrenador se muestra en gris como referencia;
+  // los campos empiezan vacíos para no confundir al cliente.
+  kgPrescrito: string;
+  repsPrescrito: string;
+  rirPrescrito: string;
   kg: string;
   reps: string;
   rir: string;
@@ -113,7 +118,18 @@ export default function SesionEnCurso({
   function alternarCompletada(ei: number, si: number) {
     const serie = ejercicios[ei].series[si];
     const ahoraCompletada = !serie.completada;
-    parchearSerie(ei, si, { completada: ahoraCompletada });
+    // Al marcar ✓ con campos vacíos, se rellenan con lo prescrito
+    // (si las reps son un rango "6-10", se usa el mínimo)
+    const relleno: Partial<SerieSesion> = { completada: ahoraCompletada };
+    if (ahoraCompletada) {
+      if (serie.kg.trim() === "") relleno.kg = serie.kgPrescrito;
+      if (serie.rir.trim() === "") relleno.rir = serie.rirPrescrito;
+      if (serie.reps.trim() === "") {
+        const rango = serie.repsPrescrito.match(/^(\d+)\s*-\s*\d+$/);
+        relleno.reps = rango ? rango[1] : serie.repsPrescrito;
+      }
+    }
+    parchearSerie(ei, si, relleno);
     if (ahoraCompletada) {
       // Arranca el descanso del ejercicio automáticamente
       const seg = ejercicios[ei].descansoSeg;
@@ -349,20 +365,22 @@ export default function SesionEnCurso({
                   {INFO_TIPO_SERIE[s.tipo].etiqueta}
                 </span>
                 <input
-                  className="campo-serie"
+                  className="campo-serie placeholder:text-atenuado/60"
+                  placeholder={s.kgPrescrito || "kg"}
                   value={s.kg}
                   onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
                   aria-label="Carga"
                 />
                 <input
-                  className="campo-serie"
+                  className="campo-serie placeholder:text-atenuado/60"
+                  placeholder={s.repsPrescrito || "reps"}
                   value={s.reps}
                   onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
                   aria-label="Repeticiones (admite 8+3)"
                 />
                 <input
-                  className="campo-serie"
-                  placeholder="—"
+                  className="campo-serie placeholder:text-atenuado/60"
+                  placeholder={s.rirPrescrito || "—"}
                   value={s.rir}
                   onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
                   aria-label="RIR o técnica"

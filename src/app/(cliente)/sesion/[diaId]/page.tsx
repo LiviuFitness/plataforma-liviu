@@ -142,9 +142,12 @@ export default async function PaginaSesion({
         .sort((a, b) => a.orden - b.orden)
         .map((s) => ({
           tipo: s.tipo,
-          kg: componerCarga(s.kg === null ? null : Number(s.kg), s.carga_texto),
-          reps: componerReps(s.reps, s.reps_max),
-          rir: componerRir(s.rir, s.tecnica),
+          kgPrescrito: componerCarga(s.kg === null ? null : Number(s.kg), s.carga_texto),
+          repsPrescrito: componerReps(s.reps, s.reps_max),
+          rirPrescrito: componerRir(s.rir, s.tecnica),
+          kg: "",
+          reps: "",
+          rir: "",
           completada: false,
         })),
     }));

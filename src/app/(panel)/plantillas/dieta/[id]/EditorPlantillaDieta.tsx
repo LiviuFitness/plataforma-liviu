@@ -4,10 +4,17 @@ import { useState } from "react";
 import Link from "next/link";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import EditorDieta from "@/componentes/EditorDieta";
+import type { Alimento } from "@/lib/dietas";
 import type { Dieta } from "@/lib/tipos";
 
 /** Cabecera editable (nombre) + editor de objetivos y comidas. */
-export default function EditorPlantillaDieta({ dieta }: { dieta: Dieta }) {
+export default function EditorPlantillaDieta({
+  dieta,
+  alimentos,
+}: {
+  dieta: Dieta;
+  alimentos: Alimento[];
+}) {
   const [nombre, setNombre] = useState(dieta.nombre ?? "");
   const [estado, setEstado] = useState<"" | "guardando" | "ok">("");
 
@@ -44,7 +51,7 @@ export default function EditorPlantillaDieta({ dieta }: { dieta: Dieta }) {
         placeholder="Nombre de la plantilla"
         aria-label="Nombre de la plantilla"
       />
-      <EditorDieta dieta={dieta} clienteId={null} />
+      <EditorDieta dieta={dieta} clienteId={null} alimentos={alimentos} />
     </>
   );
 }

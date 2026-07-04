@@ -7,6 +7,7 @@ import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
 import TabResumen from "./TabResumen";
 import TabProgreso from "./TabProgreso";
+import type { Alimento } from "@/lib/dietas";
 import type {
   Alerta,
   Dieta,
@@ -35,6 +36,7 @@ export default function FichaCliente({
   rutina,
   dieta,
   biblioteca,
+  alimentos,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -44,6 +46,7 @@ export default function FichaCliente({
   rutina: RutinaUI | null;
   dieta: Dieta | null;
   biblioteca: Ejercicio[];
+  alimentos: Alimento[];
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
@@ -102,6 +105,7 @@ export default function FichaCliente({
         <EditorDieta
           dieta={dieta}
           clienteId={perfil.id}
+          alimentos={alimentos}
           autoCalculo={{
             pesoKg: (() => {
               // Último peso registrado en medidas

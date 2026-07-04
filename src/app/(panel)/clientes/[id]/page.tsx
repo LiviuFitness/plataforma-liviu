@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
+import { SELECT_DIETA_COMPLETA, type Alimento } from "@/lib/dietas";
 import FichaCliente from "./FichaCliente";
 import type { Alerta, Dieta, Ejercicio, Medida, Perfil } from "@/lib/tipos";
 
@@ -30,6 +31,7 @@ export default async function PaginaFichaCliente({
     { data: rutina },
     { data: dieta },
     { data: biblioteca },
+    { data: alimentos },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -58,13 +60,17 @@ export default async function PaginaFichaCliente({
       .maybeSingle(),
     supabase
       .from("dietas")
-      .select("*, dieta_comidas ( id, dieta_id, orden, nombre, descripcion_libre )")
+      .select(SELECT_DIETA_COMPLETA)
       .eq("cliente_id", id)
       .eq("activa", true)
       .order("creada_en", { ascending: false })
       .limit(1)
       .maybeSingle(),
     supabase.from("ejercicios").select("*").order("nombre"),
+    supabase
+      .from("alimentos")
+      .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100")
+      .order("nombre"),
   ]);
 
   if (!perfil) notFound();
@@ -86,6 +92,7 @@ export default async function PaginaFichaCliente({
       rutina={rutina ? aRutinaUI(rutina as unknown as FilaRutina) : null}
       dieta={(dieta as Dieta | null) ?? null}
       biblioteca={(biblioteca ?? []) as Ejercicio[]}
+      alimentos={(alimentos ?? []) as Alimento[]}
     />
   );
 }
