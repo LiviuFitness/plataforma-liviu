@@ -43,6 +43,14 @@ const SENSACIONES = [
   { valor: 5, emoji: "🔥", etiqueta: "¡Genial!" },
 ];
 
+const ESTADO_PREVIO = [
+  { valor: 1, emoji: "😖", etiqueta: "Agotado" },
+  { valor: 2, emoji: "😕", etiqueta: "Cansado" },
+  { valor: 3, emoji: "😐", etiqueta: "Normal" },
+  { valor: 4, emoji: "🙂", etiqueta: "Con ganas" },
+  { valor: 5, emoji: "🔥", etiqueta: "A tope" },
+];
+
 /**
  * Sesión en curso (concepto clave: prescrito vs. realizado).
  * Las series vienen precargadas con lo prescrito: el cliente solo
@@ -62,19 +70,26 @@ export default function SesionEnCurso({
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
-  const [inicio] = useState(() => Date.now());
+  const [inicio, setInicio] = useState<number | null>(null);
   const [transcurrido, setTranscurrido] = useState(0);
   const [descanso, setDescanso] = useState<{ total: number; fin: number } | null>(null);
   const [restante, setRestante] = useState(0);
-  const [fase, setFase] = useState<"entrenando" | "final">("entrenando");
+  const [fase, setFase] = useState<"previo" | "entrenando" | "final">("previo");
+  const [prsPre, setPrsPre] = useState<number | null>(null);
   const [sensacion, setSensacion] = useState<number | null>(null);
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const avisado = useRef(false);
 
+  function empezarEntreno() {
+    setInicio(Date.now());
+    setFase("entrenando");
+  }
+
   /* Reloj: tiempo de sesión y cuenta atrás del descanso */
   useEffect(() => {
+    if (inicio === null) return;
     const intervalo = setInterval(() => {
       setTranscurrido(Math.floor((Date.now() - inicio) / 1000));
       setDescanso((d) => {
@@ -155,8 +170,9 @@ export default function SesionEnCurso({
       .insert({
         cliente_id: clienteId,
         dia_id: diaId,
-        fecha_inicio: new Date(inicio).toISOString(),
+        fecha_inicio: new Date(inicio ?? Date.now()).toISOString(),
         fecha_fin: new Date().toISOString(),
+        prs_pre: prsPre,
         sensacion,
         notas_cliente: nota.trim() || null,
       })
@@ -211,6 +227,50 @@ export default function SesionEnCurso({
       return;
     }
     router.push("/inicio");
+  }
+
+  /* --------- Pantalla previa: PRS (cómo llegas hoy) --------- */
+  if (fase === "previo") {
+    return (
+      <>
+        <button className="ghost mb-3" onClick={() => router.push("/inicio")}>
+          ✕ Salir
+        </button>
+        <h1 className="h1 mb-1">{nombreDia}</h1>
+        <div className="text-atenuado text-[14px] mb-5">
+          {ejercicios.length} ejercicios ·{" "}
+          {ejercicios.reduce(
+            (a, e) => a + e.series.filter((s) => s.tipo !== "calentamiento").length,
+            0
+          )}{" "}
+          series efectivas
+        </div>
+
+        <section className="tarjeta">
+          <div className="titulo-tarjeta">¿CÓMO LLEGAS HOY?</div>
+          <div className="flex justify-between gap-1.5 mb-1">
+            {ESTADO_PREVIO.map((s) => (
+              <button
+                key={s.valor}
+                onClick={() => setPrsPre(s.valor)}
+                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-[12px] border cursor-pointer ${
+                  prsPre === s.valor
+                    ? "border-acento bg-acento/10"
+                    : "border-borde-2 bg-campo"
+                }`}
+              >
+                <span className="text-[22px]">{s.emoji}</span>
+                <span className="text-[10.5px] text-atenuado">{s.etiqueta}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <button className="cta" onClick={empezarEntreno}>
+          Empezar sesión
+        </button>
+      </>
+    );
   }
 
   /* --------- Pantalla final: sensación y nota --------- */

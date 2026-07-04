@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { calcularRevisionSemanal } from "@/lib/revision";
 import MiProgreso, { type PR, type SesionHistorial } from "./MiProgreso";
 import type { Medida } from "@/lib/tipos";
 
@@ -17,6 +18,7 @@ interface FilaSesion {
   id: string;
   fecha_inicio: string;
   sensacion: number | null;
+  prs_pre: number | null;
   rutina_dias: { nombre: string } | null;
   series_realizadas: FilaSerieRealizada[];
 }
@@ -38,7 +40,7 @@ export default async function PaginaMiProgreso() {
     supabase
       .from("sesiones")
       .select(
-        `id, fecha_inicio, sensacion,
+        `id, fecha_inicio, sensacion, prs_pre,
          rutina_dias ( nombre ),
          series_realizadas ( kg, reps, completada, tipo,
            rutina_ejercicios ( ejercicios ( nombre ) ) )`
@@ -76,7 +78,13 @@ export default async function PaginaMiProgreso() {
     nombreDia: s.rutina_dias?.nombre ?? "Entreno",
     seriesHechas: (s.series_realizadas ?? []).filter((x) => x.completada).length,
     sensacion: s.sensacion,
+    prsPre: s.prs_pre,
   }));
+
+  const semanas = calcularRevisionSemanal(
+    (medidas ?? []).map((m) => ({ fecha: m.fecha, peso: m.peso }))
+  );
+  const semanaActual = semanas[semanas.length - 1] ?? null;
 
   return (
     <MiProgreso
@@ -84,6 +92,7 @@ export default async function PaginaMiProgreso() {
       medidas={(medidas ?? []) as Medida[]}
       prs={prs}
       historial={historial}
+      semanaActual={semanaActual}
     />
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { fechaCorta, Sparkline } from "@/componentes/ui";
 import { aNumero } from "@/lib/rutinas";
+import type { SemanaRevision } from "@/lib/revision";
 import type { Medida } from "@/lib/tipos";
 
 export interface PR {
@@ -20,6 +21,7 @@ export interface SesionHistorial {
   nombreDia: string;
   seriesHechas: number;
   sensacion: number | null;
+  prsPre: number | null;
 }
 
 const EMOJIS: Record<number, string> = { 1: "😖", 2: "😕", 3: "😐", 4: "🙂", 5: "🔥" };
@@ -30,11 +32,13 @@ export default function MiProgreso({
   medidas,
   prs,
   historial,
+  semanaActual,
 }: {
   clienteId: string;
   medidas: Medida[];
   prs: PR[];
   historial: SesionHistorial[];
+  semanaActual: SemanaRevision | null;
 }) {
   const router = useRouter();
   const [peso, setPeso] = useState("");
@@ -68,6 +72,29 @@ export default function MiProgreso({
     <>
       <h1 className="h1">Mi progreso</h1>
       <div className="sub mb-4">cada semana cuenta —</div>
+
+      {semanaActual && semanaActual.variacionPct !== null && (
+        <section className="tarjeta !border-acento/30">
+          <div className="titulo-tarjeta">ESTA SEMANA</div>
+          <div className="text-[14px] text-texto-2">
+            Media de peso{" "}
+            <b className="text-white">{semanaActual.mediaPeso.toFixed(1)} kg</b>
+            {" · "}
+            <span
+              className={
+                semanaActual.variacionPct < 0
+                  ? "text-acento"
+                  : semanaActual.variacionPct > 0
+                    ? "text-aviso"
+                    : "text-atenuado"
+              }
+            >
+              {semanaActual.variacionPct > 0 ? "+" : ""}
+              {semanaActual.variacionPct.toFixed(2)}% respecto a la semana pasada
+            </span>
+          </div>
+        </section>
+      )}
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">PESO</div>
@@ -149,8 +176,16 @@ export default function MiProgreso({
                 {s.seriesHechas} series
               </div>
             </div>
-            <span className="text-[18px]">
-              {s.sensacion ? EMOJIS[s.sensacion] : ""}
+            <span className="text-[15px] flex items-center gap-1">
+              {s.prsPre && (
+                <span title="Cómo llegaste">{EMOJIS[s.prsPre]}</span>
+              )}
+              {s.prsPre && s.sensacion && (
+                <span className="text-atenuado text-[11px]">→</span>
+              )}
+              {s.sensacion && (
+                <span title="Cómo te fue">{EMOJIS[s.sensacion]}</span>
+              )}
             </span>
           </div>
         ))}

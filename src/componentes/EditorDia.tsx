@@ -304,6 +304,8 @@ function HojaBiblioteca({
   const [nuevoNombre, setNuevoNombre] = useState("");
   const [nuevoGrupo, setNuevoGrupo] = useState(GRUPOS_MUSCULARES[0]);
   const [nuevoMaterial, setNuevoMaterial] = useState("");
+  const [nuevaTecnica, setNuevaTecnica] = useState("");
+  const [nuevoVideo, setNuevoVideo] = useState("");
   const [errorCrear, setErrorCrear] = useState("");
   const [guardandoNuevo, setGuardandoNuevo] = useState(false);
 
@@ -332,6 +334,8 @@ function HojaBiblioteca({
         nombre: nuevoNombre.trim(),
         grupo_muscular: nuevoGrupo,
         material: nuevoMaterial.trim() || null,
+        instrucciones: nuevaTecnica.trim() || null,
+        video_url: nuevoVideo.trim() || null,
         creado_por: usuario.user?.id ?? null,
       })
       .select("*")
@@ -431,6 +435,19 @@ function HojaBiblioteca({
                   onChange={(e) => setNuevoMaterial(e.target.value)}
                 />
               </div>
+              <textarea
+                className="w-full bg-campo border border-borde-2 rounded-[10px] text-white p-2.5 px-3 text-[13.5px] resize-y font-cuerpo mb-2.5"
+                rows={2}
+                placeholder="Técnica / criterios de ejecución (opcional)"
+                value={nuevaTecnica}
+                onChange={(e) => setNuevaTecnica(e.target.value)}
+              />
+              <input
+                className="input"
+                placeholder="Enlace al vídeo (opcional)"
+                value={nuevoVideo}
+                onChange={(e) => setNuevoVideo(e.target.value)}
+              />
               {errorCrear && (
                 <div className="text-peligro text-[13.5px] mb-3">
                   — {errorCrear}

@@ -23,6 +23,7 @@ export interface Perfil {
   altura_cm: number | null;
   sexo: "hombre" | "mujer" | null;
   factor_actividad: number;
+  objetivo_ritmo_semanal_pct: number | null;
 }
 
 export interface Invitacion {

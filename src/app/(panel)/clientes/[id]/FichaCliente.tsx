@@ -124,7 +124,13 @@ export default function FichaCliente({
       )}
 
       {pestana === "progreso" && (
-        <TabProgreso clienteId={perfil.id} medidas={medidas} />
+        <TabProgreso
+          clienteId={perfil.id}
+          medidas={medidas}
+          perfil={perfil}
+          dietaId={dieta?.id ?? null}
+          dietaKcal={dieta?.kcal_obj ?? null}
+        />
       )}
     </>
   );
