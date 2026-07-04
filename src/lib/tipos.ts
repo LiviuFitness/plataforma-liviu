@@ -108,6 +108,7 @@ export interface DiaUI {
   id: string;
   orden: number;
   nombre: string;
+  semana: number;
   ejercicios: EjercicioUI[];
 }
 
@@ -115,6 +116,7 @@ export interface RutinaUI {
   id: string;
   nombre: string;
   notas: string | null;
+  semana_actual: number;
   dias: DiaUI[];
 }
 

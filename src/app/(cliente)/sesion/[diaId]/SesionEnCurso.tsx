@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { aNumero } from "@/lib/rutinas";
+import {
+  parsearCarga,
+  parsearRepsRealizadas,
+  parsearRir,
+} from "@/lib/rutinas";
 import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
 
 export interface SerieSesion {
@@ -20,6 +24,7 @@ export interface EjercicioSesion {
   grupo: string;
   descansoSeg: number;
   notas: string;
+  anterior: string | null; // lo realizado la última vez ("90×8 · 90×7")
   series: SerieSesion[];
 }
 
@@ -147,16 +152,24 @@ export default function SesionEnCurso({
     }
 
     const filas = ejercicios.flatMap((e) =>
-      e.series.map((s, j) => ({
-        sesion_id: sesion.id,
-        rutina_ejercicio_id: e.rutinaEjercicioId,
-        orden: j,
-        tipo: s.tipo,
-        kg: aNumero(s.kg),
-        reps: aNumero(s.reps),
-        rir: aNumero(s.rir),
-        completada: s.completada,
-      }))
+      e.series.map((s, j) => {
+        const carga = parsearCarga(s.kg);
+        const reps = parsearRepsRealizadas(s.reps);
+        const rir = parsearRir(s.rir);
+        return {
+          sesion_id: sesion.id,
+          rutina_ejercicio_id: e.rutinaEjercicioId,
+          orden: j,
+          tipo: s.tipo,
+          kg: carga.kg,
+          carga_texto: carga.carga_texto,
+          reps: reps.reps,
+          reps_extra: reps.reps_extra,
+          rir: rir.rir,
+          tecnica: rir.tecnica,
+          completada: s.completada,
+        };
+      })
     );
     const { error: e2 } = await supabase.from("series_realizadas").insert(filas);
 
@@ -276,10 +289,15 @@ export default function SesionEnCurso({
                 {hechas}/{ex.series.length}
               </span>
             </div>
-            <div className="text-atenuado text-[12.5px] mb-2">
+            <div className="text-atenuado text-[12.5px] mb-1">
               Descanso {fmt(ex.descansoSeg)}
               {ex.notas ? ` · ${ex.notas}` : ""}
             </div>
+            {ex.anterior && (
+              <div className="text-[12.5px] text-acento/90 mb-2">
+                Última vez: {ex.anterior}
+              </div>
+            )}
 
             <div className="grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pb-1">
               <span>Serie</span>
@@ -306,25 +324,22 @@ export default function SesionEnCurso({
                 </span>
                 <input
                   className="campo-serie"
-                  inputMode="decimal"
                   value={s.kg}
                   onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                  aria-label="Kilos"
+                  aria-label="Carga"
                 />
                 <input
                   className="campo-serie"
-                  inputMode="numeric"
                   value={s.reps}
                   onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                  aria-label="Repeticiones"
+                  aria-label="Repeticiones (admite 8+3)"
                 />
                 <input
                   className="campo-serie"
-                  inputMode="numeric"
                   placeholder="—"
                   value={s.rir}
                   onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                  aria-label="RIR"
+                  aria-label="RIR o técnica"
                 />
                 <button
                   onClick={() => alternarCompletada(ei, si)}

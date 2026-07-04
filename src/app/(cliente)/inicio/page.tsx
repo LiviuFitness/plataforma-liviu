@@ -61,8 +61,17 @@ export default async function PaginaInicio() {
         .maybeSingle(),
     ]);
 
-  const rutina = rutinaFila
+  const rutinaCompleta = rutinaFila
     ? aRutinaUI(rutinaFila as unknown as FilaRutina)
+    : null;
+  // El cliente solo ve la semana activa (microciclo en curso)
+  const rutina = rutinaCompleta
+    ? {
+        ...rutinaCompleta,
+        dias: rutinaCompleta.dias.filter(
+          (d) => d.semana === rutinaCompleta.semana_actual
+        ),
+      }
     : null;
   const listaSesiones = sesiones ?? [];
 
@@ -136,7 +145,9 @@ export default async function PaginaInicio() {
       {/* Próximo entreno */}
       {proximoDia ? (
         <section className="tarjeta !border-acento/30">
-          <div className="titulo-tarjeta">TU PRÓXIMO ENTRENO</div>
+          <div className="titulo-tarjeta">
+            TU PRÓXIMO ENTRENO · SEMANA {rutina?.semana_actual ?? 1}
+          </div>
           <div className="font-bold text-[18px] mb-0.5">{proximoDia.nombre}</div>
           <div className="text-atenuado text-[13px] mb-4">
             {proximoDia.ejercicios.length} ejercicios ·{" "}

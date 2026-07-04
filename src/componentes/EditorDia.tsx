@@ -199,9 +199,9 @@ export default function EditorDia({
 
           <div className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pt-1.5 pb-1">
             <span>Serie</span>
-            <span>Kg</span>
+            <span>Carga</span>
             <span>Reps</span>
-            <span>RIR</span>
+            <span>RIR/Téc</span>
             <span></span>
           </div>
           {ex.series.map((s, si) => (
@@ -222,25 +222,24 @@ export default function EditorDia({
               </button>
               <input
                 className="campo-serie"
-                inputMode="decimal"
+                placeholder="90 ó goma"
                 value={s.kg}
                 onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                aria-label="Kilos"
+                aria-label="Carga (kg o texto)"
               />
               <input
                 className="campo-serie"
-                inputMode="numeric"
+                placeholder="6-10"
                 value={s.reps}
                 onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                aria-label="Repeticiones"
+                aria-label="Repeticiones (valor o rango)"
               />
               <input
                 className="campo-serie"
-                inputMode="numeric"
-                placeholder="—"
+                placeholder="2 ó P"
                 value={s.rir}
                 onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                aria-label="RIR"
+                aria-label="RIR o técnica"
               />
               <button
                 className="mini mini-peligro"
