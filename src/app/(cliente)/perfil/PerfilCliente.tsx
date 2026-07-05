@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import SubidaAvatar from "@/componentes/SubidaAvatar";
 import type { Perfil } from "@/lib/tipos";
 
 /** Perfil del cliente: datos, cambio de contraseña y derechos RGPD. */
@@ -88,6 +89,11 @@ export default function PerfilCliente({ perfil }: { perfil: Perfil }) {
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">MIS DATOS</div>
+        <SubidaAvatar
+          userId={perfil.id}
+          avatarUrl={perfil.avatar_url}
+          nombre={perfil.nombre}
+        />
         <div className="flex justify-between py-2 border-b border-borde text-[14px]">
           <span className="text-atenuado">Nombre</span>
           <span className="font-bold">{perfil.nombre}</span>
