@@ -79,6 +79,18 @@ export default function MiProgreso({
     router.refresh();
   }
 
+  async function borrarSesion(id: string) {
+    if (
+      !confirm(
+        "¿Borrar esta sesión? Desaparecerá de tu historial, racha y récords — útil si la empezaste por error."
+      )
+    )
+      return;
+    const supabase = crearClienteNavegador();
+    await supabase.from("sesiones").delete().eq("id", id);
+    router.refresh();
+  }
+
   return (
     <>
       <h1 className="h1">Mi progreso</h1>
@@ -211,7 +223,7 @@ export default function MiProgreso({
                 {s.seriesHechas} series
               </div>
             </div>
-            <span className="text-[15px] flex items-center gap-1">
+            <span className="text-[15px] flex items-center gap-2">
               {s.prsPre && (
                 <span title="Cómo llegaste">{EMOJIS[s.prsPre]}</span>
               )}
@@ -221,6 +233,13 @@ export default function MiProgreso({
               {s.sensacion && (
                 <span title="Cómo te fue">{EMOJIS[s.sensacion]}</span>
               )}
+              <button
+                className="mini mini-peligro"
+                onClick={() => borrarSesion(s.id)}
+                aria-label="Borrar sesión"
+              >
+                ✕
+              </button>
             </span>
           </div>
         ))}
