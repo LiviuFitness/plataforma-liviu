@@ -54,20 +54,22 @@ const PESOS_COMIDA: Record<string, number> = {
   Recena: 5,
 };
 const PESO_DEFECTO = 15;
+// Suma de referencia de un día "típico" con las 6 comidas (25+10+30+10+20+5).
+// Es fija a propósito: así cada tipo de comida siempre tiene el mismo % del
+// día, sin importar cuántas comidas tengas creadas todavía ni en qué orden
+// las vayas generando.
+const PESO_TOTAL_DIA = 100;
 
 function pesoComida(nombre: string): number {
   return PESOS_COMIDA[nombre.trim()] ?? PESO_DEFECTO;
 }
 
-/** Reparte el objetivo del día entre las comidas existentes, según su peso habitual. */
+/** Parte del objetivo del día que le toca a una comida, según su peso habitual. */
 export function objetivoPorComida(
   objetivoDia: ObjetivoMacros,
-  nombresComidas: string[],
-  nombreObjetivo: string
+  nombreComida: string
 ): ObjetivoMacros {
-  const pesos = nombresComidas.map(pesoComida);
-  const total = pesos.reduce((a, b) => a + b, 0) || 1;
-  const share = pesoComida(nombreObjetivo) / total;
+  const share = pesoComida(nombreComida) / PESO_TOTAL_DIA;
   return {
     kcal: objetivoDia.kcal * share,
     prot: objetivoDia.prot * share,

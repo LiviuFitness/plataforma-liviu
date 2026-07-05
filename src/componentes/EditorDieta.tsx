@@ -100,8 +100,8 @@ export default function EditorDieta({
     )
       return;
 
-    const nombres = comidas.map((x, j) => x.nombre.trim() || COMIDAS_SUGERIDAS[j % COMIDAS_SUGERIDAS.length]);
-    const objetivo = objetivoPorComida({ kcal, prot, carb, gras }, nombres, nombres[ci]);
+    const nombreComida = c.nombre.trim() || COMIDAS_SUGERIDAS[ci % COMIDAS_SUGERIDAS.length];
+    const objetivo = objetivoPorComida({ kcal, prot, carb, gras }, nombreComida);
     const resultado = generarComida(objetivo, alimentosPermitidos);
 
     if (!resultado) {
