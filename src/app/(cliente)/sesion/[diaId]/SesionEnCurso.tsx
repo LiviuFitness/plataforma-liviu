@@ -9,6 +9,7 @@ import {
   parsearRir,
 } from "@/lib/rutinas";
 import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
+import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 
 export interface SerieSesion {
   tipo: TipoSerie;
@@ -80,6 +81,7 @@ export default function SesionEnCurso({
   const [nota, setNota] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
   const avisado = useRef(false);
 
   function empezarEntreno() {
@@ -363,9 +365,19 @@ export default function SesionEnCurso({
           >
             <div className="flex justify-between items-baseline mb-0.5">
               <div className="font-bold text-[16px]">{ex.nombre}</div>
-              <span className="text-atenuado text-[12px]">
-                {hechas}/{ex.series.length}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  className="text-atenuado text-[15px] cursor-pointer"
+                  onClick={() => setCalculadoraPara(ei)}
+                  title="Calculadora de discos"
+                  aria-label="Calculadora de discos"
+                >
+                  ⚖
+                </button>
+                <span className="text-atenuado text-[12px]">
+                  {hechas}/{ex.series.length}
+                </span>
+              </div>
             </div>
             <div className="text-atenuado text-[12.5px] mb-1">
               Descanso {fmt(ex.descansoSeg)}
@@ -461,6 +473,20 @@ export default function SesionEnCurso({
           </section>
         );
       })}
+
+      {calculadoraPara !== null && (
+        <CalculadoraDiscos
+          pesoInicial={
+            ejercicios[calculadoraPara].series.find((s) => s.kg.trim() !== "")
+              ?.kg ??
+            ejercicios[calculadoraPara].series.find(
+              (s) => s.kgPrescrito.trim() !== ""
+            )?.kgPrescrito ??
+            ""
+          }
+          onCerrar={() => setCalculadoraPara(null)}
+        />
+      )}
 
       {ejercicios.length > 0 && (
         <button className="cta" onClick={() => setFase("final")}>
