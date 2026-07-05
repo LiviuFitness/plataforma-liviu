@@ -23,6 +23,7 @@ interface FilaEjercicio {
   descanso_seg: number;
   notas: string | null;
   ejercicio_id: string;
+  grupo_superserie: string | null;
   ejercicios: {
     nombre: string;
     grupo_muscular: string;
@@ -68,7 +69,7 @@ export default async function PaginaSesion({
       .select(
         `id, nombre,
          rutina_ejercicios (
-           id, orden, descanso_seg, notas, ejercicio_id,
+           id, orden, descanso_seg, notas, ejercicio_id, grupo_superserie,
            ejercicios ( nombre, grupo_muscular, instrucciones, video_url ),
            series_prescritas ( orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto )
          )`
@@ -134,6 +135,7 @@ export default async function PaginaSesion({
       grupo: e.ejercicios?.grupo_muscular ?? "",
       descansoSeg: e.descanso_seg,
       notas: e.notas ?? "",
+      grupoSuperserie: e.grupo_superserie,
       tecnica: e.ejercicios?.instrucciones ?? null,
       videoUrl: e.ejercicios?.video_url ?? null,
       anterior: anterior.get(e.ejercicio_id) ?? null,

@@ -104,6 +104,7 @@ export interface EjercicioUI {
   descanso_seg: number;
   notas: string;
   series: SerieUI[];
+  grupoSuperserie: string | null;
 }
 
 export interface DiaUI {

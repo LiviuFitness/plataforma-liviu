@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
+import { agruparPorSuperserie, limpiarGruposSolitarios } from "@/lib/rutinas";
 import {
   GRUPOS_MUSCULARES,
   INFO_TIPO_SERIE,
@@ -15,9 +16,14 @@ import {
 
 const SERIE_NUEVA: SerieUI = { tipo: "efectiva", kg: "", reps: "10", rir: "2" };
 
+interface EjercicioConIndice extends EjercicioUI {
+  indiceGlobal: number;
+}
+
 /**
  * Editor de día estilo Hevy (prototipo v2):
  * series individuales con tipo/kg/reps/RIR, descanso por ejercicio,
+ * superseries/circuitos (ejercicios sin descanso entre ellos),
  * biblioteca con buscador y filtro por músculo, reordenar ejercicios.
  */
 export default function EditorDia({
@@ -85,7 +91,9 @@ export default function EditorDia({
   const borrarEjercicio = (ei: number) =>
     cambiar({
       ...borrador,
-      ejercicios: borrador.ejercicios.filter((_, i) => i !== ei),
+      ejercicios: limpiarGruposSolitarios(
+        borrador.ejercicios.filter((_, i) => i !== ei)
+      ),
     });
 
   const moverEjercicio = (ei: number, dir: -1 | 1) => {
@@ -93,7 +101,9 @@ export default function EditorDia({
     if (j < 0 || j >= borrador.ejercicios.length) return;
     const arr = [...borrador.ejercicios];
     [arr[ei], arr[j]] = [arr[j], arr[ei]];
-    cambiar({ ...borrador, ejercicios: arr });
+    // Al reordenar, los grupos de superserie dejarían de ser consecutivos
+    // y perderían sentido visual — más seguro deshacerlos.
+    cambiar({ ...borrador, ejercicios: arr.map((e) => ({ ...e, grupoSuperserie: null })) });
   };
 
   const anadirDeBiblioteca = (ex: Ejercicio) => {
@@ -107,12 +117,37 @@ export default function EditorDia({
           grupo_muscular: ex.grupo_muscular,
           descanso_seg: 120,
           notas: "",
+          grupoSuperserie: null,
           series: [{ ...SERIE_NUEVA }, { ...SERIE_NUEVA }, { ...SERIE_NUEVA }],
         },
       ],
     });
     setMostrarBiblioteca(false);
   };
+
+  /* --- Superseries / circuitos --- */
+  const unirConSiguiente = (ei: number) => {
+    const actual = borrador.ejercicios[ei];
+    const siguiente = borrador.ejercicios[ei + 1];
+    if (!siguiente || siguiente.grupoSuperserie) return;
+    const idGrupo = actual.grupoSuperserie ?? `sg-${Date.now()}`;
+    cambiar({
+      ...borrador,
+      ejercicios: borrador.ejercicios.map((e, i) =>
+        i === ei || i === ei + 1 ? { ...e, grupoSuperserie: idGrupo } : e
+      ),
+    });
+  };
+
+  const separarDelGrupo = (ei: number) =>
+    cambiar({
+      ...borrador,
+      ejercicios: limpiarGruposSolitarios(
+        borrador.ejercicios.map((e, i) =>
+          i === ei ? { ...e, grupoSuperserie: null } : e
+        )
+      ),
+    });
 
   async function guardar() {
     const ok = await onGuardar(borrador);
@@ -131,6 +166,12 @@ export default function EditorDia({
 
   const fmtDescanso = (seg: number) =>
     `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`;
+
+  const conIndice: EjercicioConIndice[] = borrador.ejercicios.map((ex, ei) => ({
+    ...ex,
+    indiceGlobal: ei,
+  }));
+  const grupos = agruparPorSuperserie(conIndice);
 
   return (
     <>
@@ -154,111 +195,177 @@ export default function EditorDia({
         efectivas
       </div>
 
-      {borrador.ejercicios.map((ex, ei) => (
-        <section className="tarjeta" key={`${ex.ejercicio_id}-${ei}`}>
-          <div className="flex justify-between items-center mb-1">
-            <div className="font-bold text-[15.5px]">{ex.nombre}</div>
-            <div className="flex gap-1.5">
-              <button className="mini" onClick={() => moverEjercicio(ei, -1)} aria-label="Subir">
-                ↑
-              </button>
-              <button className="mini" onClick={() => moverEjercicio(ei, 1)} aria-label="Bajar">
-                ↓
-              </button>
-              <button
-                className="mini mini-peligro"
-                onClick={() => borrarEjercicio(ei)}
-                aria-label="Quitar ejercicio"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
+      {grupos.map((grupo, gi) => {
+        const esSuperserie = grupo.length > 1;
+        const ultimoEi = grupo[grupo.length - 1].indiceGlobal;
+        const siguiente = borrador.ejercicios[ultimoEi + 1];
+        const puedeUnirSiguiente = !!siguiente && !siguiente.grupoSuperserie;
 
-          <div className="flex justify-between items-center py-2 pb-2.5 border-b border-borde mb-1.5">
-            <span className="text-atenuado text-[12.5px]">Descanso</span>
-            <div className="stepper">
-              <button
-                onClick={() =>
-                  parchearEjercicio(ei, {
-                    descanso_seg: Math.max(15, ex.descanso_seg - 15),
-                  })
-                }
-              >
-                −
-              </button>
-              <span className="text-acento">{fmtDescanso(ex.descanso_seg)}</span>
-              <button
-                onClick={() =>
-                  parchearEjercicio(ei, { descanso_seg: ex.descanso_seg + 15 })
-                }
-              >
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pt-1.5 pb-1">
-            <span>Serie</span>
-            <span>Carga</span>
-            <span>Reps</span>
-            <span>RIR/Téc</span>
-            <span></span>
-          </div>
-          {ex.series.map((s, si) => (
-            <div
-              className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 items-center py-1"
-              key={si}
+        return (
+          <div key={gi}>
+            <section
+              className={`tarjeta ${esSuperserie ? "!p-0 overflow-hidden !border-acento/50" : ""}`}
             >
+              {esSuperserie && (
+                <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                  <span className="titulo-tarjeta !mb-0 !text-acento">
+                    🔗 Superserie · sin descanso entre ejercicios
+                  </span>
+                </div>
+              )}
+
+              {grupo.map((ex, posicion) => {
+                const ei = ex.indiceGlobal;
+                const esUltimoDelGrupo = posicion === grupo.length - 1;
+                return (
+                  <div
+                    key={ei}
+                    className={
+                      esSuperserie
+                        ? `px-4 pb-3 ${posicion > 0 ? "pt-3 border-t border-borde" : "pt-1"}`
+                        : ""
+                    }
+                  >
+                    <div className="flex justify-between items-center mb-1 gap-2">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <AvatarEjercicio videoUrl={null} tamano={30} />
+                        <div className="font-bold text-[15.5px] truncate">
+                          {ex.nombre}
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5 shrink-0">
+                        {esSuperserie && (
+                          <button
+                            className="mini"
+                            onClick={() => separarDelGrupo(ei)}
+                            aria-label="Separar de la superserie"
+                            title="Separar de la superserie"
+                          >
+                            🔗✕
+                          </button>
+                        )}
+                        <button className="mini" onClick={() => moverEjercicio(ei, -1)} aria-label="Subir">
+                          ↑
+                        </button>
+                        <button className="mini" onClick={() => moverEjercicio(ei, 1)} aria-label="Bajar">
+                          ↓
+                        </button>
+                        <button
+                          className="mini mini-peligro"
+                          onClick={() => borrarEjercicio(ei)}
+                          aria-label="Quitar ejercicio"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    {esSuperserie && !esUltimoDelGrupo ? (
+                      <div className="text-acento/80 text-[12px] mb-1.5">
+                        ↓ sin descanso, sigue directo con el siguiente
+                      </div>
+                    ) : (
+                      <div className="flex justify-between items-center py-2 pb-2.5 border-b border-borde mb-1.5">
+                        <span className="text-atenuado text-[12.5px]">
+                          {esSuperserie ? "Descanso al terminar la ronda" : "Descanso"}
+                        </span>
+                        <div className="stepper">
+                          <button
+                            onClick={() =>
+                              parchearEjercicio(ei, {
+                                descanso_seg: Math.max(15, ex.descanso_seg - 15),
+                              })
+                            }
+                          >
+                            −
+                          </button>
+                          <span className="text-acento">{fmtDescanso(ex.descanso_seg)}</span>
+                          <button
+                            onClick={() =>
+                              parchearEjercicio(ei, { descanso_seg: ex.descanso_seg + 15 })
+                            }
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pt-1.5 pb-1">
+                      <span>Serie</span>
+                      <span>Carga</span>
+                      <span>Reps</span>
+                      <span>RIR/Téc</span>
+                      <span></span>
+                    </div>
+                    {ex.series.map((s, si) => (
+                      <div
+                        className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 items-center py-1"
+                        key={si}
+                      >
+                        <button
+                          className="bg-campo border rounded-lg py-2 px-0.5 font-bold text-[11.5px] cursor-pointer"
+                          style={{
+                            color: INFO_TIPO_SERIE[s.tipo].color,
+                            borderColor: INFO_TIPO_SERIE[s.tipo].color + "55",
+                          }}
+                          onClick={() => ciclarTipo(ei, si)}
+                          title="Toca para cambiar el tipo de serie"
+                        >
+                          {INFO_TIPO_SERIE[s.tipo].etiqueta}
+                        </button>
+                        <input
+                          className="campo-serie"
+                          placeholder="90 ó goma"
+                          value={s.kg}
+                          onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
+                          aria-label="Carga (kg o texto)"
+                        />
+                        <input
+                          className="campo-serie"
+                          placeholder="6-10"
+                          value={s.reps}
+                          onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
+                          aria-label="Repeticiones (valor o rango)"
+                        />
+                        <input
+                          className="campo-serie"
+                          placeholder="2 ó P"
+                          value={s.rir}
+                          onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
+                          aria-label="RIR o técnica"
+                        />
+                        <button
+                          className="mini mini-peligro"
+                          onClick={() => borrarSerie(ei, si)}
+                          aria-label="Quitar serie"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      className="w-full bg-transparent border border-dashed border-[#2A333B] text-atenuado rounded-[10px] py-2.5 text-[13.5px] cursor-pointer mt-2"
+                      onClick={() => anadirSerie(ei)}
+                    >
+                      + Añadir serie
+                    </button>
+                  </div>
+                );
+              })}
+            </section>
+
+            {puedeUnirSiguiente && (
               <button
-                className="bg-campo border rounded-lg py-2 px-0.5 font-bold text-[11.5px] cursor-pointer"
-                style={{
-                  color: INFO_TIPO_SERIE[s.tipo].color,
-                  borderColor: INFO_TIPO_SERIE[s.tipo].color + "55",
-                }}
-                onClick={() => ciclarTipo(ei, si)}
-                title="Toca para cambiar el tipo de serie"
+                className="w-full flex items-center justify-center gap-1.5 text-atenuado text-[12.5px] cursor-pointer -mt-2 mb-2.5"
+                onClick={() => unirConSiguiente(ultimoEi)}
               >
-                {INFO_TIPO_SERIE[s.tipo].etiqueta}
+                🔗 Unir con el siguiente en superserie
               </button>
-              <input
-                className="campo-serie"
-                placeholder="90 ó goma"
-                value={s.kg}
-                onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                aria-label="Carga (kg o texto)"
-              />
-              <input
-                className="campo-serie"
-                placeholder="6-10"
-                value={s.reps}
-                onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                aria-label="Repeticiones (valor o rango)"
-              />
-              <input
-                className="campo-serie"
-                placeholder="2 ó P"
-                value={s.rir}
-                onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                aria-label="RIR o técnica"
-              />
-              <button
-                className="mini mini-peligro"
-                onClick={() => borrarSerie(ei, si)}
-                aria-label="Quitar serie"
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button
-            className="w-full bg-transparent border border-dashed border-[#2A333B] text-atenuado rounded-[10px] py-2.5 text-[13.5px] cursor-pointer mt-2"
-            onClick={() => anadirSerie(ei)}
-          >
-            + Añadir serie
-          </button>
-        </section>
-      ))}
+            )}
+          </div>
+        );
+      })}
 
       <button className="cta" onClick={() => setMostrarBiblioteca(true)}>
         + Añadir ejercicio

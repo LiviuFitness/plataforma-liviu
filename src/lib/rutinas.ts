@@ -6,7 +6,7 @@ export const SELECT_RUTINA_COMPLETA = `
   rutina_dias (
     id, orden, nombre, semana,
     rutina_ejercicios (
-      id, orden, descanso_seg, notas, ejercicio_id,
+      id, orden, descanso_seg, notas, ejercicio_id, grupo_superserie,
       ejercicios ( nombre, grupo_muscular ),
       series_prescritas ( id, orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto )
     )
@@ -29,6 +29,7 @@ interface FilaRutinaEjercicio {
   descanso_seg: number;
   notas: string | null;
   ejercicio_id: string;
+  grupo_superserie: string | null;
   ejercicios: { nombre: string; grupo_muscular: string } | null;
   series_prescritas: FilaSerie[];
 }
@@ -130,6 +131,7 @@ export function aRutinaUI(fila: FilaRutina): RutinaUI {
           grupo_muscular: e.ejercicios?.grupo_muscular ?? "",
           descanso_seg: e.descanso_seg,
           notas: e.notas ?? "",
+          grupoSuperserie: e.grupo_superserie,
           series: (e.series_prescritas ?? [])
             .slice()
             .sort((a, b) => a.orden - b.orden)
@@ -160,6 +162,47 @@ export function miniaturaYoutube(url: string | null): string | null {
     /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
   );
   return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null;
+}
+
+/* ============================================================
+   Superseries / circuitos: ejercicios consecutivos del mismo
+   día que comparten grupoSuperserie se hacen sin descanso entre
+   ellos; el descanso real llega solo al terminar el último.
+   ============================================================ */
+
+/** Agrupa ejercicios consecutivos que comparten grupoSuperserie. */
+export function agruparPorSuperserie<T extends { grupoSuperserie: string | null }>(
+  ejercicios: T[]
+): T[][] {
+  const grupos: T[][] = [];
+  for (const ej of ejercicios) {
+    const anterior = grupos[grupos.length - 1];
+    if (
+      ej.grupoSuperserie &&
+      anterior &&
+      anterior[0].grupoSuperserie === ej.grupoSuperserie
+    ) {
+      anterior.push(ej);
+    } else {
+      grupos.push([ej]);
+    }
+  }
+  return grupos;
+}
+
+/** Quita el grupoSuperserie a cualquier ejercicio que se haya quedado solo. */
+export function limpiarGruposSolitarios<T extends { grupoSuperserie: string | null }>(
+  ejercicios: T[]
+): T[] {
+  const conteo = new Map<string, number>();
+  for (const e of ejercicios) {
+    if (e.grupoSuperserie) conteo.set(e.grupoSuperserie, (conteo.get(e.grupoSuperserie) ?? 0) + 1);
+  }
+  return ejercicios.map((e) =>
+    e.grupoSuperserie && (conteo.get(e.grupoSuperserie) ?? 0) < 2
+      ? { ...e, grupoSuperserie: null }
+      : e
+  );
 }
 
 /** Convierte el texto de un campo numérico del editor ("72,5") a número o null. */

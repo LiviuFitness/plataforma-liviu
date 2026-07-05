@@ -221,6 +221,7 @@ export default function EditorRutina({
             orden: i,
             descanso_seg: ej.descanso_seg,
             notas: ej.notas || null,
+            grupo_superserie: ej.grupoSuperserie,
           })
           .select("id")
           .single();

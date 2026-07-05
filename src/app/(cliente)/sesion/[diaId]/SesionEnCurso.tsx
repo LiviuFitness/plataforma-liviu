@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
+  agruparPorSuperserie,
   parsearCarga,
   parsearRepsRealizadas,
   parsearRir,
@@ -34,7 +35,12 @@ export interface EjercicioSesion {
   tecnica: string | null; // criterios de técnica del entrenador
   videoUrl: string | null;
   anterior: string | null; // lo realizado la última vez ("90×8 · 90×7")
+  grupoSuperserie: string | null;
   series: SerieSesion[];
+}
+
+interface EjercicioConIndice extends EjercicioSesion {
+  indiceGlobal: number;
 }
 
 const SENSACIONES = [
@@ -148,13 +154,22 @@ export default function SesionEnCurso({
       }
     }
     parchearSerie(ei, si, relleno);
-    if (ahoraCompletada) {
-      // Arranca el descanso del ejercicio automáticamente
+    if (ahoraCompletada && esUltimoDeSuperserie(ei)) {
+      // Arranca el descanso automáticamente, pero solo tras el último
+      // ejercicio de la superserie (o si el ejercicio va solo)
       const seg = ejercicios[ei].descansoSeg;
       avisado.current = false;
       setDescanso({ total: seg, fin: Date.now() + seg * 1000 });
       setRestante(seg);
     }
+  }
+
+  /** true si `ei` es el último ejercicio de su superserie (o va solo). */
+  function esUltimoDeSuperserie(ei: number) {
+    const actual = ejercicios[ei];
+    if (!actual.grupoSuperserie) return true;
+    const siguiente = ejercicios[ei + 1];
+    return !siguiente || siguiente.grupoSuperserie !== actual.grupoSuperserie;
   }
 
   const totalSeries = ejercicios.reduce((a, e) => a + e.series.length, 0);
@@ -353,127 +368,162 @@ export default function SesionEnCurso({
         </div>
       )}
 
-      {ejercicios.map((ex, ei) => {
-        const hechas = ex.series.filter((s) => s.completada).length;
+      {agruparPorSuperserie(
+        ejercicios.map((ex, ei) => ({ ...ex, indiceGlobal: ei }))
+      ).map((grupo: EjercicioConIndice[], gi) => {
+        const esSuperserie = grupo.length > 1;
+        const grupoCompleto = grupo.every(
+          (ex) => ex.series.length > 0 && ex.series.every((s) => s.completada)
+        );
         return (
           <section
+            key={gi}
             className={`tarjeta ${
-              hechas === ex.series.length && ex.series.length > 0
-                ? "!border-acento/40"
-                : ""
+              esSuperserie
+                ? "!p-0 overflow-hidden !border-acento/50"
+                : grupoCompleto
+                  ? "!border-acento/40"
+                  : ""
             }`}
-            key={ex.rutinaEjercicioId}
           >
-            <div className="flex justify-between items-center mb-0.5 gap-2">
-              <div className="flex items-center gap-2.5 min-w-0">
-                <AvatarEjercicio videoUrl={ex.videoUrl} tamano={36} />
-                <div className="font-bold text-[16px] truncate">{ex.nombre}</div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  className="text-atenuado text-[15px] cursor-pointer"
-                  onClick={() => setCalculadoraPara(ei)}
-                  title="Calculadora de discos"
-                  aria-label="Calculadora de discos"
-                >
-                  ⚖
-                </button>
-                <span className="text-atenuado text-[12px]">
-                  {hechas}/{ex.series.length}
-                </span>
-              </div>
-            </div>
-            <div className="text-atenuado text-[12.5px] mb-1">
-              Descanso {fmt(ex.descansoSeg)}
-              {ex.notas ? ` · ${ex.notas}` : ""}
-            </div>
-            {ex.anterior && (
-              <div className="text-[12.5px] text-acento/90 mb-1">
-                Última vez: {ex.anterior}
+            {esSuperserie && (
+              <div className="px-4 pt-3 pb-1 text-acento text-[12.5px] font-bold uppercase tracking-wide">
+                🔗 Superserie · sin descanso entre ejercicios
               </div>
             )}
-
-            {/* Técnica del entrenador y vídeo, plegados para no estorbar */}
-            {(ex.tecnica || ex.videoUrl) && (
-              <details className="mb-2">
-                <summary className="text-[12.5px] text-atenuado cursor-pointer select-none py-0.5">
-                  📋 Técnica{ex.videoUrl ? " y vídeo" : ""}
-                </summary>
-                {ex.tecnica && (
-                  <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
-                    {ex.tecnica}
+            {grupo.map((ex, posicion) => {
+              const ei = ex.indiceGlobal;
+              const esUltimoDelGrupo = posicion === grupo.length - 1;
+              const hechas = ex.series.filter((s) => s.completada).length;
+              return (
+                <div
+                  key={ex.rutinaEjercicioId}
+                  className={
+                    esSuperserie
+                      ? `px-4 pb-3 ${posicion > 0 ? "pt-3 border-t border-borde" : "pt-1"}`
+                      : ""
+                  }
+                >
+                  <div className="flex justify-between items-center mb-0.5 gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <AvatarEjercicio videoUrl={ex.videoUrl} tamano={36} />
+                      <div className="font-bold text-[16px] truncate">{ex.nombre}</div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        className="text-atenuado text-[15px] cursor-pointer"
+                        onClick={() => setCalculadoraPara(ei)}
+                        title="Calculadora de discos"
+                        aria-label="Calculadora de discos"
+                      >
+                        ⚖
+                      </button>
+                      <span className="text-atenuado text-[12px]">
+                        {hechas}/{ex.series.length}
+                      </span>
+                    </div>
                   </div>
-                )}
-                {ex.videoUrl && (
-                  <a
-                    href={ex.videoUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-block text-acento text-[13px] underline underline-offset-2 mt-1.5"
-                  >
-                    🎥 Ver vídeo del ejercicio
-                  </a>
-                )}
-              </details>
-            )}
+                  {esSuperserie && !esUltimoDelGrupo ? (
+                    <div className="text-acento/80 text-[12.5px] mb-1">
+                      ↓ sin descanso, sigue directo con el siguiente
+                    </div>
+                  ) : (
+                    <div className="text-atenuado text-[12.5px] mb-1">
+                      Descanso {fmt(ex.descansoSeg)}
+                      {esSuperserie ? " al terminar la ronda" : ""}
+                      {ex.notas ? ` · ${ex.notas}` : ""}
+                    </div>
+                  )}
+                  {ex.anterior && (
+                    <div className="text-[12.5px] text-acento/90 mb-1">
+                      Última vez: {ex.anterior}
+                    </div>
+                  )}
 
-            <div className="grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pb-1">
-              <span>Serie</span>
-              <span>Kg</span>
-              <span>Reps</span>
-              <span>RIR</span>
-              <span></span>
-            </div>
-            {ex.series.map((s, si) => (
-              <div
-                className={`grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 items-center py-1.5 px-1.5 -mx-1.5 rounded-lg ${
-                  s.completada ? "bg-acento/10" : ""
-                }`}
-                key={si}
-              >
-                <span
-                  className="text-[11px] font-bold text-center py-2 rounded-lg bg-campo border"
-                  style={{
-                    color: INFO_TIPO_SERIE[s.tipo].color,
-                    borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
-                  }}
-                >
-                  {INFO_TIPO_SERIE[s.tipo].etiqueta}
-                </span>
-                <input
-                  className="campo-serie placeholder:text-atenuado/60"
-                  placeholder={s.kgPrescrito || "kg"}
-                  value={s.kg}
-                  onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                  aria-label="Carga"
-                />
-                <input
-                  className="campo-serie placeholder:text-atenuado/60"
-                  placeholder={s.repsPrescrito || "reps"}
-                  value={s.reps}
-                  onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                  aria-label="Repeticiones (admite 8+3)"
-                />
-                <input
-                  className="campo-serie placeholder:text-atenuado/60"
-                  placeholder={s.rirPrescrito || "—"}
-                  value={s.rir}
-                  onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                  aria-label="RIR o técnica"
-                />
-                <button
-                  onClick={() => alternarCompletada(ei, si)}
-                  aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
-                  className={`h-[38px] rounded-[10px] font-bold text-[16px] cursor-pointer border ${
-                    s.completada
-                      ? "bg-acento text-fondo border-acento"
-                      : "bg-campo text-atenuado border-borde-2"
-                  }`}
-                >
-                  ✓
-                </button>
-              </div>
-            ))}
+                  {/* Técnica del entrenador y vídeo, plegados para no estorbar */}
+                  {(ex.tecnica || ex.videoUrl) && (
+                    <details className="mb-2">
+                      <summary className="text-[12.5px] text-atenuado cursor-pointer select-none py-0.5">
+                        📋 Técnica{ex.videoUrl ? " y vídeo" : ""}
+                      </summary>
+                      {ex.tecnica && (
+                        <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
+                          {ex.tecnica}
+                        </div>
+                      )}
+                      {ex.videoUrl && (
+                        <a
+                          href={ex.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-block text-acento text-[13px] underline underline-offset-2 mt-1.5"
+                        >
+                          🎥 Ver vídeo del ejercicio
+                        </a>
+                      )}
+                    </details>
+                  )}
+
+                  <div className="grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pb-1">
+                    <span>Serie</span>
+                    <span>Kg</span>
+                    <span>Reps</span>
+                    <span>RIR</span>
+                    <span></span>
+                  </div>
+                  {ex.series.map((s, si) => (
+                    <div
+                      className={`grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 items-center py-1.5 px-1.5 -mx-1.5 rounded-lg ${
+                        s.completada ? "bg-acento/10" : ""
+                      }`}
+                      key={si}
+                    >
+                      <span
+                        className="text-[11px] font-bold text-center py-2 rounded-lg bg-campo border"
+                        style={{
+                          color: INFO_TIPO_SERIE[s.tipo].color,
+                          borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
+                        }}
+                      >
+                        {INFO_TIPO_SERIE[s.tipo].etiqueta}
+                      </span>
+                      <input
+                        className="campo-serie placeholder:text-atenuado/60"
+                        placeholder={s.kgPrescrito || "kg"}
+                        value={s.kg}
+                        onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
+                        aria-label="Carga"
+                      />
+                      <input
+                        className="campo-serie placeholder:text-atenuado/60"
+                        placeholder={s.repsPrescrito || "reps"}
+                        value={s.reps}
+                        onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
+                        aria-label="Repeticiones (admite 8+3)"
+                      />
+                      <input
+                        className="campo-serie placeholder:text-atenuado/60"
+                        placeholder={s.rirPrescrito || "—"}
+                        value={s.rir}
+                        onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
+                        aria-label="RIR o técnica"
+                      />
+                      <button
+                        onClick={() => alternarCompletada(ei, si)}
+                        aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
+                        className={`h-[38px] rounded-[10px] font-bold text-[16px] cursor-pointer border ${
+                          s.completada
+                            ? "bg-acento text-fondo border-acento"
+                            : "bg-campo text-atenuado border-borde-2"
+                        }`}
+                      >
+                        ✓
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              );
+            })}
           </section>
         );
       })}
