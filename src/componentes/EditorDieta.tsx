@@ -16,6 +16,7 @@ import {
   type Alimento,
   type ComidaEstructurada,
 } from "@/lib/dietas";
+import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
 import type { Dieta } from "@/lib/tipos";
 
 interface ItemUI {
@@ -77,10 +78,56 @@ export default function EditorDieta({
   const [error, setError] = useState("");
   const [ok, setOk] = useState(false);
   const [notaCalculo, setNotaCalculo] = useState("");
+  const [avisoGeneracion, setAvisoGeneracion] = useState<Record<number, string>>({});
 
   function tocar() {
     setSucio(true);
     setOk(false);
+  }
+
+  /* --- Generador automático: solo alimentos que le gustan al cliente y ya categorizados --- */
+  const excluidosSet = useMemo(() => new Set(excluidos ?? []), [excluidos]);
+  const alimentosPermitidos = useMemo(
+    () => alimentos.filter((a) => a.categoria && !excluidosSet.has(a.id)),
+    [alimentos, excluidosSet]
+  );
+
+  function generarAutomatico(ci: number) {
+    const c = comidas[ci];
+    if (
+      c.items.length > 0 &&
+      !confirm(`Esto sustituye los alimentos actuales de «${c.nombre || "esta comida"}». ¿Continuar?`)
+    )
+      return;
+
+    const nombres = comidas.map((x, j) => x.nombre.trim() || COMIDAS_SUGERIDAS[j % COMIDAS_SUGERIDAS.length]);
+    const objetivo = objetivoPorComida({ kcal, prot, carb, gras }, nombres, nombres[ci]);
+    const resultado = generarComida(objetivo, alimentosPermitidos);
+
+    if (!resultado) {
+      setAvisoGeneracion((prev) => ({
+        ...prev,
+        [ci]:
+          "Al cliente le faltan alimentos variados entre los que le gustan (hace falta al menos una proteína, un carbohidrato y una grasa). Añade más en Mi dieta o hazlo manualmente.",
+      }));
+      return;
+    }
+
+    setComidas(
+      comidas.map((x, j) =>
+        j === ci
+          ? {
+              ...x,
+              items: resultado.items.map((it) => ({
+                alimento: it.alimento,
+                gramos: String(it.gramos),
+              })),
+            }
+          : x
+      )
+    );
+    setAvisoGeneracion((prev) => ({ ...prev, [ci]: resultado.aviso ?? "" }));
+    tocar();
   }
 
   /* --- Totales del plan (suma de todas las comidas) --- */
@@ -338,6 +385,16 @@ export default function EditorDieta({
                 </div>
               );
             })}
+
+            <button
+              className="w-full flex items-center justify-center gap-1.5 bg-panel border border-acento/40 text-acento rounded-[10px] py-2 text-[13px] cursor-pointer mt-2"
+              onClick={() => generarAutomatico(ci)}
+            >
+              ✨ Generar automáticamente
+            </button>
+            {avisoGeneracion[ci] && (
+              <div className="text-aviso text-[12px] mt-1.5">— {avisoGeneracion[ci]}</div>
+            )}
 
             <button
               className="w-full bg-transparent border border-dashed border-[#2A333B] text-atenuado rounded-[10px] py-2 text-[13px] cursor-pointer mt-2"
