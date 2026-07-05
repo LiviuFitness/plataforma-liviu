@@ -72,7 +72,7 @@ export default function CalculadoraDiscos({
         {resultado && (
           <div className="tarjeta !mt-4 !mb-0">
             {/* Dibujo simple de la barra cargada */}
-            <div className="flex items-center justify-center gap-1 py-4 overflow-x-auto">
+            <div className="flex items-center justify-center gap-1 py-4 overflow-x-auto scroll-sin-barra">
               <div className="w-10 h-1.5 bg-borde-2 rounded-l-full shrink-0" />
               {resultado.porLado.length === 0 ? (
                 <span className="text-atenuado text-[12px] px-2">— sin discos —</span>

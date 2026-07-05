@@ -480,7 +480,7 @@ function HojaBiblioteca({
           autoFocus
         />
 
-        <div className="flex gap-1.5 overflow-x-auto pb-2.5">
+        <div className="flex gap-1.5 overflow-x-auto scroll-sin-barra pb-2.5">
           {["Todos", ...GRUPOS_MUSCULARES].map((m) => (
             <button
               key={m}

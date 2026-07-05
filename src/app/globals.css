@@ -174,6 +174,16 @@ body {
     background: var(--color-acento);
     border-color: var(--color-acento);
   }
+  /* Oculta la barra de scroll en filas horizontales (chips, discos…)
+     sin quitar el scroll/swipe — la barra nativa de Windows se
+     dibuja encima del contenido y lo tapa. */
+  .scroll-sin-barra {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .scroll-sin-barra::-webkit-scrollbar {
+    display: none;
+  }
   .tab {
     flex: 1;
     background: none;

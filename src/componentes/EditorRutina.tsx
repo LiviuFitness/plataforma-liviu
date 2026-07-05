@@ -297,7 +297,7 @@ export default function EditorRutina({
   return (
     <>
       {/* Selector de semanas (microciclos) */}
-      <div className="flex gap-1.5 overflow-x-auto pb-2 mb-1">
+      <div className="flex gap-1.5 overflow-x-auto scroll-sin-barra pb-2 mb-1">
         {semanas.map((s) => (
           <button
             key={s}
