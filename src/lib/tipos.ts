@@ -19,6 +19,8 @@ export interface Perfil {
   notas_entrenador: string | null;
   consentimiento_salud: string | null;
   avatar_url: string | null;
+  rutina_vista_en: string | null;
+  dieta_vista_en: string | null;
   // Datos físicos (para el auto-cálculo de macros)
   fecha_nacimiento: string | null;
   altura_cm: number | null;

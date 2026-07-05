@@ -4,6 +4,7 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
 import RegistroPesoRapido from "./RegistroPesoRapido";
+import AvisosActualizacion from "./AvisosActualizacion";
 
 export const dynamic = "force-dynamic";
 
@@ -84,8 +85,14 @@ export default async function PaginaInicio() {
     { data: sesiones },
     { data: dieta },
     { data: medidas },
+    { data: rutinaMeta },
+    { data: dietaMeta },
   ] = await Promise.all([
-    supabase.from("profiles").select("nombre").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("profiles")
+      .select("nombre, rutina_vista_en, dieta_vista_en")
+      .eq("id", user.id)
+      .maybeSingle(),
     supabase
       .from("rutinas")
       .select(SELECT_RUTINA_COMPLETA)
@@ -118,7 +125,34 @@ export default async function PaginaInicio() {
       .not("peso", "is", null)
       .order("fecha", { ascending: false })
       .limit(2),
+    supabase
+      .from("rutinas")
+      .select("actualizada_en")
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("dietas")
+      .select("actualizada_en")
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const avisoRutina = !!(
+    rutinaMeta?.actualizada_en &&
+    (!perfil?.rutina_vista_en ||
+      new Date(rutinaMeta.actualizada_en) > new Date(perfil.rutina_vista_en))
+  );
+  const avisoDieta = !!(
+    dietaMeta?.actualizada_en &&
+    (!perfil?.dieta_vista_en ||
+      new Date(dietaMeta.actualizada_en) > new Date(perfil.dieta_vista_en))
+  );
 
   const rutinaCompleta = rutinaFila
     ? aRutinaUI(rutinaFila as unknown as FilaRutina)
@@ -185,6 +219,8 @@ export default async function PaginaInicio() {
         {nombrePila ? `, ${nombrePila}` : ""}
       </h1>
       <div className="sub mb-3">{mensaje}</div>
+
+      <AvisosActualizacion avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
 
       <div className="tarjeta !border-acento/20 text-texto-2 text-[13.5px] italic">
         “{fraseDelDia()}”
