@@ -5,6 +5,7 @@ import "./globals.css";
 import RegistroSW from "@/componentes/RegistroSW";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://app.livfit.es"),
   title: "LivFit",
   description: "Plataforma de coaching de LIVIU Fitness Studio",
   manifest: "/manifest.webmanifest",
@@ -16,6 +17,13 @@ export const metadata: Metadata = {
     capable: true,
     title: "LivFit",
     statusBarStyle: "black-translucent",
+  },
+  openGraph: {
+    title: "LivFit",
+    description: "Plataforma de coaching de LIVIU Fitness Studio",
+    siteName: "LivFit",
+    locale: "es_ES",
+    type: "website",
   },
 };
 

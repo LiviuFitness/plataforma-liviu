@@ -64,6 +64,33 @@ export default function TabResumen({
   const [guardandoDatos, setGuardandoDatos] = useState(false);
   const [datosOk, setDatosOk] = useState(false);
 
+  /* --- Eliminar cliente (irreversible) --- */
+  const [confirmacionNombre, setConfirmacionNombre] = useState("");
+  const [eliminando, setEliminando] = useState(false);
+  const [errorEliminar, setErrorEliminar] = useState("");
+
+  async function eliminarCliente() {
+    if (
+      !confirm(
+        `Esto borra para siempre a ${perfil.nombre}: su cuenta, rutina, dieta, medidas y sesiones. No se puede deshacer. ¿Seguro?`
+      )
+    )
+      return;
+    setEliminando(true);
+    setErrorEliminar("");
+    const supabase = crearClienteNavegador();
+    const { error } = await supabase.rpc("eliminar_cliente", {
+      p_cliente_id: perfil.id,
+    });
+    setEliminando(false);
+    if (error) {
+      setErrorEliminar("No se pudo eliminar. Inténtalo de nuevo.");
+      return;
+    }
+    router.push("/clientes");
+    router.refresh();
+  }
+
   async function guardarDatos() {
     setGuardandoDatos(true);
     const supabase = crearClienteNavegador();
@@ -253,6 +280,33 @@ export default function TabResumen({
 
         <button className="cta" onClick={guardarDatos} disabled={guardandoDatos}>
           {datosOk ? "Guardado ✓" : guardandoDatos ? "Guardando…" : "Guardar datos"}
+        </button>
+      </section>
+
+      <section className="tarjeta !border-peligro/40">
+        <div className="titulo-tarjeta !text-peligro">ZONA DE PELIGRO</div>
+        <p className="text-texto-2 text-[13.5px] mb-3">
+          Elimina la cuenta de {perfil.nombre} y todos sus datos (rutina,
+          dieta, medidas, sesiones). Esta acción no se puede deshacer.
+        </p>
+        <label className="text-[13px] text-texto-2 block mb-1">
+          Escribe «{perfil.nombre}» para confirmar
+        </label>
+        <input
+          className="input"
+          value={confirmacionNombre}
+          onChange={(e) => setConfirmacionNombre(e.target.value)}
+          placeholder={perfil.nombre}
+        />
+        {errorEliminar && (
+          <div className="text-peligro text-[13.5px] mb-3">— {errorEliminar}</div>
+        )}
+        <button
+          className="w-full bg-transparent border border-peligro text-peligro rounded-[12px] py-[13px] font-bold text-[15px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          disabled={confirmacionNombre.trim() !== perfil.nombre.trim() || eliminando}
+          onClick={eliminarCliente}
+        >
+          {eliminando ? "Eliminando…" : "Eliminar cliente definitivamente"}
         </button>
       </section>
     </>

@@ -12,6 +12,7 @@ const RUTAS_PUBLICAS = [
   "/politica-privacidad",
   "/politica-cookies",
   "/terminos",
+  "/opengraph-image", // miniatura al compartir el enlace (sin extensión en la URL, la genera Next)
 ];
 
 function esRutaPublica(ruta: string) {
