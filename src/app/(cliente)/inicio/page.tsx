@@ -2,6 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
+import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
+import RegistroPesoRapido from "./RegistroPesoRapido";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +27,48 @@ function calcularRacha(fechas: string[]): number {
   return racha;
 }
 
-/** Inicio del cliente: racha, semana y próximo entreno. */
+interface FilaSerieParaPR {
+  kg: number | null;
+  completada: boolean;
+  tipo: string;
+  rutina_ejercicios: { ejercicios: { nombre: string } | null } | null;
+}
+
+interface FilaSesionParaPR {
+  fecha_inicio: string;
+  series_realizadas: FilaSerieParaPR[];
+}
+
+/** Récord reciente: el ejercicio en el que se batió la mejor marca en los últimos 7 días. */
+function calcularPrReciente(
+  sesiones: FilaSesionParaPR[]
+): { ejercicio: string; kg: number; fecha: string } | null {
+  const cronologico = sesiones
+    .slice()
+    .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
+
+  const mejores = new Map<string, number>();
+  let ultimoRecord: { ejercicio: string; kg: number; fecha: string } | null = null;
+
+  for (const sesion of cronologico) {
+    for (const s of sesion.series_realizadas ?? []) {
+      const nombre = s.rutina_ejercicios?.ejercicios?.nombre;
+      if (!nombre || !s.completada || s.tipo === "calentamiento" || s.kg === null)
+        continue;
+      const actual = mejores.get(nombre) ?? 0;
+      if (Number(s.kg) > actual) {
+        mejores.set(nombre, Number(s.kg));
+        ultimoRecord = { ejercicio: nombre, kg: Number(s.kg), fecha: sesion.fecha_inicio };
+      }
+    }
+  }
+
+  if (!ultimoRecord) return null;
+  const diasDesde = (Date.now() - new Date(ultimoRecord.fecha).getTime()) / 86400000;
+  return diasDesde <= 7 ? ultimoRecord : null;
+}
+
+/** Inicio del cliente: frase del día, racha, semana, próximo entreno, peso y PR reciente. */
 export default async function PaginaInicio() {
   const supabase = await crearClienteServidor();
   const {
@@ -35,31 +78,47 @@ export default async function PaginaInicio() {
 
   const hace60dias = new Date(Date.now() - 60 * 86400000).toISOString();
 
-  const [{ data: perfil }, { data: rutinaFila }, { data: sesiones }, { data: dieta }] =
-    await Promise.all([
-      supabase.from("profiles").select("nombre").eq("id", user.id).maybeSingle(),
-      supabase
-        .from("rutinas")
-        .select(SELECT_RUTINA_COMPLETA)
-        .eq("cliente_id", user.id)
-        .eq("activa", true)
-        .order("creada_en", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("sesiones")
-        .select("fecha_inicio, dia_id")
-        .eq("cliente_id", user.id)
-        .gte("fecha_inicio", hace60dias)
-        .order("fecha_inicio", { ascending: false }),
-      supabase
-        .from("dietas")
-        .select("kcal_obj, prot_obj, carb_obj, gras_obj")
-        .eq("cliente_id", user.id)
-        .eq("activa", true)
-        .limit(1)
-        .maybeSingle(),
-    ]);
+  const [
+    { data: perfil },
+    { data: rutinaFila },
+    { data: sesiones },
+    { data: dieta },
+    { data: medidas },
+  ] = await Promise.all([
+    supabase.from("profiles").select("nombre").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("rutinas")
+      .select(SELECT_RUTINA_COMPLETA)
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("sesiones")
+      .select(
+        `fecha_inicio, dia_id,
+         series_realizadas ( kg, completada, tipo,
+           rutina_ejercicios ( ejercicios ( nombre ) ) )`
+      )
+      .eq("cliente_id", user.id)
+      .gte("fecha_inicio", hace60dias)
+      .order("fecha_inicio", { ascending: false }),
+    supabase
+      .from("dietas")
+      .select("kcal_obj, prot_obj, carb_obj, gras_obj")
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("medidas")
+      .select("peso, fecha")
+      .eq("cliente_id", user.id)
+      .not("peso", "is", null)
+      .order("fecha", { ascending: false })
+      .limit(2),
+  ]);
 
   const rutinaCompleta = rutinaFila
     ? aRutinaUI(rutinaFila as unknown as FilaRutina)
@@ -90,6 +149,7 @@ export default async function PaginaInicio() {
   const objetivoSemana = rutina?.dias.length ?? 0;
 
   const racha = calcularRacha(listaSesiones.map((s) => s.fecha_inicio));
+  const prReciente = calcularPrReciente(listaSesiones as unknown as FilaSesionParaPR[]);
 
   // Próximo día sugerido: el siguiente al de la última sesión
   let proximoIndice = 0;
@@ -104,10 +164,47 @@ export default async function PaginaInicio() {
 
   const nombrePila = perfil?.nombre?.split(" ")[0] ?? "";
 
+  const listaMedidas = medidas ?? [];
+  const ultimoPeso = listaMedidas[0]?.peso ?? null;
+  const deltaPeso =
+    listaMedidas.length >= 2 && ultimoPeso !== null
+      ? Number(ultimoPeso) - Number(listaMedidas[1].peso)
+      : null;
+
+  // Mensaje contextual: prioriza racha activa, luego semana, luego invita a empezar
+  let mensaje = "hoy es un buen día para tu primera sesión —";
+  if (racha >= 2) mensaje = `🔥 llevas ${racha} días seguidos, ¡no la rompas!`;
+  else if (racha === 1) mensaje = "empezaste tu racha ayer, ¡a por hoy!";
+  else if (hechasSemana > 0)
+    mensaje = `ya llevas ${hechasSemana} de ${objetivoSemana || "—"} entrenos esta semana —`;
+
   return (
     <>
-      <h1 className="h1">Hola{nombrePila ? `, ${nombrePila}` : ""}</h1>
-      <div className="sub">a por el día de hoy —</div>
+      <h1 className="h1">
+        {saludoSegunHora()}
+        {nombrePila ? `, ${nombrePila}` : ""}
+      </h1>
+      <div className="sub mb-3">{mensaje}</div>
+
+      <div className="tarjeta !border-acento/20 text-texto-2 text-[13.5px] italic">
+        “{fraseDelDia()}”
+      </div>
+
+      {prReciente && (
+        <div className="tarjeta !border-aviso/40 !mb-2.5">
+          <div className="flex items-center gap-2">
+            <span className="text-[22px]">🏆</span>
+            <div>
+              <div className="font-bold text-[14.5px]">
+                Nuevo récord: {prReciente.ejercicio}
+              </div>
+              <div className="text-atenuado text-[12.5px]">
+                {prReciente.kg} kg — ¡sigue así!
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Racha y semana */}
       <div className="grid grid-cols-2 gap-2.5 my-[18px]">
@@ -199,6 +296,12 @@ export default async function PaginaInicio() {
           )}
         </section>
       )}
+
+      <RegistroPesoRapido
+        clienteId={user.id}
+        ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
+        deltaKg={deltaPeso}
+      />
 
       {/* Acceso rápido a la dieta */}
       {dieta && (
