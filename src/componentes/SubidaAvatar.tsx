@@ -2,36 +2,9 @@
 
 import { useRef, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import { redimensionarImagen } from "@/lib/imagen";
 
 const TAMANO_MAX = 512;
-
-/** Redimensiona en el navegador antes de subir: una foto de móvil
- * pesa varios MB y un avatar no necesita tanto. */
-function redimensionar(archivo: File): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    const url = URL.createObjectURL(archivo);
-    img.onload = () => {
-      const escala = Math.min(1, TAMANO_MAX / Math.max(img.width, img.height));
-      const w = Math.round(img.width * escala);
-      const h = Math.round(img.height * escala);
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      URL.revokeObjectURL(url);
-      if (!ctx) return reject(new Error("canvas"));
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error("blob"))),
-        "image/jpeg",
-        0.85
-      );
-    };
-    img.onerror = () => reject(new Error("imagen invalida"));
-    img.src = url;
-  });
-}
 
 /** Foto de perfil circular: toca para elegir/cambiar la imagen. */
 export default function SubidaAvatar({
@@ -67,7 +40,7 @@ export default function SubidaAvatar({
     setError("");
     setSubiendo(true);
     try {
-      const blob = await redimensionar(archivo);
+      const blob = await redimensionarImagen(archivo, TAMANO_MAX, 0.85);
       const supabase = crearClienteNavegador();
       const ruta = `${userId}/avatar.jpg`;
       const { error: e1 } = await supabase.storage

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { calcularRevisionSemanal } from "@/lib/revision";
+import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import MiProgreso, { type PR, type SesionHistorial } from "./MiProgreso";
 import type { Medida } from "@/lib/tipos";
 
@@ -108,6 +109,11 @@ export default async function PaginaMiProgreso() {
   );
   const semanaActual = semanas[semanas.length - 1] ?? null;
 
+  const entradasFotos = await resolverFotosProgreso(
+    supabase,
+    (medidas ?? []) as Medida[]
+  );
+
   return (
     <MiProgreso
       clienteId={user.id}
@@ -116,6 +122,7 @@ export default async function PaginaMiProgreso() {
       historial={historial}
       semanaActual={semanaActual}
       progresiones={progresiones}
+      entradasFotos={entradasFotos}
     />
   );
 }

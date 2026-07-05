@@ -10,7 +10,8 @@ import {
   ritmoPorDefecto,
   sugerenciaAjusteKcal,
 } from "@/lib/revision";
-import type { Medida, Perfil } from "@/lib/tipos";
+import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
+import type { EntradaFotosProgreso, Medida, Perfil } from "@/lib/tipos";
 
 /** Pestaña Progreso: revisión semanal, medidas y añadir medida nueva. */
 export default function TabProgreso({
@@ -19,12 +20,14 @@ export default function TabProgreso({
   perfil,
   dietaId,
   dietaKcal,
+  entradasFotos,
 }: {
   clienteId: string;
   medidas: Medida[];
   perfil: Perfil;
   dietaId: string | null;
   dietaKcal: number | null;
+  entradasFotos: EntradaFotosProgreso[];
 }) {
   const router = useRouter();
   const [f, setF] = useState({ peso: "", cintura: "", pecho: "", brazo: "", pierna: "" });
@@ -193,6 +196,11 @@ export default function TabProgreso({
             )}
           </div>
         )}
+      </section>
+
+      <section className="tarjeta">
+        <div className="titulo-tarjeta">FOTOS DE PROGRESO</div>
+        <GaleriaFotosProgreso entradas={entradasFotos} />
       </section>
 
       <section className="tarjeta">

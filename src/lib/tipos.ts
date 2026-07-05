@@ -59,6 +59,24 @@ export interface Medida {
   pecho: number | null;
   brazo: number | null;
   pierna: number | null;
+  foto_frontal_url: string | null;
+  foto_lateral_url: string | null;
+  foto_espalda_url: string | null;
+}
+
+/* ---- Fotos de progreso (bucket privado, URLs firmadas) ---- */
+
+export interface FotoProgreso {
+  path: string;
+  url: string;
+}
+
+export interface EntradaFotosProgreso {
+  id: string;
+  fecha: string;
+  frontal: FotoProgreso | null;
+  lateral: FotoProgreso | null;
+  espalda: FotoProgreso | null;
 }
 
 export interface Alerta {

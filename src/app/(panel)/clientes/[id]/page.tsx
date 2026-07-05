@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { SELECT_DIETA_COMPLETA, type Alimento } from "@/lib/dietas";
+import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import FichaCliente from "./FichaCliente";
 import type { Alerta, Dieta, Ejercicio, Medida, Perfil } from "@/lib/tipos";
 
@@ -82,6 +83,11 @@ export default async function PaginaFichaCliente({
     diasEntrenados[d] = true;
   }
 
+  const entradasFotos = await resolverFotosProgreso(
+    supabase,
+    (medidas ?? []) as Medida[]
+  );
+
   return (
     <FichaCliente
       perfil={perfil as Perfil}
@@ -93,6 +99,7 @@ export default async function PaginaFichaCliente({
       dieta={(dieta as Dieta | null) ?? null}
       biblioteca={(biblioteca ?? []) as Ejercicio[]}
       alimentos={(alimentos ?? []) as Alimento[]}
+      entradasFotos={entradasFotos}
     />
   );
 }

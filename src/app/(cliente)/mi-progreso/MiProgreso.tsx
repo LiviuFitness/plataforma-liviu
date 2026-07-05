@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { fechaCorta, Sparkline } from "@/componentes/ui";
 import { aNumero } from "@/lib/rutinas";
+import FotosProgreso from "@/componentes/FotosProgreso";
 import type { SemanaRevision } from "@/lib/revision";
-import type { Medida } from "@/lib/tipos";
+import type { EntradaFotosProgreso, Medida } from "@/lib/tipos";
 
 export interface PR {
   ejercicio: string;
@@ -39,6 +40,7 @@ export default function MiProgreso({
   historial,
   semanaActual,
   progresiones,
+  entradasFotos,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -46,6 +48,7 @@ export default function MiProgreso({
   historial: SesionHistorial[];
   semanaActual: SemanaRevision | null;
   progresiones: Record<string, PuntoProgresion[]>;
+  entradasFotos: EntradaFotosProgreso[];
 }) {
   const router = useRouter();
   const [peso, setPeso] = useState("");
@@ -138,6 +141,8 @@ export default function MiProgreso({
           Pésate siempre en las mismas condiciones (por la mañana, en ayunas).
         </p>
       </section>
+
+      <FotosProgreso clienteId={clienteId} entradasIniciales={entradasFotos} />
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">RÉCORDS PERSONALES 🏆</div>

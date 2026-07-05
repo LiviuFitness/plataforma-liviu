@@ -12,6 +12,7 @@ import type {
   Alerta,
   Dieta,
   Ejercicio,
+  EntradaFotosProgreso,
   Medida,
   Perfil,
   RutinaUI,
@@ -37,6 +38,7 @@ export default function FichaCliente({
   dieta,
   biblioteca,
   alimentos,
+  entradasFotos,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -47,6 +49,7 @@ export default function FichaCliente({
   dieta: Dieta | null;
   biblioteca: Ejercicio[];
   alimentos: Alimento[];
+  entradasFotos: EntradaFotosProgreso[];
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
@@ -130,6 +133,7 @@ export default function FichaCliente({
           perfil={perfil}
           dietaId={dieta?.id ?? null}
           dietaKcal={dieta?.kcal_obj ?? null}
+          entradasFotos={entradasFotos}
         />
       )}
     </>
