@@ -10,6 +10,7 @@ import {
 } from "@/lib/rutinas";
 import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
+import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 
 export interface SerieSesion {
   tipo: TipoSerie;
@@ -363,9 +364,12 @@ export default function SesionEnCurso({
             }`}
             key={ex.rutinaEjercicioId}
           >
-            <div className="flex justify-between items-baseline mb-0.5">
-              <div className="font-bold text-[16px]">{ex.nombre}</div>
-              <div className="flex items-center gap-2">
+            <div className="flex justify-between items-center mb-0.5 gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <AvatarEjercicio videoUrl={ex.videoUrl} tamano={36} />
+                <div className="font-bold text-[16px] truncate">{ex.nombre}</div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
                 <button
                   className="text-atenuado text-[15px] cursor-pointer"
                   onClick={() => setCalculadoraPara(ei)}

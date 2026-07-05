@@ -153,6 +153,15 @@ export function aRutinaUI(fila: FilaRutina): RutinaUI {
   };
 }
 
+/** Miniatura automática de YouTube a partir del enlace del ejercicio (sin API, gratis). */
+export function miniaturaYoutube(url: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null;
+}
+
 /** Convierte el texto de un campo numérico del editor ("72,5") a número o null. */
 export function aNumero(texto: string): number | null {
   const limpio = String(texto).trim().replace(",", ".");

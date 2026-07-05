@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import {
   GRUPOS_MUSCULARES,
   INFO_TIPO_SERIE,
@@ -388,18 +389,18 @@ function HojaBiblioteca({
           {filtrados.map((e) => (
             <button
               key={e.id}
-              className="flex justify-between items-center w-full text-left border-b border-borde py-3 px-1 cursor-pointer"
+              className="flex justify-between items-center gap-2.5 w-full text-left border-b border-borde py-3 px-1 cursor-pointer"
               onClick={() => onElegir(e)}
             >
-              <div>
-                <div className="font-bold text-[15px]">{e.nombre}</div>
-                <div className="text-atenuado text-[12.5px]">
+              <AvatarEjercicio videoUrl={e.video_url} tamano={38} />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[15px] truncate">{e.nombre}</div>
+                <div className="text-atenuado text-[12.5px] truncate">
                   {e.grupo_muscular}
                   {e.nombre_en ? ` · ${e.nombre_en}` : e.material ? ` · ${e.material}` : ""}
-                  {e.video_url ? " · 🎥" : ""}
                 </div>
               </div>
-              <span className="text-acento text-[20px]">+</span>
+              <span className="text-acento text-[20px] shrink-0">+</span>
             </button>
           ))}
           {filtrados.length === 0 && (
