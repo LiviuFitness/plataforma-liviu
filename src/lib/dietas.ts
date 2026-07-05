@@ -4,6 +4,27 @@
    calculan de la base de alimentos (kcal/macros por 100 g).
    ============================================================ */
 
+export type CategoriaAlimento =
+  | "proteina"
+  | "carbohidrato"
+  | "grasa"
+  | "verdura"
+  | "fruta"
+  | "lacteo"
+  | "legumbre"
+  | "otro";
+
+export const CATEGORIAS_ALIMENTO: { valor: CategoriaAlimento; etiqueta: string }[] = [
+  { valor: "proteina", etiqueta: "Proteína" },
+  { valor: "carbohidrato", etiqueta: "Carbohidrato" },
+  { valor: "grasa", etiqueta: "Grasa" },
+  { valor: "verdura", etiqueta: "Verdura" },
+  { valor: "fruta", etiqueta: "Fruta" },
+  { valor: "lacteo", etiqueta: "Lácteo" },
+  { valor: "legumbre", etiqueta: "Legumbre" },
+  { valor: "otro", etiqueta: "Otro" },
+];
+
 export interface Alimento {
   id: string;
   nombre: string;
@@ -12,6 +33,7 @@ export interface Alimento {
   carb_100: number;
   gras_100: number;
   fibra_100: number | null;
+  categoria: CategoriaAlimento | null;
 }
 
 export interface Alternativa {
@@ -44,7 +66,7 @@ export const SELECT_DIETA_COMPLETA = `
     id, dieta_id, orden, nombre, descripcion_libre,
     dieta_comida_alimentos (
       id, alimento_id, gramos, orden,
-      alimentos ( id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100 )
+      alimentos ( id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria )
     )
   )
 `;

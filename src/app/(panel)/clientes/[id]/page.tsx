@@ -33,6 +33,7 @@ export default async function PaginaFichaCliente({
     { data: dieta },
     { data: biblioteca },
     { data: alimentos },
+    { data: exclusiones },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -70,8 +71,9 @@ export default async function PaginaFichaCliente({
     supabase.from("ejercicios").select("*").order("nombre"),
     supabase
       .from("alimentos")
-      .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100")
+      .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria")
       .order("nombre"),
+    supabase.from("alimentos_excluidos").select("alimento_id").eq("cliente_id", id),
   ]);
 
   if (!perfil) notFound();
@@ -99,6 +101,7 @@ export default async function PaginaFichaCliente({
       dieta={(dieta as Dieta | null) ?? null}
       biblioteca={(biblioteca ?? []) as Ejercicio[]}
       alimentos={(alimentos ?? []) as Alimento[]}
+      excluidos={(exclusiones ?? []).map((e) => e.alimento_id)}
       entradasFotos={entradasFotos}
     />
   );

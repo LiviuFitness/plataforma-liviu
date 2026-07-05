@@ -38,6 +38,7 @@ export default function FichaCliente({
   dieta,
   biblioteca,
   alimentos,
+  excluidos,
   entradasFotos,
 }: {
   perfil: Perfil;
@@ -49,6 +50,7 @@ export default function FichaCliente({
   dieta: Dieta | null;
   biblioteca: Ejercicio[];
   alimentos: Alimento[];
+  excluidos: string[];
   entradasFotos: EntradaFotosProgreso[];
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
@@ -109,6 +111,7 @@ export default function FichaCliente({
           dieta={dieta}
           clienteId={perfil.id}
           alimentos={alimentos}
+          excluidos={excluidos}
           autoCalculo={{
             pesoKg: (() => {
               // Último peso registrado en medidas

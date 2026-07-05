@@ -7,6 +7,7 @@ const PESTANAS = [
   { ruta: "/hoy", etiqueta: "Hoy" },
   { ruta: "/clientes", etiqueta: "Clientes" },
   { ruta: "/plantillas", etiqueta: "Plantillas" },
+  { ruta: "/ajustes", etiqueta: "Ajustes" },
 ];
 
 /** Navegación inferior fija del panel (estilo prototipo). */

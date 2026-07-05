@@ -24,7 +24,7 @@ export default async function PaginaPlantillaDieta({
       .maybeSingle(),
     supabase
       .from("alimentos")
-      .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100")
+      .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria")
       .order("nombre"),
   ]);
 

@@ -6,11 +6,13 @@ import {
   r,
   r1,
   sumar,
+  type Alimento,
   type Alternativa,
   type ComidaEstructurada,
 } from "@/lib/dietas";
 import type { Dieta } from "@/lib/tipos";
 import MiDietaComida from "./MiDietaComida";
+import PreferenciasAlimentos from "./PreferenciasAlimentos";
 
 export const dynamic = "force-dynamic";
 
@@ -72,6 +74,18 @@ export default async function PaginaMiDieta() {
   const hayAlimentos = comidas.some(
     (c) => (c.dieta_comida_alimentos ?? []).length > 0
   );
+
+  const [{ data: catalogo }, { data: exclusiones }] = await Promise.all([
+    supabase
+      .from("alimentos")
+      .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria")
+      .neq("nombre", "Añadir alimento")
+      .order("nombre"),
+    supabase
+      .from("alimentos_excluidos")
+      .select("alimento_id")
+      .eq("cliente_id", user.id),
+  ]);
 
   return (
     <>
@@ -148,6 +162,12 @@ export default async function PaginaMiDieta() {
           </p>
         </>
       )}
+
+      <PreferenciasAlimentos
+        clienteId={user.id}
+        catalogo={(catalogo ?? []) as Alimento[]}
+        excluidosIniciales={(exclusiones ?? []).map((e) => e.alimento_id)}
+      />
     </>
   );
 }

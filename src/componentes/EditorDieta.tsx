@@ -41,11 +41,13 @@ export default function EditorDieta({
   clienteId,
   autoCalculo,
   alimentos,
+  excluidos,
 }: {
   dieta: Dieta | null;
   clienteId?: string | null; // null => plantilla
   autoCalculo?: DatosAutoCalculo;
   alimentos: Alimento[];
+  excluidos?: string[]; // ids de alimentos que no le gustan al cliente
 }) {
   const router = useRouter();
   const [kcal, setKcal] = useState(dieta?.kcal_obj ?? 2000);
@@ -389,6 +391,7 @@ export default function EditorDieta({
       {buscandoPara !== null && (
         <HojaAlimentos
           alimentos={alimentos}
+          excluidos={excluidos}
           onElegir={(alimento) => {
             setComidas(
               comidas.map((x, j) =>
@@ -412,13 +415,16 @@ export default function EditorDieta({
    ============================================================ */
 function HojaAlimentos({
   alimentos,
+  excluidos,
   onElegir,
   onCerrar,
 }: {
   alimentos: Alimento[];
+  excluidos?: string[];
   onElegir: (a: Alimento) => void;
   onCerrar: () => void;
 }) {
+  const noLeGustan = new Set(excluidos ?? []);
   const [busqueda, setBusqueda] = useState("");
   const filtrados = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
@@ -457,7 +463,14 @@ function HojaAlimentos({
               className="flex justify-between items-center w-full text-left border-b border-borde py-3 px-1 cursor-pointer gap-3"
               onClick={() => onElegir(a)}
             >
-              <span className="font-bold text-[14.5px] flex-1">{a.nombre}</span>
+              <span className="font-bold text-[14.5px] flex-1">
+                {noLeGustan.has(a.id) && (
+                  <span title="Al cliente no le gusta" className="mr-1">
+                    ⚠️
+                  </span>
+                )}
+                {a.nombre}
+              </span>
               <span className="text-atenuado text-[12px] shrink-0">
                 {r(a.kcal_100)} kcal · P{r1(a.prot_100)} C{r1(a.carb_100)} G{r1(a.gras_100)} /100g
               </span>
