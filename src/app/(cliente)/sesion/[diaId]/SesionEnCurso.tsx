@@ -410,8 +410,8 @@ export default function SesionEnCurso({
             </div>
             {ex.series.map((s, si) => (
               <div
-                className={`grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 items-center py-1 rounded-lg ${
-                  s.completada ? "opacity-70" : ""
+                className={`grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 items-center py-1.5 px-1.5 -mx-1.5 rounded-lg ${
+                  s.completada ? "bg-acento/10" : ""
                 }`}
                 key={si}
               >

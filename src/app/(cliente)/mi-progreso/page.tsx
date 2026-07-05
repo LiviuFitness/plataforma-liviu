@@ -72,6 +72,28 @@ export default async function PaginaMiProgreso() {
   }
   const prs = [...mejores.values()].sort((a, b) => b.kg - a.kg).slice(0, 8);
 
+  // Progresión por ejercicio: mejor kg de cada sesión, en orden cronológico
+  const progresionesMap = new Map<string, { fecha: string; kg: number }[]>();
+  const cronologico = listaSesiones
+    .slice()
+    .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
+  for (const sesion of cronologico) {
+    const mejorEnSesion = new Map<string, number>();
+    for (const serie of sesion.series_realizadas ?? []) {
+      const nombre = serie.rutina_ejercicios?.ejercicios?.nombre;
+      if (!nombre || !serie.completada || serie.tipo === "calentamiento" || serie.kg === null)
+        continue;
+      const actual = mejorEnSesion.get(nombre) ?? 0;
+      if (Number(serie.kg) > actual) mejorEnSesion.set(nombre, Number(serie.kg));
+    }
+    for (const [nombre, kg] of mejorEnSesion) {
+      const lista = progresionesMap.get(nombre) ?? [];
+      lista.push({ fecha: sesion.fecha_inicio, kg });
+      progresionesMap.set(nombre, lista);
+    }
+  }
+  const progresiones = Object.fromEntries(progresionesMap);
+
   const historial: SesionHistorial[] = listaSesiones.map((s) => ({
     id: s.id,
     fecha: s.fecha_inicio,
@@ -93,6 +115,7 @@ export default async function PaginaMiProgreso() {
       prs={prs}
       historial={historial}
       semanaActual={semanaActual}
+      progresiones={progresiones}
     />
   );
 }

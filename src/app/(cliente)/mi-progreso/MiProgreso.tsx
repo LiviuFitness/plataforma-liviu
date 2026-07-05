@@ -15,6 +15,11 @@ export interface PR {
   fecha: string;
 }
 
+export interface PuntoProgresion {
+  fecha: string;
+  kg: number;
+}
+
 export interface SesionHistorial {
   id: string;
   fecha: string;
@@ -33,17 +38,20 @@ export default function MiProgreso({
   prs,
   historial,
   semanaActual,
+  progresiones,
 }: {
   clienteId: string;
   medidas: Medida[];
   prs: PR[];
   historial: SesionHistorial[];
   semanaActual: SemanaRevision | null;
+  progresiones: Record<string, PuntoProgresion[]>;
 }) {
   const router = useRouter();
   const [peso, setPeso] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
+  const [expandido, setExpandido] = useState<string | null>(null);
 
   const pesos = medidas.filter((m) => m.peso !== null).map((m) => Number(m.peso));
 
@@ -138,18 +146,40 @@ export default function MiProgreso({
             Completa tu primera sesión y tus mejores marcas aparecerán aquí.
           </div>
         )}
-        {prs.map((pr) => (
-          <div
-            key={pr.ejercicio}
-            className="flex justify-between items-baseline border-b border-borde last:border-0 py-2.5"
-          >
-            <span className="text-[14px]">{pr.ejercicio}</span>
-            <span className="text-[14px]">
-              <b className="text-acento">{pr.kg} kg</b>
-              <span className="text-atenuado"> × {pr.reps}</span>
-            </span>
-          </div>
-        ))}
+        {prs.map((pr) => {
+          const puntos = progresiones[pr.ejercicio] ?? [];
+          const abierto = expandido === pr.ejercicio;
+          return (
+            <div key={pr.ejercicio} className="border-b border-borde last:border-0">
+              <button
+                className="flex justify-between items-baseline py-2.5 w-full text-left cursor-pointer"
+                onClick={() =>
+                  setExpandido(abierto ? null : puntos.length >= 2 ? pr.ejercicio : null)
+                }
+              >
+                <span className="text-[14px]">{pr.ejercicio}</span>
+                <span className="text-[14px]">
+                  <b className="text-acento">{pr.kg} kg</b>
+                  <span className="text-atenuado"> × {pr.reps}</span>
+                  {puntos.length >= 2 && (
+                    <span className="text-atenuado text-[12px] ml-1.5">
+                      {abierto ? "▲" : "▼"}
+                    </span>
+                  )}
+                </span>
+              </button>
+              {abierto && puntos.length >= 2 && (
+                <div className="pb-3">
+                  <Sparkline datos={puntos.map((p) => p.kg)} />
+                  <div className="flex justify-between text-[12px] text-atenuado -mt-1">
+                    <span>{fechaCorta(puntos[0].fecha.slice(0, 10))}</span>
+                    <span>{fechaCorta(puntos[puntos.length - 1].fecha.slice(0, 10))}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })}
       </section>
 
       <section className="tarjeta">
