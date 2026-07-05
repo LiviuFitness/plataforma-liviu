@@ -19,12 +19,16 @@ export default async function LayoutCliente({
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("rol, estado")
+    .select("rol, estado, fecha_nacimiento, altura_cm, sexo")
     .eq("id", user.id)
     .maybeSingle();
 
   // El entrenador tiene su panel; los clientes de baja no acceden
   if (perfil?.rol === "entrenador") redirect("/hoy");
+  // Primera vez del cliente: completa sus datos físicos antes de entrar
+  if (!perfil?.fecha_nacimiento || !perfil?.altura_cm || !perfil?.sexo) {
+    redirect("/onboarding");
+  }
   if (perfil?.estado === "baja") {
     return (
       <div className="max-w-[480px] w-full mx-auto px-[18px] min-h-screen flex flex-col items-center justify-center text-center gap-6">

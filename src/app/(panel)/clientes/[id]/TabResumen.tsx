@@ -234,6 +234,7 @@ export default function TabResumen({
           <option value="">Sin indicar</option>
           <option value="hombre">Hombre</option>
           <option value="mujer">Mujer</option>
+          <option value="otro">Otro</option>
         </select>
         <label className="text-[13px] text-texto-2 block mb-1">
           Nivel de actividad

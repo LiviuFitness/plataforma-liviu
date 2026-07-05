@@ -21,7 +21,7 @@ export interface Perfil {
   // Datos físicos (para el auto-cálculo de macros)
   fecha_nacimiento: string | null;
   altura_cm: number | null;
-  sexo: "hombre" | "mujer" | null;
+  sexo: "hombre" | "mujer" | "otro" | null;
   factor_actividad: number;
   objetivo_ritmo_semanal_pct: number | null;
 }

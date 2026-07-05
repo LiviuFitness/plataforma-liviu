@@ -8,7 +8,7 @@ export interface DatosAutoCalculo {
   pesoKg: number | null; // última medida registrada
   alturaCm: number | null;
   fechaNacimiento: string | null; // ISO
-  sexo: "hombre" | "mujer" | null;
+  sexo: "hombre" | "mujer" | "otro" | null;
   factorActividad: number;
   objetivo: string | null;
 }
@@ -49,12 +49,11 @@ export function calcularMacros(d: DatosAutoCalculo): ResultadoMacros | null {
   );
   if (edad < 14 || edad > 100) return null;
 
-  // Mifflin-St Jeor
-  const tmb =
-    10 * d.pesoKg +
-    6.25 * d.alturaCm -
-    5 * edad +
-    (d.sexo === "hombre" ? 5 : -161);
+  // Mifflin-St Jeor (offset "otro" = media de hombre/mujer, mejor
+  // aproximación neutra que no discrimina por defecto)
+  const offsetSexo =
+    d.sexo === "hombre" ? 5 : d.sexo === "mujer" ? -161 : -78;
+  const tmb = 10 * d.pesoKg + 6.25 * d.alturaCm - 5 * edad + offsetSexo;
 
   const tdee = tmb * d.factorActividad;
 
