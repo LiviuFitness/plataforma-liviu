@@ -226,14 +226,14 @@ export default function EditorDia({
                         : ""
                     }
                   >
-                    <div className="flex justify-between items-center mb-1 gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex justify-between items-start mb-1 gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
                         <AvatarEjercicio videoUrl={null} tamano={30} />
-                        <div className="font-bold text-[15.5px] truncate">
+                        <div className="font-bold text-[15.5px] leading-tight">
                           {ex.nombre}
                         </div>
                       </div>
-                      <div className="flex gap-1.5 shrink-0">
+                      <div className="flex gap-1.5 shrink-0 pt-1">
                         {esSuperserie && (
                           <button
                             className="mini"
