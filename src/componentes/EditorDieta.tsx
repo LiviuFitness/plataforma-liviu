@@ -92,6 +92,9 @@ export default function EditorDieta({
     [alimentos, excluidosSet]
   );
 
+  const MENSAJE_SIN_ALIMENTOS =
+    "Al cliente le faltan alimentos variados entre los que le gustan (hace falta al menos una proteína, un carbohidrato y una grasa). Añade más en Mi dieta o hazlo manualmente.";
+
   function generarAutomatico(ci: number) {
     const c = comidas[ci];
     if (
@@ -105,11 +108,7 @@ export default function EditorDieta({
     const resultado = generarComida(objetivo, alimentosPermitidos);
 
     if (!resultado) {
-      setAvisoGeneracion((prev) => ({
-        ...prev,
-        [ci]:
-          "Al cliente le faltan alimentos variados entre los que le gustan (hace falta al menos una proteína, un carbohidrato y una grasa). Añade más en Mi dieta o hazlo manualmente.",
-      }));
+      setAvisoGeneracion((prev) => ({ ...prev, [ci]: MENSAJE_SIN_ALIMENTOS }));
       return;
     }
 
@@ -127,6 +126,41 @@ export default function EditorDieta({
       )
     );
     setAvisoGeneracion((prev) => ({ ...prev, [ci]: resultado.aviso ?? "" }));
+    tocar();
+  }
+
+  /** Genera de golpe todas las comidas del día (crea las 6 habituales si no hay ninguna). */
+  function generarDiaCompleto() {
+    const hayAlgo = comidas.some((c) => c.items.length > 0);
+    if (hayAlgo && !confirm("Esto sustituye los alimentos de TODAS las comidas del día. ¿Continuar?"))
+      return;
+
+    const base: ComidaUI[] =
+      comidas.length > 0
+        ? comidas
+        : COMIDAS_SUGERIDAS.map((nombre) => ({ nombre, notas: "", items: [] }));
+
+    const avisos: Record<number, string> = {};
+    const nuevas = base.map((c, i) => {
+      const nombreComida = c.nombre.trim() || COMIDAS_SUGERIDAS[i % COMIDAS_SUGERIDAS.length];
+      const objetivo = objetivoPorComida({ kcal, prot, carb, gras }, nombreComida);
+      const resultado = generarComida(objetivo, alimentosPermitidos);
+      if (!resultado) {
+        avisos[i] = MENSAJE_SIN_ALIMENTOS;
+        return c;
+      }
+      if (resultado.aviso) avisos[i] = resultado.aviso;
+      return {
+        ...c,
+        items: resultado.items.map((it) => ({
+          alimento: it.alimento,
+          gramos: String(it.gramos),
+        })),
+      };
+    });
+
+    setComidas(nuevas);
+    setAvisoGeneracion(avisos);
     tocar();
   }
 
@@ -308,6 +342,13 @@ export default function EditorDieta({
           </div>
         ))}
       </section>
+
+      <button
+        className="w-full flex items-center justify-center gap-2 bg-panel border border-acento/40 text-acento rounded-[12px] py-3 font-semibold text-[14px] cursor-pointer mb-3.5"
+        onClick={generarDiaCompleto}
+      >
+        ✨ Generar el día completo
+      </button>
 
       {/* Comidas con alimentos estructurados */}
       {comidas.map((c, ci) => {

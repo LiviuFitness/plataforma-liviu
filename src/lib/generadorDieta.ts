@@ -122,9 +122,13 @@ function sumarItems(items: ItemGenerado[]): ObjetivoMacros {
 }
 
 const redondear5 = (g: number) => Math.max(5, Math.round(g / 5) * 5);
-const GRAMOS_MIN = 10;
+const GRAMOS_MIN = 5;
 const GRAMOS_MAX = 400;
 const VERDURA_GRAMOS = 150;
+// Por debajo de esto (media mañana, merienda, recena...) los 150 g de
+// verdura fija se comerían casi todo el margen de la comida y no dejarían
+// hueco realista para el resto — mejor no forzarla en comidas pequeñas.
+const KCAL_MIN_PARA_VERDURA = 350;
 const MAX_CANDIDATOS_POR_CATEGORIA = 5;
 
 /**
@@ -153,7 +157,7 @@ export function generarComida(
 
   const fijos: ItemGenerado[] = [];
   const restante = { ...objetivo };
-  const verdura = verduras[0];
+  const verdura = objetivo.kcal >= KCAL_MIN_PARA_VERDURA ? verduras[0] : undefined;
   if (verdura) {
     const m = macrosDeGramos(verdura, VERDURA_GRAMOS);
     restante.prot -= m.prot;
