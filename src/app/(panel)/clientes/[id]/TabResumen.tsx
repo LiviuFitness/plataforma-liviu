@@ -50,6 +50,19 @@ export default function TabResumen({
     };
   }, []);
 
+  /* --- Avanzar de semana desde el aviso de "semana completada" --- */
+  const [avanzando, setAvanzando] = useState<string | null>(null);
+  async function avanzarSemana(rutinaId: string, semanaDestino: number) {
+    setAvanzando(rutinaId);
+    const supabase = crearClienteNavegador();
+    await supabase
+      .from("rutinas")
+      .update({ semana_actual: semanaDestino })
+      .eq("id", rutinaId);
+    setAvanzando(null);
+    router.refresh();
+  }
+
   /* --- Datos del cliente editables --- */
   const [nombre, setNombre] = useState(perfil.nombre);
   const [objetivo, setObjetivo] = useState(perfil.objetivo ?? OBJETIVOS[0]);
@@ -152,11 +165,29 @@ export default function TabResumen({
       {alertas.length > 0 && (
         <section className="tarjeta !border-peligro/35">
           <div className="titulo-tarjeta !text-peligro">NECESITA ATENCIÓN</div>
-          {alertas.map((a, i) => (
-            <div key={i} className="text-texto-2 text-[13px] mt-0.5">
-              — {a.mensaje}
-            </div>
-          ))}
+          {alertas.map((a, i) =>
+            a.tipo === "semana_completa" && a.rutina_id && a.semana_destino ? (
+              <div
+                key={i}
+                className="flex justify-between items-center gap-2 text-texto-2 text-[13px] py-1"
+              >
+                <span>— {a.mensaje}</span>
+                <button
+                  className="mini !w-auto !px-2.5 shrink-0"
+                  onClick={() => avanzarSemana(a.rutina_id!, a.semana_destino!)}
+                  disabled={avanzando === a.rutina_id}
+                >
+                  {avanzando === a.rutina_id
+                    ? "Avanzando…"
+                    : `Avanzar a semana ${a.semana_destino}`}
+                </button>
+              </div>
+            ) : (
+              <div key={i} className="text-texto-2 text-[13px] mt-0.5">
+                — {a.mensaje}
+              </div>
+            )
+          )}
         </section>
       )}
 

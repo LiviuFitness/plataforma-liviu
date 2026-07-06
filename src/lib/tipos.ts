@@ -86,6 +86,8 @@ export interface Alerta {
   nombre: string;
   tipo: string;
   mensaje: string;
+  rutina_id: string | null;
+  semana_destino: number | null;
 }
 
 export interface DietaComida {
