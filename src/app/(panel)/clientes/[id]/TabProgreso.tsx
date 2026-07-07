@@ -11,9 +11,12 @@ import {
   sugerenciaAjusteKcal,
 } from "@/lib/revision";
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
+import HistorialProgreso from "@/componentes/HistorialProgreso";
+import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type { EntradaFotosProgreso, Medida, Perfil } from "@/lib/tipos";
 
-/** Pestaña Progreso: revisión semanal, medidas y añadir medida nueva. */
+/** Pestaña Progreso: revisión semanal, PRs e historial de entreno, fotos,
+ * medidas y añadir medida nueva. */
 export default function TabProgreso({
   clienteId,
   medidas,
@@ -21,6 +24,7 @@ export default function TabProgreso({
   dietaId,
   dietaKcal,
   entradasFotos,
+  progresoEntreno,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -28,6 +32,7 @@ export default function TabProgreso({
   dietaId: string | null;
   dietaKcal: number | null;
   entradasFotos: EntradaFotosProgreso[];
+  progresoEntreno: ProgresoEntreno;
 }) {
   const router = useRouter();
   const [f, setF] = useState({ peso: "", cintura: "", pecho: "", brazo: "", pierna: "" });
@@ -79,6 +84,14 @@ export default function TabProgreso({
   async function borrar(id: string) {
     const supabase = crearClienteNavegador();
     await supabase.from("medidas").delete().eq("id", id);
+    router.refresh();
+  }
+
+  async function borrarSesion(id: string) {
+    if (!confirm("¿Borrar esta sesión de entreno? Desaparecerá de su historial y récords."))
+      return;
+    const supabase = crearClienteNavegador();
+    await supabase.from("sesiones").delete().eq("id", id);
     router.refresh();
   }
 
@@ -202,6 +215,13 @@ export default function TabProgreso({
         <div className="titulo-tarjeta">FOTOS DE PROGRESO</div>
         <GaleriaFotosProgreso entradas={entradasFotos} />
       </section>
+
+      <HistorialProgreso
+        prs={progresoEntreno.prs}
+        progresiones={progresoEntreno.progresiones}
+        historial={progresoEntreno.historial}
+        onBorrarSesion={borrarSesion}
+      />
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">MEDIDAS</div>

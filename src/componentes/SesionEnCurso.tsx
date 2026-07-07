@@ -61,20 +61,31 @@ const ESTADO_PREVIO = [
 
 /**
  * Sesión en curso (concepto clave: prescrito vs. realizado).
- * Las series vienen precargadas con lo prescrito: el cliente solo
- * confirma con ✓ o ajusta kg/reps. Al completar una serie arranca
+ * Las series vienen precargadas con lo prescrito: solo hay que
+ * confirmar con ✓ o ajustar kg/reps. Al completar una serie arranca
  * el temporizador de descanso del ejercicio.
+ *
+ * Se usa tanto para que el cliente registre su propio entreno como
+ * para que el entrenador registre uno presencial en el momento
+ * (mismo componente, cambia clienteId/volverA/nombreCliente).
  */
 export default function SesionEnCurso({
   clienteId,
   diaId,
   nombreDia,
   ejerciciosIniciales,
+  volverA = "/inicio",
+  nombreCliente,
 }: {
   clienteId: string;
   diaId: string;
   nombreDia: string;
   ejerciciosIniciales: EjercicioSesion[];
+  /** A dónde volver al salir/guardar. Por defecto el inicio del cliente;
+   * el entrenador registrando una sesión presencial vuelve a la ficha. */
+  volverA?: string;
+  /** Si se pasa, se muestra "Sesión de <nombre>" (uso del entrenador). */
+  nombreCliente?: string;
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
@@ -230,7 +241,7 @@ export default function SesionEnCurso({
       setError("La sesión se creó pero fallaron las series. Inténtalo de nuevo.");
       return;
     }
-    router.push("/inicio");
+    router.push(volverA);
     router.refresh();
   }
 
@@ -240,20 +251,21 @@ export default function SesionEnCurso({
       !confirm("La sesión no está guardada. ¿Salir sin guardar?")
     )
       return;
-    if (completadas === 0) {
-      router.push("/inicio");
-      return;
-    }
-    router.push("/inicio");
+    router.push(volverA);
   }
 
   /* --------- Pantalla previa: PRS (cómo llegas hoy) --------- */
   if (fase === "previo") {
     return (
       <>
-        <button className="ghost mb-3" onClick={() => router.push("/inicio")}>
+        <button className="ghost mb-3" onClick={() => router.push(volverA)}>
           ✕ Salir
         </button>
+        {nombreCliente && (
+          <div className="text-atenuado text-[12.5px] mb-1">
+            Sesión presencial de <b className="text-texto-2">{nombreCliente}</b>
+          </div>
+        )}
         <h1 className="h1 mb-1">{nombreDia}</h1>
         <div className="text-atenuado text-[14px] mb-5">
           {ejercicios.length} ejercicios ·{" "}
@@ -322,7 +334,7 @@ export default function SesionEnCurso({
         </section>
 
         <section className="tarjeta">
-          <div className="titulo-tarjeta">NOTA PARA TU ENTRENADOR (OPCIONAL)</div>
+          <div className="titulo-tarjeta">NOTA {nombreCliente ? "" : "PARA TU ENTRENADOR "}(OPCIONAL)</div>
           <textarea
             className="w-full bg-campo border border-borde-2 rounded-[10px] text-white p-2.5 px-3 text-[14px] resize-y font-cuerpo"
             rows={3}
@@ -360,6 +372,11 @@ export default function SesionEnCurso({
         </div>
       </div>
 
+      {nombreCliente && (
+        <div className="text-atenuado text-[12.5px] mb-1">
+          Sesión presencial de <b className="text-texto-2">{nombreCliente}</b>
+        </div>
+      )}
       <h1 className="h1 mb-3">{nombreDia}</h1>
 
       {ejercicios.length === 0 && (

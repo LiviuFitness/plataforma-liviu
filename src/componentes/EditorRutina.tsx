@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -348,19 +349,32 @@ export default function EditorRutina({
           0
         );
         return (
-          <button
-            key={dia.id}
-            className="tarjeta !mb-2.5 w-full text-left flex items-center gap-3.5 cursor-pointer"
-            onClick={() => abrirDia(indiceGlobal)}
-          >
-            <div className="flex-1">
-              <div className="font-bold text-[15.5px]">{dia.nombre}</div>
+          <div key={dia.id} className="tarjeta !mb-2.5 flex items-center gap-3.5">
+            <button
+              className="flex-1 min-w-0 text-left cursor-pointer"
+              onClick={() => abrirDia(indiceGlobal)}
+            >
+              <div className="font-bold text-[15.5px] truncate">{dia.nombre}</div>
               <div className="text-atenuado text-[12.5px]">
                 {dia.ejercicios.length} ejercicios · {efectivas} series efectivas
               </div>
-            </div>
-            <span className="text-acento text-[13.5px]">Editar →</span>
-          </button>
+            </button>
+            {clienteId && (
+              <Link
+                href={`/clientes/${clienteId}/sesion/${dia.id}`}
+                className="text-acento text-[13px] font-semibold shrink-0"
+                title="Registrar esta sesión en directo (entreno presencial)"
+              >
+                ▶ Entrenar
+              </Link>
+            )}
+            <button
+              className="text-acento text-[13.5px] shrink-0 cursor-pointer"
+              onClick={() => abrirDia(indiceGlobal)}
+            >
+              Editar →
+            </button>
+          </div>
         );
       })}
 

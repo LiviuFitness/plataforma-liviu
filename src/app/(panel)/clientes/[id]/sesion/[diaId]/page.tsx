@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { componerCarga, componerReps, componerRir } from "@/lib/rutinas";
 import SesionEnCurso, { type EjercicioSesion } from "@/componentes/SesionEnCurso";
@@ -49,21 +49,19 @@ interface FilaSesionPrevia {
   series_realizadas: FilaSerieRealizada[];
 }
 
-/** Sesión de entrenamiento: carga el día prescrito y lo realizado la última vez. */
-export default async function PaginaSesion({
+/** Sesión presencial: el entrenador registra en el momento las cargas y
+ * repeticiones de un cliente que está entrenando delante de él. Mismo
+ * componente que usa el cliente para su propio entreno. */
+export default async function PaginaSesionPresencial({
   params,
 }: {
-  params: Promise<{ diaId: string }>;
+  params: Promise<{ id: string; diaId: string }>;
 }) {
-  const { diaId } = await params;
+  const { id, diaId } = await params;
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
 
-  // RLS garantiza que el cliente solo puede leer días de SU rutina
-  const [{ data: dia }, { data: previas }] = await Promise.all([
+  const [{ data: perfil }, { data: dia }, { data: previas }] = await Promise.all([
+    supabase.from("profiles").select("nombre").eq("id", id).maybeSingle(),
     supabase
       .from("rutina_dias")
       .select(
@@ -83,12 +81,12 @@ export default async function PaginaSesion({
          series_realizadas ( orden, kg, carga_texto, reps, reps_extra, completada, tipo,
            rutina_ejercicios ( ejercicio_id ) )`
       )
-      .eq("cliente_id", user.id)
+      .eq("cliente_id", id)
       .order("fecha_inicio", { ascending: false })
       .limit(15),
   ]);
 
-  if (!dia) notFound();
+  if (!dia || !perfil) notFound();
 
   // "Última vez" por ejercicio (estilo Hevy): la sesión más reciente
   // en la que el cliente hizo ese ejercicio
@@ -96,14 +94,14 @@ export default async function PaginaSesion({
   for (const sesion of (previas ?? []) as unknown as FilaSesionPrevia[]) {
     const porEjercicio = new Map<string, FilaSerieRealizada[]>();
     for (const s of sesion.series_realizadas ?? []) {
-      const id = s.rutina_ejercicios?.ejercicio_id;
-      if (!id || !s.completada || s.tipo === "calentamiento") continue;
-      const lista = porEjercicio.get(id) ?? [];
+      const ejercicioId = s.rutina_ejercicios?.ejercicio_id;
+      if (!ejercicioId || !s.completada || s.tipo === "calentamiento") continue;
+      const lista = porEjercicio.get(ejercicioId) ?? [];
       lista.push(s);
-      porEjercicio.set(id, lista);
+      porEjercicio.set(ejercicioId, lista);
     }
-    for (const [id, series] of porEjercicio) {
-      if (anterior.has(id)) continue;
+    for (const [ejercicioId, series] of porEjercicio) {
+      if (anterior.has(ejercicioId)) continue;
       const texto = series
         .sort((a, b) => a.orden - b.orden)
         .map((s) => {
@@ -120,7 +118,7 @@ export default async function PaginaSesion({
           return `${carga || "—"}×${reps}`;
         })
         .join(" · ");
-      if (texto) anterior.set(id, texto);
+      if (texto) anterior.set(ejercicioId, texto);
     }
   }
 
@@ -156,10 +154,12 @@ export default async function PaginaSesion({
 
   return (
     <SesionEnCurso
-      clienteId={user.id}
+      clienteId={id}
       diaId={dia.id}
       nombreDia={dia.nombre}
       ejerciciosIniciales={ejercicios}
+      volverA={`/clientes/${id}`}
+      nombreCliente={perfil.nombre}
     />
   );
 }

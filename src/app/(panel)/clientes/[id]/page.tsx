@@ -3,6 +3,7 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { SELECT_DIETA_COMPLETA, type Alimento } from "@/lib/dietas";
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
+import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
 import FichaCliente from "./FichaCliente";
 import type { Alerta, Dieta, Ejercicio, Medida, Perfil } from "@/lib/tipos";
 
@@ -85,10 +86,10 @@ export default async function PaginaFichaCliente({
     diasEntrenados[d] = true;
   }
 
-  const entradasFotos = await resolverFotosProgreso(
-    supabase,
-    (medidas ?? []) as Medida[]
-  );
+  const [entradasFotos, progresoEntreno] = await Promise.all([
+    resolverFotosProgreso(supabase, (medidas ?? []) as Medida[]),
+    resolverProgresoEntreno(supabase, id),
+  ]);
 
   return (
     <FichaCliente
@@ -103,6 +104,7 @@ export default async function PaginaFichaCliente({
       alimentos={(alimentos ?? []) as Alimento[]}
       excluidos={(exclusiones ?? []).map((e) => e.alimento_id)}
       entradasFotos={entradasFotos}
+      progresoEntreno={progresoEntreno}
     />
   );
 }

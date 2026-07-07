@@ -8,6 +8,7 @@ import EditorDieta from "@/componentes/EditorDieta";
 import TabResumen from "./TabResumen";
 import TabProgreso from "./TabProgreso";
 import type { Alimento } from "@/lib/dietas";
+import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type {
   Alerta,
   Dieta,
@@ -40,6 +41,7 @@ export default function FichaCliente({
   alimentos,
   excluidos,
   entradasFotos,
+  progresoEntreno,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -52,6 +54,7 @@ export default function FichaCliente({
   alimentos: Alimento[];
   excluidos: string[];
   entradasFotos: EntradaFotosProgreso[];
+  progresoEntreno: ProgresoEntreno;
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
@@ -137,6 +140,7 @@ export default function FichaCliente({
           dietaId={dieta?.id ?? null}
           dietaKcal={dieta?.kcal_obj ?? null}
           entradasFotos={entradasFotos}
+          progresoEntreno={progresoEntreno}
         />
       )}
     </>
