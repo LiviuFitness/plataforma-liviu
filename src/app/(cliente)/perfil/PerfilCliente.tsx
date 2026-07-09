@@ -5,10 +5,19 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import SubidaAvatar from "@/componentes/SubidaAvatar";
-import type { Perfil } from "@/lib/tipos";
+import PreferenciasEjercicios from "./PreferenciasEjercicios";
+import type { Ejercicio, Perfil } from "@/lib/tipos";
 
-/** Perfil del cliente: datos, cambio de contraseña y derechos RGPD. */
-export default function PerfilCliente({ perfil }: { perfil: Perfil }) {
+/** Perfil del cliente: datos, contraseña, ejercicios a evitar y RGPD. */
+export default function PerfilCliente({
+  perfil,
+  biblioteca,
+  ejerciciosExcluidos,
+}: {
+  perfil: Perfil;
+  biblioteca: Ejercicio[];
+  ejerciciosExcluidos: string[];
+}) {
   const [contrasena, setContrasena] = useState("");
   const [repetida, setRepetida] = useState("");
   const [msgContrasena, setMsgContrasena] = useState<{ ok: boolean; texto: string } | null>(null);
@@ -115,6 +124,12 @@ export default function PerfilCliente({ perfil }: { perfil: Perfil }) {
           ¿Algún dato incorrecto? Pídele el cambio a tu entrenador.
         </p>
       </section>
+
+      <PreferenciasEjercicios
+        clienteId={perfil.id}
+        catalogo={biblioteca}
+        excluidosIniciales={ejerciciosExcluidos}
+      />
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">CAMBIAR CONTRASEÑA</div>

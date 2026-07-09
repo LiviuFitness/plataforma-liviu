@@ -26,12 +26,14 @@ export default function EditorRutina({
   clienteId,
   nombreCliente,
   biblioteca,
+  ejerciciosExcluidos,
   alEditarDia,
 }: {
   rutina: RutinaUI | null;
   clienteId?: string | null; // null => plantilla
   nombreCliente?: string;
   biblioteca: Ejercicio[];
+  ejerciciosExcluidos?: string[]; // ejercicios que el cliente evita (lesión…)
   alEditarDia?: (editando: boolean) => void;
 }) {
   const router = useRouter();
@@ -286,6 +288,7 @@ export default function EditorRutina({
       <EditorDia
         dia={dias[indiceAbierto]}
         biblioteca={biblioteca}
+        ejerciciosExcluidos={ejerciciosExcluidos}
         guardando={cargando}
         error={error}
         onGuardar={(d) => guardarDia(indiceAbierto, d)}

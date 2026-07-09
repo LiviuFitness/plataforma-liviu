@@ -1,6 +1,6 @@
 "use client";
 
-import { Link2, Unlink } from "lucide-react";
+import { AlertTriangle, Link2, Unlink } from "lucide-react";
 
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -31,6 +31,7 @@ interface EjercicioConIndice extends EjercicioUI {
 export default function EditorDia({
   dia,
   biblioteca,
+  ejerciciosExcluidos,
   guardando,
   error,
   onGuardar,
@@ -39,6 +40,7 @@ export default function EditorDia({
 }: {
   dia: DiaUI;
   biblioteca: Ejercicio[];
+  ejerciciosExcluidos?: string[]; // ejercicios que el cliente evita (lesión…)
   guardando: boolean;
   error: string;
   onGuardar: (dia: DiaUI) => Promise<boolean>;
@@ -387,6 +389,7 @@ export default function EditorDia({
       {mostrarBiblioteca && (
         <HojaBiblioteca
           biblioteca={biblioteca}
+          ejerciciosExcluidos={ejerciciosExcluidos}
           onElegir={anadirDeBiblioteca}
           onCerrar={() => setMostrarBiblioteca(false)}
         />
@@ -401,13 +404,16 @@ export default function EditorDia({
    ============================================================ */
 function HojaBiblioteca({
   biblioteca,
+  ejerciciosExcluidos,
   onElegir,
   onCerrar,
 }: {
   biblioteca: Ejercicio[];
+  ejerciciosExcluidos?: string[];
   onElegir: (e: Ejercicio) => void;
   onCerrar: () => void;
 }) {
+  const noPuedeHacer = new Set(ejerciciosExcluidos ?? []);
   const [busqueda, setBusqueda] = useState("");
   const [filtro, setFiltro] = useState("Todos");
   const [creando, setCreando] = useState(false);
@@ -508,6 +514,11 @@ function HojaBiblioteca({
                   {e.grupo_muscular}
                   {e.nombre_en ? ` · ${e.nombre_en}` : e.material ? ` · ${e.material}` : ""}
                 </div>
+                {noPuedeHacer.has(e.id) && (
+                  <div className="text-aviso text-[12px] flex items-center gap-1 mt-0.5">
+                    <AlertTriangle size={12} /> El cliente marcó que lo evita
+                  </div>
+                )}
               </div>
               <span className="text-acento text-[20px] shrink-0">+</span>
             </button>

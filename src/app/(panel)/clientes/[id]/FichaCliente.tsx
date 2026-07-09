@@ -40,6 +40,7 @@ export default function FichaCliente({
   biblioteca,
   alimentos,
   excluidos,
+  ejerciciosExcluidos,
   entradasFotos,
   progresoEntreno,
 }: {
@@ -53,6 +54,7 @@ export default function FichaCliente({
   biblioteca: Ejercicio[];
   alimentos: Alimento[];
   excluidos: string[];
+  ejerciciosExcluidos: string[];
   entradasFotos: EntradaFotosProgreso[];
   progresoEntreno: ProgresoEntreno;
 }) {
@@ -105,6 +107,7 @@ export default function FichaCliente({
           clienteId={perfil.id}
           nombreCliente={perfil.nombre}
           biblioteca={biblioteca}
+          ejerciciosExcluidos={ejerciciosExcluidos}
           alEditarDia={setEditandoDia}
         />
       )}
