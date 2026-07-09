@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import SubidaAvatar from "@/componentes/SubidaAvatar";
 import type { Perfil } from "@/lib/tipos";
@@ -158,7 +159,7 @@ export default function PerfilCliente({ perfil }: { perfil: Perfil }) {
           entrenos y dieta) en cualquier momento.
         </p>
         <button className="ghost w-full mb-2" onClick={exportarDatos} disabled={exportando}>
-          {exportando ? "Preparando…" : "⬇ Exportar mis datos (JSON)"}
+          {exportando ? "Preparando…" : <><Download size={14} className="inline mr-1.5 -mt-0.5" />Exportar mis datos (JSON)</>}
         </button>
         {msgExporta && (
           <div className="text-acento text-[13px] mb-2">{msgExporta}</div>

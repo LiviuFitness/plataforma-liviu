@@ -72,7 +72,8 @@ export function AnilloAdherencia({
   );
 }
 
-/** Línea de evolución (peso). Marca el último punto con un círculo. */
+/** Gráfico de área de evolución (peso, cargas): línea con relleno en
+ * degradado, puntos marcados y el último destacado. */
 export function Sparkline({ datos }: { datos: number[] }) {
   if (datos.length < 2) {
     return (
@@ -82,8 +83,8 @@ export function Sparkline({ datos }: { datos: number[] }) {
     );
   }
   const w = 280,
-    h = 64,
-    margen = 6;
+    h = 72,
+    margen = 8;
   const min = Math.min(...datos),
     max = Math.max(...datos);
   const rango = max - min || 1;
@@ -92,22 +93,35 @@ export function Sparkline({ datos }: { datos: number[] }) {
     const y = h - margen - ((v - min) / rango) * (h - margen * 2);
     return { x, y };
   };
-  const puntos = datos.map((v, i) => {
-    const { x, y } = punto(v, i);
-    return `${x},${y}`;
-  });
-  const ultimo = punto(datos[datos.length - 1], datos.length - 1);
+  const coords = datos.map((v, i) => punto(v, i));
+  const linea = coords.map((p) => `${p.x},${p.y}`).join(" ");
+  const area = `${margen},${h - margen} ${linea} ${w - margen},${h - margen}`;
+  const ultimo = coords[coords.length - 1];
+  // id único por instancia para que los degradados no se pisen entre gráficos
+  const idGrad = `grad-${Math.round(min * 10)}-${Math.round(max * 10)}-${datos.length}`;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 64 }}>
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 72 }}>
+      <defs>
+        <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor={CIAN} stopOpacity="0.32" />
+          <stop offset="100%" stopColor={CIAN} stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <polygon points={area} fill={`url(#${idGrad})`} />
       <polyline
-        points={puntos.join(" ")}
+        points={linea}
         fill="none"
         stroke={CIAN}
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <circle cx={ultimo.x} cy={ultimo.y} r="4" fill={CIAN} />
+      {coords.length <= 20 &&
+        coords.slice(0, -1).map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#0E1215" stroke={CIAN} strokeWidth="1.5" />
+        ))}
+      <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill={CIAN} />
+      <circle cx={ultimo.x} cy={ultimo.y} r="8" fill={CIAN} opacity="0.25" />
     </svg>
   );
 }

@@ -16,6 +16,7 @@ import {
   type Alimento,
   type ComidaEstructurada,
 } from "@/lib/dietas";
+import { Sparkles } from "lucide-react";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
 import type { Dieta } from "@/lib/tipos";
 
@@ -304,7 +305,7 @@ export default function EditorDieta({
           className="w-full flex items-center justify-center gap-2 bg-panel border border-acento/40 text-acento rounded-[12px] py-3 font-semibold text-[14px] cursor-pointer mb-3.5"
           onClick={autoCalcular}
         >
-          ✨ Auto-calcular kcal y macros
+          <Sparkles size={15} /> Auto-calcular kcal y macros
         </button>
       )}
       {notaCalculo && (
@@ -347,7 +348,7 @@ export default function EditorDieta({
         className="w-full flex items-center justify-center gap-2 bg-panel border border-acento/40 text-acento rounded-[12px] py-3 font-semibold text-[14px] cursor-pointer mb-3.5"
         onClick={generarDiaCompleto}
       >
-        ✨ Generar el día completo
+        <Sparkles size={15} /> Generar el día completo
       </button>
 
       {/* Comidas con alimentos estructurados */}
@@ -431,7 +432,7 @@ export default function EditorDieta({
               className="w-full flex items-center justify-center gap-1.5 bg-panel border border-acento/40 text-acento rounded-[10px] py-2 text-[13px] cursor-pointer mt-2"
               onClick={() => generarAutomatico(ci)}
             >
-              ✨ Generar automáticamente
+              <Sparkles size={14} /> Generar automáticamente
             </button>
             {avisoGeneracion[ci] && (
               <div className="text-aviso text-[12px] mt-1.5">— {avisoGeneracion[ci]}</div>

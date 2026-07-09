@@ -89,13 +89,18 @@ export default async function PaginaSesionPresencial({
   if (!dia || !perfil) notFound();
 
   // "Última vez" por ejercicio (estilo Hevy): la sesión más reciente
-  // en la que el cliente hizo ese ejercicio
+  // en la que el cliente hizo ese ejercicio. También la mejor marca
+  // histórica en kg, para detectar récords al terminar la sesión.
   const anterior = new Map<string, string>();
+  const mejorHistorico = new Map<string, number>();
   for (const sesion of (previas ?? []) as unknown as FilaSesionPrevia[]) {
     const porEjercicio = new Map<string, FilaSerieRealizada[]>();
     for (const s of sesion.series_realizadas ?? []) {
       const ejercicioId = s.rutina_ejercicios?.ejercicio_id;
       if (!ejercicioId || !s.completada || s.tipo === "calentamiento") continue;
+      if (s.kg !== null && Number(s.kg) > (mejorHistorico.get(ejercicioId) ?? 0)) {
+        mejorHistorico.set(ejercicioId, Number(s.kg));
+      }
       const lista = porEjercicio.get(ejercicioId) ?? [];
       lista.push(s);
       porEjercicio.set(ejercicioId, lista);
@@ -137,6 +142,7 @@ export default async function PaginaSesionPresencial({
       tecnica: e.ejercicios?.instrucciones ?? null,
       videoUrl: e.ejercicios?.video_url ?? null,
       anterior: anterior.get(e.ejercicio_id) ?? null,
+      mejorKgAnterior: mejorHistorico.get(e.ejercicio_id) ?? null,
       series: (e.series_prescritas ?? [])
         .slice()
         .sort((a, b) => a.orden - b.orden)

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Trophy } from "lucide-react";
 import { fechaCorta, Sparkline } from "@/componentes/ui";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
 
@@ -25,7 +26,7 @@ export default function HistorialProgreso({
   return (
     <>
       <section className="tarjeta">
-        <div className="titulo-tarjeta">RÉCORDS PERSONALES 🏆</div>
+        <div className="titulo-tarjeta flex items-center gap-1.5"><Trophy size={13} className="text-aviso" /> RÉCORDS PERSONALES</div>
         {prs.length === 0 && (
           <div className="text-atenuado text-[13.5px]">
             Completa la primera sesión y las mejores marcas aparecerán aquí.

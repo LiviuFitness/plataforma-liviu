@@ -1,5 +1,7 @@
 "use client";
 
+import { Scale } from "lucide-react";
+
 import { useMemo, useState } from "react";
 import { calcularCarga, PESOS_BARRA, type Disco } from "@/lib/discos";
 
@@ -33,7 +35,7 @@ export default function CalculadoraDiscos({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-3">
-          <div className="titulo-tarjeta !m-0">⚖ CALCULADORA DE DISCOS</div>
+          <div className="titulo-tarjeta !m-0 flex items-center gap-1.5"><Scale size={13} /> CALCULADORA DE DISCOS</div>
           <button className="ghost" onClick={onCerrar}>
             Cerrar
           </button>

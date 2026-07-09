@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CircleUserRound, Home, TrendingUp, UtensilsCrossed } from "lucide-react";
 
 const PESTANAS = [
-  { ruta: "/inicio", etiqueta: "Inicio" },
-  { ruta: "/mi-progreso", etiqueta: "Progreso" },
-  { ruta: "/mi-dieta", etiqueta: "Dieta" },
-  { ruta: "/perfil", etiqueta: "Perfil" },
+  { ruta: "/inicio", etiqueta: "Inicio", Icono: Home },
+  { ruta: "/mi-progreso", etiqueta: "Progreso", Icono: TrendingUp },
+  { ruta: "/mi-dieta", etiqueta: "Dieta", Icono: UtensilsCrossed },
+  { ruta: "/perfil", etiqueta: "Perfil", Icono: CircleUserRound },
 ];
 
 /** Navegación inferior de la app del cliente. */
@@ -15,8 +16,8 @@ export default function BarraCliente() {
   const ruta = usePathname();
   return (
     <nav
-      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] flex gap-2 z-20 border-t border-borde bg-[rgba(12,15,18,0.96)] backdrop-blur-lg px-3 pt-2.5"
-      style={{ paddingBottom: "calc(10px + env(safe-area-inset-bottom))" }}
+      className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] flex gap-2 z-20 border-t border-borde bg-[rgba(12,15,18,0.96)] backdrop-blur-lg px-3 pt-2"
+      style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom))" }}
     >
       {PESTANAS.map((p) => {
         const activa = ruta === p.ruta || ruta.startsWith(p.ruta + "/");
@@ -24,10 +25,11 @@ export default function BarraCliente() {
           <Link
             key={p.ruta}
             href={p.ruta}
-            className={`flex-1 text-center font-semibold text-[13.5px] py-2.5 rounded-[10px] ${
+            className={`flex-1 flex flex-col items-center gap-0.5 font-semibold text-[11px] py-1.5 rounded-[10px] transition-colors ${
               activa ? "text-acento bg-acento/10" : "text-atenuado"
             }`}
           >
+            <p.Icono size={20} strokeWidth={activa ? 2.4 : 2} />
             {p.etiqueta}
           </Link>
         );

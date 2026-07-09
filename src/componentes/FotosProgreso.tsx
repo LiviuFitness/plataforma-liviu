@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Camera } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { redimensionarImagen } from "@/lib/imagen";
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
@@ -140,7 +141,7 @@ export default function FotosProgreso({
               <img src={previas[s.tipo]} alt="" className="w-full h-full object-cover" />
             ) : (
               <>
-                <span className="text-[22px] text-atenuado">📷</span>
+                <Camera size={22} className="text-atenuado" />
                 <span className="text-atenuado text-[11.5px]">{s.etiqueta}</span>
               </>
             )}

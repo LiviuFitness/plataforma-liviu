@@ -88,6 +88,11 @@ body {
     font-size: 15px;
     cursor: pointer;
     margin-bottom: 14px;
+    transition: transform 0.1s ease, filter 0.15s ease;
+  }
+  .cta:active:not(:disabled) {
+    transform: scale(0.98);
+    filter: brightness(1.1);
   }
   .cta:disabled {
     opacity: 0.4;
@@ -121,6 +126,9 @@ body {
     color: var(--color-texto-2);
     font-size: 13px;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
   }
   .mini-peligro {
     color: var(--color-peligro);
@@ -242,8 +250,56 @@ body {
   }
 }
 
+/* ============================================================
+   Micro-animaciones (tacto de app nativa)
+   ============================================================ */
+@keyframes pop {
+  0% {
+    transform: scale(1);
+  }
+  45% {
+    transform: scale(1.18);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes subir-barra {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 12px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@layer components {
+  .anim-pop {
+    animation: pop 0.28s ease;
+  }
+  .anim-aparecer {
+    animation: aparecer 0.3s ease both;
+  }
+  .anim-subir-barra {
+    animation: subir-barra 0.25s ease both;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     transition: none !important;
+    animation: none !important;
   }
 }

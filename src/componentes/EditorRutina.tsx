@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -362,10 +363,10 @@ export default function EditorRutina({
             {clienteId && (
               <Link
                 href={`/clientes/${clienteId}/sesion/${dia.id}`}
-                className="text-acento text-[13px] font-semibold shrink-0"
+                className="text-acento text-[13px] font-semibold shrink-0 flex items-center gap-1"
                 title="Registrar esta sesión en directo (entreno presencial)"
               >
-                ▶ Entrenar
+                <Play size={13} /> Entrenar
               </Link>
             )}
             <button

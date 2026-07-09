@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { Bell } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 
 /** Aviso de "tu entrenador actualizó tu rutina/dieta" — se marca como
@@ -26,7 +27,7 @@ export default function AvisosActualizacion({
     <div className="tarjeta !border-acento/40 !mb-2.5">
       {avisoRutina && (
         <div className="flex items-center gap-2.5 text-[13.5px] py-1">
-          <span className="text-[18px]">🔔</span>
+          <Bell size={16} className="text-acento shrink-0" />
           <span>
             Tu entrenador actualizó tu <b>rutina</b>.
           </span>
@@ -34,7 +35,7 @@ export default function AvisosActualizacion({
       )}
       {avisoDieta && (
         <div className="flex items-center gap-2.5 text-[13.5px] py-1">
-          <span className="text-[18px]">🔔</span>
+          <Bell size={16} className="text-acento shrink-0" />
           <span>
             Tu entrenador actualizó tu <b>dieta</b>.
           </span>

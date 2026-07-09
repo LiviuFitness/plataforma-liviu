@@ -1,5 +1,7 @@
 "use client";
 
+import { Link2, Unlink } from "lucide-react";
+
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
@@ -208,8 +210,8 @@ export default function EditorDia({
             >
               {esSuperserie && (
                 <div className="flex items-center justify-between px-4 pt-3 pb-1">
-                  <span className="titulo-tarjeta !mb-0 !text-acento">
-                    🔗 Superserie · sin descanso entre ejercicios
+                  <span className="titulo-tarjeta !mb-0 !text-acento flex items-center gap-1.5">
+                    <Link2 size={13} /> Superserie · sin descanso entre ejercicios
                   </span>
                 </div>
               )}
@@ -241,7 +243,7 @@ export default function EditorDia({
                             aria-label="Separar de la superserie"
                             title="Separar de la superserie"
                           >
-                            🔗✕
+                            <Unlink size={13} />
                           </button>
                         )}
                         <button className="mini" onClick={() => moverEjercicio(ei, -1)} aria-label="Subir">
@@ -360,7 +362,7 @@ export default function EditorDia({
                 className="w-full flex items-center justify-center gap-1.5 text-atenuado text-[12.5px] cursor-pointer -mt-2 mb-2.5"
                 onClick={() => unirConSiguiente(ultimoEi)}
               >
-                🔗 Unir con el siguiente en superserie
+                <Link2 size={13} /> Unir con el siguiente en superserie
               </button>
             )}
           </div>

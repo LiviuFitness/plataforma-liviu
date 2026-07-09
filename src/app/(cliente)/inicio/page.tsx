@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
+import { Flame, Trophy } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 
@@ -228,8 +229,8 @@ export default async function PaginaInicio() {
 
       {prReciente && (
         <div className="tarjeta !border-aviso/40 !mb-2.5">
-          <div className="flex items-center gap-2">
-            <span className="text-[22px]">🏆</span>
+          <div className="flex items-center gap-2.5">
+            <Trophy size={22} className="text-aviso shrink-0" />
             <div>
               <div className="font-bold text-[14.5px]">
                 Nuevo récord: {prReciente.ejercicio}
@@ -245,7 +246,10 @@ export default async function PaginaInicio() {
       {/* Racha y semana */}
       <div className="grid grid-cols-2 gap-2.5 my-[18px]">
         <div className="tarjeta !mb-0 text-center !p-4">
-          <div className="text-[28px] leading-none mb-1">🔥</div>
+          <Flame
+            size={26}
+            className={`mx-auto mb-1 ${racha > 0 ? "text-aviso" : "text-atenuado"}`}
+          />
           <div className="num-grande">{racha}</div>
           <div className="text-[11px] text-atenuado mt-0.5">
             {racha === 1 ? "día de racha" : "días de racha"}
