@@ -103,41 +103,75 @@ export default async function PaginaMiDieta() {
         <>
           <section className="tarjeta">
             <div className="titulo-tarjeta">OBJETIVO DIARIO</div>
-            <div className="mb-3">
-              <span className="num-grande !text-[30px]">{dieta.kcal_obj}</span>
-              <span className="text-atenuado text-[14px]"> kcal</span>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <div>
+                <span className="num-grande !text-[32px]">{dieta.kcal_obj}</span>
+                <span className="text-atenuado text-[14px]"> kcal</span>
+              </div>
               {hayAlimentos && (
-                <span className="text-atenuado text-[13px]">
-                  {" "}
-                  · plan {r(totalesPlan.kcal)} kcal
+                <span className="text-[12.5px] text-atenuado">
+                  plan <b className="text-acento">{r(totalesPlan.kcal)} kcal</b>
                 </span>
               )}
             </div>
-            {(
-              [
-                ["Proteína", dieta.prot_obj, totalesPlan.prot, "#fff"],
-                ["Carbohidratos", dieta.carb_obj, totalesPlan.carb, "#29ABE2"],
-                ["Grasas", dieta.gras_obj, totalesPlan.gras, "#8A949C"],
-              ] as const
-            ).map(([etiqueta, objetivo, plan, color]) => (
-              <div
-                key={etiqueta}
-                className="flex justify-between items-center py-2 border-b border-borde last:border-0"
-              >
-                <span className="text-[14px]">
-                  {etiqueta}
-                  {hayAlimentos && (
-                    <span className="text-atenuado text-[12px]">
-                      {" "}
-                      · {r1(plan)} g
-                    </span>
-                  )}
-                </span>
-                <span className="font-bold text-[14.5px]" style={{ color }}>
-                  {objetivo} g
-                </span>
+            {hayAlimentos && (
+              <div className="h-1.5 rounded bg-borde-2 overflow-hidden mb-4">
+                <div
+                  className="h-full rounded"
+                  style={{
+                    width: `${Math.min(100, (totalesPlan.kcal / dieta.kcal_obj) * 100)}%`,
+                    background:
+                      totalesPlan.kcal > dieta.kcal_obj * 1.05
+                        ? "#E2B429"
+                        : "#29ABE2",
+                  }}
+                />
               </div>
-            ))}
+            )}
+            <div className="space-y-3">
+              {(
+                [
+                  ["Proteína", dieta.prot_obj, totalesPlan.prot, "#FFFFFF"],
+                  ["Carbohidratos", dieta.carb_obj, totalesPlan.carb, "#29ABE2"],
+                  ["Grasas", dieta.gras_obj, totalesPlan.gras, "#8A949C"],
+                ] as const
+              ).map(([etiqueta, objetivo, plan, color]) => (
+                <div key={etiqueta}>
+                  <div className="flex justify-between items-baseline mb-1 text-[13.5px]">
+                    <span className="flex items-center gap-1.5">
+                      <span
+                        className="inline-block w-2 h-2 rounded-full"
+                        style={{ background: color }}
+                      />
+                      {etiqueta}
+                    </span>
+                    <span>
+                      {hayAlimentos && (
+                        <>
+                          <b style={{ color }}>{r1(plan)}</b>
+                          <span className="text-atenuado"> / </span>
+                        </>
+                      )}
+                      <span className={hayAlimentos ? "text-atenuado" : "font-bold"}>
+                        {objetivo} g
+                      </span>
+                    </span>
+                  </div>
+                  {hayAlimentos && (
+                    <div className="h-1 rounded bg-borde-2 overflow-hidden">
+                      <div
+                        className="h-full rounded"
+                        style={{
+                          width: `${Math.min(100, (plan / (objetivo || 1)) * 100)}%`,
+                          background:
+                            plan > objetivo * 1.05 ? "#E2B429" : color,
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
           </section>
 
           {comidas.length === 0 && (
@@ -157,8 +191,8 @@ export default async function PaginaMiDieta() {
           ))}
 
           <p className="text-atenuado text-[12.5px]">
-            Toca «cambiar» en un alimento para ver equivalencias con los mismos
-            macros. ¿Dudas? Escríbeselo a tu entrenador.
+            Toca ⇄ en un alimento para ver equivalencias con los mismos macros.
+            ¿Dudas? Escríbeselo a tu entrenador.
           </p>
         </>
       )}
