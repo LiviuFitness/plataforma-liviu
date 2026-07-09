@@ -412,6 +412,13 @@ export default function SesionEnCurso({
               const ei = ex.indiceGlobal;
               const esUltimoDelGrupo = posicion === grupo.length - 1;
               const hechas = ex.series.filter((s) => s.completada).length;
+              // Una nota corta ("con goma azul") se queda en línea; las notas
+              // largas (técnica importada del Excel) se pliegan en el
+              // desplegable para no llenar la pantalla de texto.
+              const notas = ex.notas.trim() === "-" ? "" : ex.notas.trim();
+              const notaInline = notas.length > 0 && notas.length <= 60 ? notas : "";
+              const notasPlegadas =
+                notas.length > 60 && notas !== (ex.tecnica ?? "").trim() ? notas : "";
               return (
                 <div
                   key={ex.rutinaEjercicioId}
@@ -448,7 +455,7 @@ export default function SesionEnCurso({
                     <div className="text-atenuado text-[12.5px] mb-1">
                       Descanso {fmt(ex.descansoSeg)}
                       {esSuperserie ? " al terminar la ronda" : ""}
-                      {ex.notas ? ` · ${ex.notas}` : ""}
+                      {notaInline ? ` · ${notaInline}` : ""}
                     </div>
                   )}
                   {ex.anterior && (
@@ -458,11 +465,16 @@ export default function SesionEnCurso({
                   )}
 
                   {/* Técnica del entrenador y vídeo, plegados para no estorbar */}
-                  {(ex.tecnica || ex.videoUrl) && (
+                  {(ex.tecnica || ex.videoUrl || notasPlegadas) && (
                     <details className="mb-2">
                       <summary className="text-[12.5px] text-atenuado cursor-pointer select-none py-0.5">
                         📋 Técnica{ex.videoUrl ? " y vídeo" : ""}
                       </summary>
+                      {notasPlegadas && (
+                        <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
+                          {notasPlegadas}
+                        </div>
+                      )}
                       {ex.tecnica && (
                         <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
                           {ex.tecnica}
