@@ -1,9 +1,19 @@
 import Link from "next/link";
+import { AlertTriangle, CalendarCheck } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { haceCuanto } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
+
+interface Riesgo {
+  clienteId: string;
+  nombre: string;
+  score: number;
+  motivos: string[];
+}
+
+const DIA_MS = 86400000;
 
 /** Pantalla "Hoy": estado del estudio de un vistazo. */
 export default async function PaginaHoy() {
@@ -18,7 +28,7 @@ export default async function PaginaHoy() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nombre")
+      .select("id, nombre, fecha_alta")
       .eq("rol", "cliente")
       .eq("estado", "activo")
       .order("nombre"),
@@ -26,7 +36,7 @@ export default async function PaginaHoy() {
     supabase.from("v_alertas").select("cliente_id, nombre, tipo, mensaje"),
     supabase
       .from("sesiones")
-      .select("cliente_id, fecha_inicio")
+      .select("cliente_id, fecha_inicio, sensacion")
       .order("fecha_inicio", { ascending: false })
       .limit(300),
     supabase
@@ -51,16 +61,28 @@ export default async function PaginaHoy() {
         )
       : 0;
 
+  // Sesiones y última medida por cliente
+  const sesionesPorCliente = new Map<
+    string,
+    { fecha: string; sensacion: number | null }[]
+  >();
+  for (const s of sesiones ?? []) {
+    const lista = sesionesPorCliente.get(s.cliente_id) ?? [];
+    lista.push({ fecha: s.fecha_inicio, sensacion: s.sensacion });
+    sesionesPorCliente.set(s.cliente_id, lista);
+  }
+  const ultimaMedida = new Map<string, string>();
+  for (const m of medidas ?? []) {
+    if (!ultimaMedida.has(m.cliente_id)) ultimaMedida.set(m.cliente_id, m.fecha);
+  }
+
   // Última actividad por cliente (sesión o medida, lo más reciente)
   const ultimaActividad = new Map<string, string>();
-  for (const s of sesiones ?? []) {
-    if (!ultimaActividad.has(s.cliente_id))
-      ultimaActividad.set(s.cliente_id, s.fecha_inicio);
-  }
-  for (const m of medidas ?? []) {
-    const previa = ultimaActividad.get(m.cliente_id);
-    if (!previa || new Date(m.fecha) > new Date(previa))
-      ultimaActividad.set(m.cliente_id, m.fecha);
+  for (const [id, ses] of sesionesPorCliente) ultimaActividad.set(id, ses[0].fecha);
+  for (const [id, fecha] of ultimaMedida) {
+    const previa = ultimaActividad.get(id);
+    if (!previa || new Date(fecha) > new Date(previa))
+      ultimaActividad.set(id, fecha);
   }
 
   // Alertas agrupadas por cliente
@@ -70,6 +92,80 @@ export default async function PaginaHoy() {
     lista.push(a);
     alertasPorCliente.set(a.cliente_id, lista);
   }
+
+  /* --------- Radar de riesgo de abandono ---------
+     Puntúa señales negativas por cliente con los datos que ya hay:
+     inactividad, adherencia baja, sensaciones bajas, sin pesarse
+     y peso estancado. No usa IA: es un cálculo directo. */
+  const riesgos: Riesgo[] = listaClientes.map((c) => {
+    const motivos: string[] = [];
+    let score = 0;
+
+    const ses = sesionesPorCliente.get(c.id) ?? [];
+    if (ses.length === 0) {
+      const diasAlta = c.fecha_alta
+        ? Math.floor((Date.now() - new Date(c.fecha_alta).getTime()) / DIA_MS)
+        : 0;
+      if (diasAlta >= 7) {
+        score += 2;
+        motivos.push("Nunca ha registrado una sesión");
+      }
+    } else {
+      const dias = Math.floor(
+        (Date.now() - new Date(ses[0].fecha).getTime()) / DIA_MS
+      );
+      if (dias >= 7) {
+        score += 3;
+        motivos.push(`Sin entrenar ${dias} días`);
+      } else if (dias >= 5) {
+        score += 2;
+        motivos.push(`Sin entrenar ${dias} días`);
+      } else if (dias >= 3) {
+        score += 1;
+        motivos.push(`Sin entrenar ${dias} días`);
+      }
+      const sens = ses
+        .map((x) => x.sensacion)
+        .filter((v): v is number => v !== null)
+        .slice(0, 3);
+      if (sens.length >= 2 && sens.reduce((a, b) => a + b, 0) / sens.length <= 2.4) {
+        score += 2;
+        motivos.push("Sensaciones bajas en sus últimos entrenos");
+      }
+    }
+
+    const adh = mapaAdh.get(c.id) ?? 0;
+    if (adh < 40) {
+      score += 2;
+      motivos.push(`Adherencia ${adh}% (últimas 4 semanas)`);
+    } else if (adh < 70) {
+      score += 1;
+      motivos.push(`Adherencia ${adh}% (últimas 4 semanas)`);
+    }
+
+    const medida = ultimaMedida.get(c.id);
+    if (medida && (Date.now() - new Date(medida).getTime()) / DIA_MS >= 14) {
+      score += 1;
+      motivos.push("Sin registrar peso en 2+ semanas");
+    }
+
+    for (const a of alertasPorCliente.get(c.id) ?? []) {
+      if (a.tipo === "peso_estancado") {
+        score += 1;
+        motivos.push(a.mensaje);
+      }
+      if (a.tipo === "sin_valoracion") motivos.push(a.mensaje);
+    }
+
+    return { clienteId: c.id, nombre: c.nombre, score, motivos };
+  });
+
+  const enRiesgo = riesgos
+    .filter((r) => r.score >= 3)
+    .sort((a, b) => b.score - a.score);
+
+  // Avisos positivos: semanas completadas listas para avanzar
+  const listosParaAvanzar = listaAlertas.filter((a) => a.tipo === "semana_completa");
 
   const fecha = new Date().toLocaleDateString("es-ES", { weekday: "long" });
 
@@ -99,37 +195,50 @@ export default async function PaginaHoy() {
         <div className="tarjeta !mb-0 text-center !p-3.5">
           <div
             className={`num-grande !text-[26px] ${
-              listaAlertas.length ? "text-peligro" : ""
+              enRiesgo.length ? "text-peligro" : ""
             }`}
           >
-            {listaAlertas.length}
+            {enRiesgo.length}
           </div>
-          <div className="text-[10.5px] text-atenuado mt-1">alertas</div>
+          <div className="text-[10.5px] text-atenuado mt-1">en riesgo</div>
         </div>
       </div>
 
-      {/* Necesitan atención — raíl cian, firma visual */}
+      {/* Radar de riesgo de abandono — raíl cian, firma visual */}
       <div className="flex gap-3.5 mb-5">
         <div className="rail" />
         <div className="flex-1">
-          <div className="titulo-tarjeta !mb-2.5">NECESITAN ATENCIÓN</div>
-          {alertasPorCliente.size === 0 && (
+          <div className="titulo-tarjeta !mb-2.5 flex items-center gap-1.5">
+            <AlertTriangle size={12} /> RADAR DE RIESGO DE ABANDONO
+          </div>
+          {enRiesgo.length === 0 && (
             <div className="text-atenuado text-[13.5px]">
-              Todo en orden — nadie necesita atención hoy.
+              Nadie en riesgo ahora mismo — buen trabajo.
             </div>
           )}
-          {[...alertasPorCliente.entries()].map(([clienteId, lista]) => (
+          {enRiesgo.map((r) => (
             <Link
-              key={clienteId}
-              href={`/clientes/${clienteId}`}
+              key={r.clienteId}
+              href={`/clientes/${r.clienteId}`}
               className="flex gap-3 w-full tarjeta !mb-2.5 !p-3.5 !rounded-xl"
             >
               <div className="rail-punto" />
-              <div>
-                <div className="font-bold text-[15px]">{lista[0].nombre}</div>
-                {lista.map((a, i) => (
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-bold text-[15px] truncate">{r.nombre}</div>
+                  <span
+                    className={`shrink-0 text-[10.5px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 ${
+                      r.score >= 5
+                        ? "bg-peligro/15 text-peligro"
+                        : "bg-aviso/15 text-aviso"
+                    }`}
+                  >
+                    {r.score >= 5 ? "riesgo alto" : "riesgo medio"}
+                  </span>
+                </div>
+                {r.motivos.map((m, i) => (
                   <div key={i} className="text-texto-2 text-[13px] mt-0.5">
-                    — {a.mensaje}
+                    — {m}
                   </div>
                 ))}
               </div>
@@ -137,6 +246,28 @@ export default async function PaginaHoy() {
           ))}
         </div>
       </div>
+
+      {/* Semanas completadas: listos para avanzar */}
+      {listosParaAvanzar.length > 0 && (
+        <section className="tarjeta !border-acento/40">
+          <div className="titulo-tarjeta !text-acento flex items-center gap-1.5">
+            <CalendarCheck size={12} /> LISTOS PARA AVANZAR DE SEMANA
+          </div>
+          {listosParaAvanzar.map((a, i) => (
+            <Link
+              key={i}
+              href={`/clientes/${a.cliente_id}`}
+              className="flex justify-between items-center gap-2 border-b border-borde last:border-0 py-2.5 text-[13.5px]"
+            >
+              <span>
+                <b>{a.nombre}</b>
+                <span className="text-texto-2"> — {a.mensaje}</span>
+              </span>
+              <span className="text-acento shrink-0">→</span>
+            </Link>
+          ))}
+        </section>
+      )}
 
       {/* Actividad reciente */}
       <section className="tarjeta">
