@@ -164,6 +164,16 @@ export function miniaturaYoutube(url: string | null): string | null {
   return m ? `https://img.youtube.com/vi/${m[1]}/mqdefault.jpg` : null;
 }
 
+/** URL de embed de YouTube para reproducir el vídeo DENTRO de la app
+ * (sin mandar al cliente fuera, estilo Harbiz). */
+export function embedYoutube(url: string | null): string | null {
+  if (!url) return null;
+  const m = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|shorts\/|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+  );
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
+}
+
 /* ============================================================
    Superseries / circuitos: ejercicios consecutivos del mismo
    día que comparten grupoSuperserie se hacen sin descanso entre

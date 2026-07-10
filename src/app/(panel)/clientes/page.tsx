@@ -8,22 +8,32 @@ export const dynamic = "force-dynamic";
 export default async function PaginaClientes() {
   const supabase = await crearClienteServidor();
 
-  const [{ data: clientes }, { data: adherencias }, { data: alertas }, { data: invitaciones }] =
-    await Promise.all([
-      supabase
-        .from("profiles")
-        .select("*")
-        .eq("rol", "cliente")
-        .order("nombre"),
-      supabase.from("v_adherencia").select("cliente_id, adherencia"),
-      supabase.from("v_alertas").select("cliente_id"),
-      supabase
-        .from("invitaciones")
-        .select("*")
-        .eq("usada", false)
-        .gt("expira", new Date().toISOString())
-        .order("creada_en", { ascending: false }),
-    ]);
+  const [
+    { data: clientes },
+    { data: adherencias },
+    { data: alertas },
+    { data: invitaciones },
+    { data: sesiones },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*")
+      .eq("rol", "cliente")
+      .order("nombre"),
+    supabase.from("v_adherencia").select("cliente_id, adherencia"),
+    supabase.from("v_alertas").select("cliente_id"),
+    supabase
+      .from("invitaciones")
+      .select("*")
+      .eq("usada", false)
+      .gt("expira", new Date().toISOString())
+      .order("creada_en", { ascending: false }),
+    supabase
+      .from("sesiones")
+      .select("cliente_id, fecha_inicio")
+      .order("fecha_inicio", { ascending: false })
+      .limit(300),
+  ]);
 
   const mapaAdh = new Map(
     (adherencias ?? []).map((a) => [a.cliente_id, a.adherencia as number])
@@ -33,11 +43,23 @@ export default async function PaginaClientes() {
     numAlertas.set(a.cliente_id, (numAlertas.get(a.cliente_id) ?? 0) + 1);
   }
 
+  // Semáforo de cumplimiento: días desde la última sesión de cada cliente
+  const diasSinEntrenar = new Map<string, number>();
+  for (const s of sesiones ?? []) {
+    if (!diasSinEntrenar.has(s.cliente_id)) {
+      diasSinEntrenar.set(
+        s.cliente_id,
+        Math.floor((Date.now() - new Date(s.fecha_inicio).getTime()) / 86400000)
+      );
+    }
+  }
+
   return (
     <ListaClientes
       clientes={(clientes ?? []) as Perfil[]}
       adherencias={Object.fromEntries(mapaAdh)}
       alertas={Object.fromEntries(numAlertas)}
+      diasSinEntrenar={Object.fromEntries(diasSinEntrenar)}
       invitaciones={(invitaciones ?? []) as Invitacion[]}
     />
   );

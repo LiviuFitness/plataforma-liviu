@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
   agruparPorSuperserie,
+  embedYoutube,
   parsearCarga,
   parsearRepsRealizadas,
   parsearRir,
@@ -112,6 +113,7 @@ export default function SesionEnCurso({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
   const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
+  const [videoAbierto, setVideoAbierto] = useState<number | null>(null);
   const avisado = useRef(false);
 
   function empezarEntreno() {
@@ -566,16 +568,36 @@ export default function SesionEnCurso({
                           {ex.tecnica}
                         </div>
                       )}
-                      {ex.videoUrl && (
-                        <a
-                          href={ex.videoUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 text-acento text-[13px] underline underline-offset-2 mt-1.5"
-                        >
-                          <Video size={14} /> Ver vídeo del ejercicio
-                        </a>
-                      )}
+                      {ex.videoUrl &&
+                        (embedYoutube(ex.videoUrl) ? (
+                          videoAbierto === ei ? (
+                            <div className="mt-2 rounded-[10px] overflow-hidden aspect-video border border-borde-2">
+                              <iframe
+                                src={`${embedYoutube(ex.videoUrl)}?rel=0`}
+                                className="w-full h-full"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                                title={`Vídeo: ${ex.nombre}`}
+                              />
+                            </div>
+                          ) : (
+                            <button
+                              className="inline-flex items-center gap-1.5 text-acento text-[13px] underline underline-offset-2 mt-1.5 cursor-pointer"
+                              onClick={() => setVideoAbierto(ei)}
+                            >
+                              <Video size={14} /> Ver vídeo del ejercicio
+                            </button>
+                          )
+                        ) : (
+                          <a
+                            href={ex.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-acento text-[13px] underline underline-offset-2 mt-1.5"
+                          >
+                            <Video size={14} /> Ver vídeo del ejercicio
+                          </a>
+                        ))}
                     </details>
                   )}
 
@@ -605,6 +627,7 @@ export default function SesionEnCurso({
                       <input
                         className="campo-serie placeholder:text-atenuado/60"
                         placeholder={s.kgPrescrito || "kg"}
+                        inputMode="decimal"
                         value={s.kg}
                         onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
                         aria-label="Carga"

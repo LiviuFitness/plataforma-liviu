@@ -12,11 +12,14 @@ export default function ListaClientes({
   clientes,
   adherencias,
   alertas,
+  diasSinEntrenar,
   invitaciones,
 }: {
   clientes: Perfil[];
   adherencias: Record<string, number>;
   alertas: Record<string, number>;
+  /** Días desde la última sesión; sin entrada = nunca ha entrenado */
+  diasSinEntrenar: Record<string, number>;
   invitaciones: Invitacion[];
 }) {
   const router = useRouter();
@@ -182,29 +185,55 @@ export default function ListaClientes({
         </div>
       )}
 
-      {filtrados.map((c) => (
-        <Link
-          key={c.id}
-          href={`/clientes/${c.id}`}
-          className={`flex items-center gap-3.5 tarjeta !mb-2.5 !py-[13px] ${
-            c.estado !== "activo" ? "opacity-60" : ""
-          }`}
-        >
-          <AnilloAdherencia valor={adherencias[c.id] ?? 0} />
-          <div className="flex-1 min-w-0">
-            <div className="font-bold text-[15.5px]">{c.nombre}</div>
-            <div className="text-atenuado text-[12.5px] truncate">
-              {c.objetivo ?? "Sin objetivo"}
-              {c.estado !== "activo" ? ` · ${c.estado}` : ""}
+      {filtrados.map((c) => {
+        // Semáforo de cumplimiento (estilo Harbiz): verde si entrenó hace
+        // <3 días, ámbar 3-6, rojo 7+ o si nunca ha registrado sesión
+        const dias = diasSinEntrenar[c.id];
+        const semaforo =
+          dias === undefined || dias >= 7
+            ? "#E25529"
+            : dias >= 3
+              ? "#E2B429"
+              : "#3AC569";
+        const titulo =
+          dias === undefined
+            ? "Sin sesiones registradas"
+            : dias === 0
+              ? "Entrenó hoy"
+              : `Última sesión hace ${dias} día${dias === 1 ? "" : "s"}`;
+        return (
+          <Link
+            key={c.id}
+            href={`/clientes/${c.id}`}
+            className={`flex items-center gap-3.5 tarjeta !mb-2.5 !py-[13px] ${
+              c.estado !== "activo" ? "opacity-60" : ""
+            }`}
+          >
+            <AnilloAdherencia valor={adherencias[c.id] ?? 0} />
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-[15.5px] flex items-center gap-2">
+                {c.nombre}
+                {c.estado === "activo" && (
+                  <span
+                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: semaforo }}
+                    title={titulo}
+                  />
+                )}
+              </div>
+              <div className="text-atenuado text-[12.5px] truncate">
+                {c.objetivo ?? "Sin objetivo"}
+                {c.estado !== "activo" ? ` · ${c.estado}` : ""}
+              </div>
             </div>
-          </div>
-          {(alertas[c.id] ?? 0) > 0 && (
-            <span className="bg-peligro text-white text-[12px] font-bold rounded-full px-[9px] py-[3px]">
-              {alertas[c.id]}
-            </span>
-          )}
-        </Link>
-      ))}
+            {(alertas[c.id] ?? 0) > 0 && (
+              <span className="bg-peligro text-white text-[12px] font-bold rounded-full px-[9px] py-[3px]">
+                {alertas[c.id]}
+              </span>
+            )}
+          </Link>
+        );
+      })}
     </>
   );
 }

@@ -1,8 +1,16 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarCheck } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Trophy } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { haceCuanto } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
+
+interface RecordSemana {
+  cliente_id: string;
+  nombre: string;
+  ejercicio: string;
+  kg_nuevo: number;
+  kg_previo: number;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +33,7 @@ export default async function PaginaHoy() {
     { data: alertas },
     { data: sesiones },
     { data: medidas },
+    { data: records },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -44,6 +53,11 @@ export default async function PaginaHoy() {
       .select("cliente_id, fecha")
       .order("fecha", { ascending: false })
       .limit(300),
+    supabase
+      .from("v_records_semana")
+      .select("*")
+      .order("kg_nuevo", { ascending: false })
+      .limit(20),
   ]);
 
   const listaClientes = clientes ?? [];
@@ -166,6 +180,7 @@ export default async function PaginaHoy() {
 
   // Avisos positivos: semanas completadas listas para avanzar
   const listosParaAvanzar = listaAlertas.filter((a) => a.tipo === "semana_completa");
+  const recordsSemana = (records ?? []) as RecordSemana[];
 
   const fecha = new Date().toLocaleDateString("es-ES", { weekday: "long" });
 
@@ -246,6 +261,31 @@ export default async function PaginaHoy() {
           ))}
         </div>
       </div>
+
+      {/* Récords batidos esta semana: felicítalos, dispara la retención */}
+      {recordsSemana.length > 0 && (
+        <section className="tarjeta !border-aviso/40">
+          <div className="titulo-tarjeta !text-aviso flex items-center gap-1.5">
+            <Trophy size={12} /> RÉCORDS DE LA SEMANA — ¡FELICÍTALOS!
+          </div>
+          {recordsSemana.map((rec, i) => (
+            <Link
+              key={i}
+              href={`/clientes/${rec.cliente_id}`}
+              className="flex justify-between items-center gap-2 border-b border-borde last:border-0 py-2.5 text-[13.5px]"
+            >
+              <span className="min-w-0">
+                <b>{rec.nombre}</b>
+                <span className="text-texto-2"> — {rec.ejercicio}</span>
+              </span>
+              <span className="shrink-0">
+                <span className="text-atenuado">{Number(rec.kg_previo)} kg → </span>
+                <b className="text-aviso">{Number(rec.kg_nuevo)} kg</b>
+              </span>
+            </Link>
+          ))}
+        </section>
+      )}
 
       {/* Semanas completadas: listos para avanzar */}
       {listosParaAvanzar.length > 0 && (
