@@ -37,6 +37,7 @@ export default function FichaCliente({
   diasEntrenados,
   rutina,
   dieta,
+  dietaDescanso,
   biblioteca,
   alimentos,
   excluidos,
@@ -51,6 +52,7 @@ export default function FichaCliente({
   diasEntrenados: boolean[];
   rutina: RutinaUI | null;
   dieta: Dieta | null;
+  dietaDescanso: Dieta | null;
   biblioteca: Ejercicio[];
   alimentos: Alimento[];
   excluidos: string[];
@@ -61,6 +63,8 @@ export default function FichaCliente({
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
   const [editandoDia, setEditandoDia] = useState(false);
+  // Sub-pestaña de la dieta: día de entreno o día de descanso
+  const [tipoDieta, setTipoDieta] = useState<"entreno" | "descanso">("entreno");
 
   return (
     <>
@@ -113,26 +117,46 @@ export default function FichaCliente({
       )}
 
       {pestana === "dieta" && (
-        <EditorDieta
-          dieta={dieta}
-          clienteId={perfil.id}
-          alimentos={alimentos}
-          excluidos={excluidos}
-          autoCalculo={{
-            pesoKg: (() => {
-              // Último peso registrado en medidas
-              const conPeso = medidas.filter((m) => m.peso !== null);
-              return conPeso.length > 0
-                ? Number(conPeso[conPeso.length - 1].peso)
-                : null;
-            })(),
-            alturaCm: perfil.altura_cm,
-            fechaNacimiento: perfil.fecha_nacimiento,
-            sexo: perfil.sexo,
-            factorActividad: Number(perfil.factor_actividad ?? 1.55),
-            objetivo: perfil.objetivo,
-          }}
-        />
+        <>
+          {/* Sub-pestaña: dieta de día de entreno vs. día de descanso */}
+          <div className="flex gap-1.5 mb-3.5">
+            <button
+              className={tipoDieta === "entreno" ? "chip chip-activo" : "chip"}
+              onClick={() => setTipoDieta("entreno")}
+            >
+              Día de entreno
+            </button>
+            <button
+              className={tipoDieta === "descanso" ? "chip chip-activo" : "chip"}
+              onClick={() => setTipoDieta("descanso")}
+            >
+              Día de descanso
+            </button>
+          </div>
+          <EditorDieta
+            key={tipoDieta}
+            dieta={tipoDieta === "entreno" ? dieta : dietaDescanso}
+            tipoDieta={tipoDieta}
+            puedeCopiarDeEntreno={!!dieta}
+            clienteId={perfil.id}
+            alimentos={alimentos}
+            excluidos={excluidos}
+            autoCalculo={{
+              pesoKg: (() => {
+                // Último peso registrado en medidas
+                const conPeso = medidas.filter((m) => m.peso !== null);
+                return conPeso.length > 0
+                  ? Number(conPeso[conPeso.length - 1].peso)
+                  : null;
+              })(),
+              alturaCm: perfil.altura_cm,
+              fechaNacimiento: perfil.fecha_nacimiento,
+              sexo: perfil.sexo,
+              factorActividad: Number(perfil.factor_actividad ?? 1.55),
+              objetivo: perfil.objetivo,
+            }}
+          />
+        </>
       )}
 
       {pestana === "progreso" && (

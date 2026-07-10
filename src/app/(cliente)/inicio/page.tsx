@@ -117,6 +117,7 @@ export default async function PaginaInicio() {
       .select("kcal_obj, prot_obj, carb_obj, gras_obj")
       .eq("cliente_id", user.id)
       .eq("activa", true)
+      .eq("tipo", "entreno")
       .limit(1)
       .maybeSingle(),
     supabase
@@ -139,7 +140,9 @@ export default async function PaginaInicio() {
       .select("actualizada_en")
       .eq("cliente_id", user.id)
       .eq("activa", true)
-      .order("creada_en", { ascending: false })
+      // con dieta de entreno y de descanso activas, el aviso salta
+      // si CUALQUIERA de las dos cambió desde la última visita
+      .order("actualizada_en", { ascending: false })
       .limit(1)
       .maybeSingle(),
   ]);

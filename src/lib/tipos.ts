@@ -108,6 +108,7 @@ export interface Dieta {
   carb_obj: number;
   gras_obj: number;
   activa: boolean;
+  tipo: "entreno" | "descanso";
   dieta_comidas?: DietaComida[];
 }
 

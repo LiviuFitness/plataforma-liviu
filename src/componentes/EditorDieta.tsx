@@ -44,12 +44,17 @@ export default function EditorDieta({
   autoCalculo,
   alimentos,
   excluidos,
+  tipoDieta = "entreno",
+  puedeCopiarDeEntreno = false,
 }: {
   dieta: Dieta | null;
   clienteId?: string | null; // null => plantilla
   autoCalculo?: DatosAutoCalculo;
   alimentos: Alimento[];
   excluidos?: string[]; // ids de alimentos que no le gustan al cliente
+  tipoDieta?: "entreno" | "descanso";
+  /** true si el cliente tiene dieta de entreno activa de la que copiar */
+  puedeCopiarDeEntreno?: boolean;
 }) {
   const router = useRouter();
   const [kcal, setKcal] = useState(dieta?.kcal_obj ?? 2000);
@@ -80,6 +85,7 @@ export default function EditorDieta({
   const [ok, setOk] = useState(false);
   const [notaCalculo, setNotaCalculo] = useState("");
   const [avisoGeneracion, setAvisoGeneracion] = useState<Record<number, string>>({});
+  const [reduccion, setReduccion] = useState(75); // g de hidratos a recortar en descanso
 
   function tocar() {
     setSucio(true);
@@ -209,10 +215,28 @@ export default function EditorDieta({
     const supabase = crearClienteNavegador();
     const { error } = await supabase
       .from("dietas")
-      .insert({ cliente_id: clienteId, activa: true });
+      .insert({ cliente_id: clienteId, activa: true, tipo: tipoDieta });
     setGuardando(false);
     if (error) {
       setError("No se pudo crear la dieta. Inténtalo de nuevo.");
+      return;
+    }
+    router.refresh();
+  }
+
+  /* --- Crear la dieta de descanso copiando la de entreno (−N g hidratos) --- */
+  async function crearDescansoDesdeEntreno() {
+    if (!clienteId) return;
+    setGuardando(true);
+    setError("");
+    const supabase = crearClienteNavegador();
+    const { error } = await supabase.rpc("crear_dieta_descanso", {
+      p_cliente: clienteId,
+      p_reduccion: reduccion,
+    });
+    setGuardando(false);
+    if (error) {
+      setError("No se pudo crear la dieta de descanso. Inténtalo de nuevo.");
       return;
     }
     router.refresh();
@@ -278,6 +302,52 @@ export default function EditorDieta({
   }
 
   if (!dieta) {
+    if (tipoDieta === "descanso") {
+      return (
+        <section className="tarjeta">
+          <div className="text-atenuado text-[13.5px] mb-3">
+            Sin dieta de descanso todavía. Los días sin entreno se gasta menos:
+            lo habitual es la misma dieta con menos hidratos.
+          </div>
+          {puedeCopiarDeEntreno && (
+            <>
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[13.5px] text-texto-2">
+                  Hidratos a recortar
+                </span>
+                <select
+                  className="input !mb-0 !w-auto"
+                  value={reduccion}
+                  onChange={(e) => setReduccion(Number(e.target.value))}
+                >
+                  <option value={50}>−50 g (−200 kcal)</option>
+                  <option value={75}>−75 g (−300 kcal)</option>
+                  <option value={100}>−100 g (−400 kcal)</option>
+                </select>
+              </div>
+              <button
+                className="cta"
+                onClick={crearDescansoDesdeEntreno}
+                disabled={guardando}
+              >
+                {guardando
+                  ? "Creando…"
+                  : `Copiar la dieta de entreno con −${reduccion} g de hidratos`}
+              </button>
+              <p className="text-atenuado text-[12px] -mt-2 mb-3">
+                Recorta los gramos de los alimentos tipo carbohidrato (arroz,
+                pasta, pan…) proporcionalmente. Después puedes ajustar lo que
+                quieras a mano.
+              </p>
+            </>
+          )}
+          {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+          <button className="ghost w-full" onClick={crearDieta} disabled={guardando}>
+            + Crear desde cero
+          </button>
+        </section>
+      );
+    }
     return (
       <section className="tarjeta">
         <div className="text-atenuado text-[13.5px] mb-3">

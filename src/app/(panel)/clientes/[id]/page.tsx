@@ -32,6 +32,7 @@ export default async function PaginaFichaCliente({
     { data: sesionesSemana },
     { data: rutina },
     { data: dieta },
+    { data: dietaDescanso },
     { data: biblioteca },
     { data: alimentos },
     { data: exclusiones },
@@ -67,6 +68,16 @@ export default async function PaginaFichaCliente({
       .select(SELECT_DIETA_COMPLETA)
       .eq("cliente_id", id)
       .eq("activa", true)
+      .eq("tipo", "entreno")
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("dietas")
+      .select(SELECT_DIETA_COMPLETA)
+      .eq("cliente_id", id)
+      .eq("activa", true)
+      .eq("tipo", "descanso")
       .order("creada_en", { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -102,6 +113,7 @@ export default async function PaginaFichaCliente({
       diasEntrenados={diasEntrenados}
       rutina={rutina ? aRutinaUI(rutina as unknown as FilaRutina) : null}
       dieta={(dieta as Dieta | null) ?? null}
+      dietaDescanso={(dietaDescanso as Dieta | null) ?? null}
       biblioteca={(biblioteca ?? []) as Ejercicio[]}
       alimentos={(alimentos ?? []) as Alimento[]}
       excluidos={(exclusiones ?? []).map((e) => e.alimento_id)}
