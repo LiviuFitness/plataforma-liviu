@@ -121,6 +121,21 @@ function sumarItems(items: ItemGenerado[]): ObjetivoMacros {
   );
 }
 
+/** Baraja los N alimentos más densos del macro y devuelve unos pocos:
+ * la calidad se mantiene (solo entran los densos) pero cada generación
+ * usa una selección distinta → menús con variedad al regenerar. */
+function elegirCandidatos(lista: Alimento[], densidad: (a: Alimento) => number): Alimento[] {
+  const top = lista
+    .slice()
+    .sort((a, b) => densidad(b) - densidad(a))
+    .slice(0, 12);
+  for (let i = top.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [top[i], top[j]] = [top[j], top[i]];
+  }
+  return top.slice(0, MAX_CANDIDATOS_POR_CATEGORIA);
+}
+
 const redondear5 = (g: number) => Math.max(5, Math.round(g / 5) * 5);
 const GRAMOS_MIN = 5;
 const GRAMOS_MAX = 400;
@@ -146,9 +161,11 @@ export function generarComida(
   // Se ordenan por densidad del macro que les toca aportar, para preferir
   // opciones prácticas (pechuga de pollo, arroz, aceite…) sobre otras que
   // matemáticamente cuadran pero exigirían raciones poco realistas.
-  const proteinas = porCategoria(comida, "proteina").sort((a, b) => b.prot_100 - a.prot_100);
-  const carbohidratos = porCategoria(comida, "carbohidrato").sort((a, b) => b.carb_100 - a.carb_100);
-  const grasas = porCategoria(comida, "grasa").sort((a, b) => b.gras_100 - a.gras_100);
+  // Entre los densos se baraja para que cada generación proponga
+  // combinaciones distintas (variedad al regenerar).
+  const proteinas = elegirCandidatos(porCategoria(comida, "proteina"), (a) => a.prot_100);
+  const carbohidratos = elegirCandidatos(porCategoria(comida, "carbohidrato"), (a) => a.carb_100);
+  const grasas = elegirCandidatos(porCategoria(comida, "grasa"), (a) => a.gras_100);
   const verduras = porCategoria(comida, "verdura");
 
   if (proteinas.length === 0 || carbohidratos.length === 0 || grasas.length === 0) {
@@ -157,7 +174,10 @@ export function generarComida(
 
   const fijos: ItemGenerado[] = [];
   const restante = { ...objetivo };
-  const verdura = objetivo.kcal >= KCAL_MIN_PARA_VERDURA ? verduras[0] : undefined;
+  const verdura =
+    objetivo.kcal >= KCAL_MIN_PARA_VERDURA
+      ? verduras[Math.floor(Math.random() * verduras.length)]
+      : undefined;
   if (verdura) {
     const m = macrosDeGramos(verdura, VERDURA_GRAMOS);
     restante.prot -= m.prot;
@@ -166,11 +186,11 @@ export function generarComida(
     fijos.push({ alimento: verdura, gramos: VERDURA_GRAMOS });
   }
 
-  let mejor: { items: ItemGenerado[]; error: number } | null = null;
+  const validos: { items: ItemGenerado[]; error: number }[] = [];
 
-  for (const p of proteinas.slice(0, MAX_CANDIDATOS_POR_CATEGORIA)) {
-    for (const c of carbohidratos.slice(0, MAX_CANDIDATOS_POR_CATEGORIA)) {
-      for (const g of grasas.slice(0, MAX_CANDIDATOS_POR_CATEGORIA)) {
+  for (const p of proteinas) {
+    for (const c of carbohidratos) {
+      for (const g of grasas) {
         const A = [
           [p.prot_100 / 100, c.prot_100 / 100, g.prot_100 / 100],
           [p.carb_100 / 100, c.carb_100 / 100, g.carb_100 / 100],
@@ -193,12 +213,19 @@ export function generarComida(
           Math.abs(logrado.carb - objetivo.carb) +
           Math.abs(logrado.gras - objetivo.gras);
 
-        if (!mejor || error < mejor.error) mejor = { items: candidatos, error };
+        validos.push({ items: candidatos, error });
       }
     }
   }
 
-  if (!mejor) return null;
+  if (validos.length === 0) return null;
+
+  // Elige al azar entre las combinaciones casi tan buenas como la mejor,
+  // para que regenerar dé menús distintos sin sacrificar el ajuste.
+  validos.sort((a, b) => a.error - b.error);
+  const umbral = validos[0].error + 5; // hasta 5 g de desviación extra
+  const buenos = validos.filter((v) => v.error <= umbral);
+  const mejor = buenos[Math.floor(Math.random() * buenos.length)];
 
   const logrado = sumarItems(mejor.items);
   const desviacionKcal =
