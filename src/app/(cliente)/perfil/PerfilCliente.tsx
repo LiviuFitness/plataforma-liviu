@@ -18,6 +18,20 @@ export default function PerfilCliente({
   biblioteca: Ejercicio[];
   ejerciciosExcluidos: string[];
 }) {
+  const [visibleComunidad, setVisibleComunidad] = useState(perfil.visible_en_comunidad);
+  const [guardandoComunidad, setGuardandoComunidad] = useState(false);
+
+  async function cambiarVisibleComunidad(valor: boolean) {
+    setVisibleComunidad(valor);
+    setGuardandoComunidad(true);
+    const supabase = crearClienteNavegador();
+    await supabase
+      .from("profiles")
+      .update({ visible_en_comunidad: valor })
+      .eq("id", perfil.id);
+    setGuardandoComunidad(false);
+  }
+
   const [contrasena, setContrasena] = useState("");
   const [repetida, setRepetida] = useState("");
   const [msgContrasena, setMsgContrasena] = useState<{ ok: boolean; texto: string } | null>(null);
@@ -123,6 +137,24 @@ export default function PerfilCliente({
         <p className="text-atenuado text-[12px] mt-2">
           ¿Algún dato incorrecto? Pídele el cambio a tu entrenador.
         </p>
+      </section>
+
+      <section className="tarjeta">
+        <div className="titulo-tarjeta">COMUNIDAD</div>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={visibleComunidad}
+            onChange={(e) => cambiarVisibleComunidad(e.target.checked)}
+            disabled={guardandoComunidad}
+            className="mt-1 w-[18px] h-[18px] accent-acento shrink-0"
+          />
+          <span className="text-[13.5px] text-texto-2 leading-snug">
+            Aparecer en la comunidad: otros clientes verán tu nombre cuando
+            consigas un logro, y tu constancia en el ranking. Puedes
+            desactivarlo cuando quieras.
+          </span>
+        </label>
       </section>
 
       <PreferenciasEjercicios

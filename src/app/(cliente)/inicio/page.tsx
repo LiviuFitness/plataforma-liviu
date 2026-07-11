@@ -7,7 +7,9 @@ import { Flame, Trophy } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 import WidgetHabitos from "./WidgetHabitos";
-import { inicioSemana as inicioSemanaHabitos } from "@/lib/habitos";
+import WidgetLogros from "./WidgetLogros";
+import { semanaHabitosCompleta } from "@/lib/habitos";
+import { logrosCumplidos } from "@/lib/logros";
 import { INFO_MACRO } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -80,6 +82,8 @@ export default async function PaginaInicio() {
   if (!user) redirect("/login");
 
   const hace60dias = new Date(Date.now() - 60 * 86400000).toISOString();
+  const hace7dias = new Date();
+  hace7dias.setDate(hace7dias.getDate() - 7);
 
   const [
     { data: perfil },
@@ -157,8 +161,22 @@ export default async function PaginaInicio() {
       .from("habitos_registros")
       .select("*")
       .eq("cliente_id", user.id)
-      .gte("fecha", inicioSemanaHabitos().toLocaleDateString("sv-SE")),
+      .gte("fecha", hace7dias.toLocaleDateString("sv-SE")),
   ]);
+
+  const [{ count: totalSesiones }, { count: totalRegistrosHabitos }, { data: logrosPrevios }] =
+    await Promise.all([
+      supabase
+        .from("sesiones")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", user.id),
+      supabase
+        .from("habitos_registros")
+        .select("id", { count: "exact", head: true })
+        .eq("cliente_id", user.id)
+        .eq("completado", true),
+      supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
+    ]);
 
   const avisoRutina = !!(
     rutinaMeta?.actualizada_en &&
@@ -201,6 +219,24 @@ export default async function PaginaInicio() {
 
   const racha = calcularRacha(listaSesiones.map((s) => s.fecha_inicio));
   const prReciente = calcularPrReciente(listaSesiones as unknown as FilaSesionParaPR[]);
+
+  // Logros: se calculan y desbloquean aquí (idempotente, unique en la
+  // tabla) en vez de en un cron aparte — este es el único sitio por el
+  // que el cliente pasa cada vez que abre la app.
+  const clavesPrevias = new Set((logrosPrevios ?? []).map((l) => l.clave));
+  const cumplidos = logrosCumplidos({
+    totalSesiones: totalSesiones ?? 0,
+    racha,
+    totalRegistrosHabitos: totalRegistrosHabitos ?? 0,
+    semanaHabitosCompleta: semanaHabitosCompleta(habitos ?? [], registrosHabitos ?? []),
+  });
+  const nuevosLogros = cumplidos.filter((c) => !clavesPrevias.has(c));
+  if (nuevosLogros.length > 0) {
+    await supabase
+      .from("logros_desbloqueados")
+      .insert(nuevosLogros.map((clave) => ({ cliente_id: user.id, clave })));
+  }
+  const clavesDesbloqueadas = new Set([...clavesPrevias, ...nuevosLogros]);
 
   // Próximo día sugerido: el siguiente al de la última sesión
   let proximoIndice = 0;
@@ -363,6 +399,11 @@ export default async function PaginaInicio() {
         clienteId={user.id}
         habitos={habitos ?? []}
         registros={registrosHabitos ?? []}
+      />
+
+      <WidgetLogros
+        desbloqueados={[...clavesDesbloqueadas]}
+        nuevos={nuevosLogros}
       />
 
       {/* Acceso rápido a la dieta */}

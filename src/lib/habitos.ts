@@ -32,6 +32,28 @@ export function casillasSemana(
   return dias.map((f) => marcados.has(f));
 }
 
+/** true si TODOS los hábitos activos están marcados en los últimos 7
+ * días naturales (ventana móvil, no de lunes a domingo: así se puede
+ * desbloquear cualquier día en cuanto se completa una racha de 7). */
+export function semanaHabitosCompleta(
+  habitos: Habito[],
+  registros: HabitoRegistro[]
+): boolean {
+  const activos = habitos.filter((h) => h.activo);
+  if (activos.length === 0) return false;
+  const dias = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return fechaLocal(d);
+  });
+  return activos.every((h) => {
+    const marcados = new Set(
+      registros.filter((r) => r.habito_id === h.id && r.completado).map((r) => r.fecha)
+    );
+    return dias.every((f) => marcados.has(f));
+  });
+}
+
 /** % de casillas completadas en las últimas `semanas` (7×semanas días), sobre los hábitos activos. */
 export function consistencia(
   habitos: Habito[],

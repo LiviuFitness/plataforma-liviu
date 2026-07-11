@@ -28,6 +28,7 @@ export interface Perfil {
   sexo: "hombre" | "mujer" | "otro" | null;
   factor_actividad: number;
   objetivo_ritmo_semanal_pct: number | null;
+  visible_en_comunidad: boolean;
 }
 
 export interface Invitacion {
