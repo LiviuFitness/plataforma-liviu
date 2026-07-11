@@ -18,8 +18,8 @@
   </defs>
   <rect width="512" height="512" fill="url(#base)"/>
   <rect width="512" height="512" fill="url(#glow)"/>
-  <text x="256" y="286" text-anchor="middle" font-family="'Inter Variable', Inter, -apple-system, sans-serif" font-weight="800" font-size="128" letter-spacing="-4">
-    <tspan fill="#FFFFFF">Liv</tspan><tspan fill="#29ABE2">Fit</tspan>
+  <text x="256" y="286" text-anchor="middle" font-family="'Inter Variable', Inter, -apple-system, sans-serif" font-weight="800" font-size="128" letter-spacing="-4" font-style="italic">
+    <tspan fill="#FFFFFF">Liv</tspan><tspan fill="#3B6DB6">Fit</tspan>
   </text>
   <rect x="146" y="330" width="220" height="7" rx="3.5" fill="url(#rail)"/>
 </svg>

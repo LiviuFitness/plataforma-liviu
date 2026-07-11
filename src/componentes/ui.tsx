@@ -6,14 +6,14 @@ import Image from "next/image";
 
 const CIAN = "#29ABE2";
 
-/** Logo oficial LIVIU Fitness Studio (versión para fondo oscuro). */
+/** Logo oficial LivFit (wordmark recortado con fondo transparente). */
 export function Logo({ tamano = 32 }: { tamano?: number }) {
   return (
     <Image
-      src="/logo-marca.png"
-      alt="LIVIU Fitness Studio"
-      width={416}
-      height={408}
+      src="/logo-livfit.png"
+      alt="LivFit"
+      width={847}
+      height={296}
       priority
       style={{ height: tamano, width: "auto", display: "inline-block" }}
     />
