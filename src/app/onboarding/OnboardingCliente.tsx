@@ -2,17 +2,58 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  Dumbbell,
+  Flame,
+  MessageCircle,
+  UtensilsCrossed,
+  type LucideIcon,
+} from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Logo } from "@/componentes/ui";
 
 type Sexo = "hombre" | "mujer" | "otro";
 
-const PASOS = ["sexo", "nacimiento", "altura", "peso"] as const;
+const PASOS = [
+  "sexo",
+  "nacimiento",
+  "altura",
+  "peso",
+  "tour-rutina",
+  "tour-dieta",
+  "tour-progreso",
+  "tour-chat",
+] as const;
+
+const TOUR: Record<string, { Icono: LucideIcon; titulo: string; texto: string }> = {
+  "tour-rutina": {
+    Icono: Dumbbell,
+    titulo: "Tu rutina",
+    texto: "Tu entrenador te asigna la rutina semana a semana. En Inicio siempre verás tu próximo entreno listo para empezar.",
+  },
+  "tour-dieta": {
+    Icono: UtensilsCrossed,
+    titulo: "Tu dieta",
+    texto: "Comidas con gramos exactos de cada alimento, con equivalencias intercambiables y un plan distinto para tus días de entreno y de descanso.",
+  },
+  "tour-progreso": {
+    Icono: Flame,
+    titulo: "Progreso y hábitos",
+    texto: "Registra tu peso y mira tu evolución, y marca a diario tus hábitos (pasos, agua, sueño…) desde la tarjeta de Inicio.",
+  },
+  "tour-chat": {
+    Icono: MessageCircle,
+    titulo: "Habla con tu entrenador",
+    texto: "Desde la pestaña Chat puedes escribirle directamente cuando lo necesites: dudas, molestias o lo que quieras contarle.",
+  },
+};
 
 /**
  * Mini-onboarding del cliente (estilo Hevy): sexo → fecha de
  * nacimiento → altura → peso actual, un paso por pantalla, con
- * botones grandes para que sea evidente sin explicación.
+ * botones grandes para que sea evidente sin explicación. Termina con
+ * un tour de bienvenida (rutina/dieta/progreso-hábitos/chat) antes
+ * de entrar a la app.
  */
 export default function OnboardingCliente({ nombre }: { nombre: string }) {
   const router = useRouter();
@@ -31,7 +72,8 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
     (clave === "sexo" && sexo !== "") ||
     (clave === "nacimiento" && nacimiento !== "") ||
     (clave === "altura" && Number(altura.replace(",", ".")) > 0) ||
-    (clave === "peso" && Number(peso.replace(",", ".")) > 0);
+    (clave === "peso" && Number(peso.replace(",", ".")) > 0) ||
+    clave in TOUR;
 
   async function continuar() {
     if (!esUltimo) {
@@ -156,15 +198,36 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
           </>
         )}
 
+        {clave in TOUR && (
+          <div className="flex flex-col items-center text-center pt-10">
+            {(() => {
+              const { Icono, titulo, texto } = TOUR[clave];
+              return (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-acento/10 flex items-center justify-center mb-5">
+                    <Icono size={30} className="text-acento" />
+                  </div>
+                  <h2 className="h1 !text-[22px] mb-2.5">{titulo}</h2>
+                  <p className="text-atenuado text-[14.5px] leading-relaxed max-w-[320px]">
+                    {texto}
+                  </p>
+                </>
+              );
+            })()}
+          </div>
+        )}
+
         {error && (
           <div className="text-peligro text-[13.5px] mt-4">— {error}</div>
         )}
       </div>
 
-      <p className="text-atenuado text-[12px] text-center mb-3">
-        Tus datos son privados y sirven para calcular tus objetivos de
-        nutrición. Tu entrenador puede corregirlos si algo cambia.
-      </p>
+      {!(clave in TOUR) && (
+        <p className="text-atenuado text-[12px] text-center mb-3">
+          Tus datos son privados y sirven para calcular tus objetivos de
+          nutrición. Tu entrenador puede corregirlos si algo cambia.
+        </p>
+      )}
 
       <div className="flex gap-2">
         {paso > 0 && (
