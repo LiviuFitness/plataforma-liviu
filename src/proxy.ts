@@ -66,6 +66,23 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
+  if (user) {
+    // El usuario ya quedó verificado contra Supabase justo arriba: se
+    // reenvía por cabecera para que layouts y páginas no repitan esa
+    // misma validación por red (obtenerUsuario() en lib/supabase/servidor.ts
+    // la usa en vez de volver a llamar a auth.getUser()). No es suplantable:
+    // .set() sobrescribe cualquier cabecera con este nombre que llegara
+    // del cliente.
+    const cabecerasConUsuario = new Headers(request.headers);
+    cabecerasConUsuario.set("x-usuario-id", user.id);
+    cabecerasConUsuario.set("x-usuario-email", user.email ?? "");
+    const respuestaConUsuario = NextResponse.next({
+      request: { headers: cabecerasConUsuario },
+    });
+    respuesta.cookies.getAll().forEach((c) => respuestaConUsuario.cookies.set(c));
+    respuesta = respuestaConUsuario;
+  }
+
   return respuesta;
 }
 
