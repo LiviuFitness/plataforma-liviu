@@ -1,10 +1,20 @@
 import type { crearClienteServidor } from "./supabase/servidor";
+import { calcularVolumenMuscular, type VolumenMuscular } from "./musculos";
 
 export interface PR {
   ejercicio: string;
   kg: number;
   reps: number;
   fecha: string;
+  /** 1RM estimado (fórmula de Epley) a partir de este mismo kg×reps. */
+  unRM: number;
+}
+
+/** 1RM estimado con la fórmula de Epley. A partir de 1 rep el "estimado"
+ * es el propio peso levantado (no hay nada que estimar). */
+export function estimar1RM(kg: number, reps: number): number {
+  if (!reps || reps <= 1) return kg;
+  return Math.round(kg * (1 + reps / 30) * 10) / 10;
 }
 
 export interface PuntoProgresion {
@@ -25,6 +35,7 @@ export interface ProgresoEntreno {
   prs: PR[];
   progresiones: Record<string, PuntoProgresion[]>;
   historial: SesionHistorial[];
+  volumenMuscular: VolumenMuscular[];
 }
 
 interface FilaSerieRealizada {
@@ -32,7 +43,9 @@ interface FilaSerieRealizada {
   reps: number | null;
   completada: boolean;
   tipo: string;
-  rutina_ejercicios: { ejercicios: { nombre: string } | null } | null;
+  rutina_ejercicios: {
+    ejercicios: { nombre: string; grupo_muscular: string } | null;
+  } | null;
 }
 
 interface FilaSesion {
@@ -58,7 +71,7 @@ export async function resolverProgresoEntreno(
       `id, fecha_inicio, sensacion, prs_pre,
        rutina_dias ( nombre ),
        series_realizadas ( kg, reps, completada, tipo,
-         rutina_ejercicios ( ejercicios ( nombre ) ) )`
+         rutina_ejercicios ( ejercicios ( nombre, grupo_muscular ) ) )`
     )
     .eq("cliente_id", clienteId)
     .order("fecha_inicio", { ascending: false })
@@ -80,6 +93,7 @@ export async function resolverProgresoEntreno(
           kg: Number(serie.kg),
           reps: serie.reps ?? 0,
           fecha: sesion.fecha_inicio,
+          unRM: estimar1RM(Number(serie.kg), serie.reps ?? 0),
         });
       }
     }
@@ -117,5 +131,16 @@ export async function resolverProgresoEntreno(
     prsPre: s.prs_pre,
   }));
 
-  return { prs, progresiones, historial };
+  const volumenMuscular = calcularVolumenMuscular(
+    listaSesiones.flatMap((s) =>
+      (s.series_realizadas ?? []).flatMap((serie) => {
+        const grupo = serie.rutina_ejercicios?.ejercicios?.grupo_muscular;
+        return grupo
+          ? [{ fecha: s.fecha_inicio, grupo, completada: serie.completada, tipo: serie.tipo }]
+          : [];
+      })
+    )
+  );
+
+  return { prs, progresiones, historial, volumenMuscular };
 }

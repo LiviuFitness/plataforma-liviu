@@ -7,8 +7,10 @@ import { fechaCorta, Sparkline } from "@/componentes/ui";
 import { aNumero } from "@/lib/rutinas";
 import FotosProgreso from "@/componentes/FotosProgreso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
+import MapaMuscular from "@/componentes/MapaMuscular";
 import type { SemanaRevision } from "@/lib/revision";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
+import type { VolumenMuscular } from "@/lib/musculos";
 import type { EntradaFotosProgreso, Medida } from "@/lib/tipos";
 
 /** Progreso del cliente: registra su peso, ve PRs e historial. */
@@ -20,6 +22,7 @@ export default function MiProgreso({
   semanaActual,
   progresiones,
   entradasFotos,
+  volumenMuscular,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -28,6 +31,7 @@ export default function MiProgreso({
   semanaActual: SemanaRevision | null;
   progresiones: Record<string, PuntoProgresion[]>;
   entradasFotos: EntradaFotosProgreso[];
+  volumenMuscular: VolumenMuscular[];
 }) {
   const router = useRouter();
   const [peso, setPeso] = useState("");
@@ -133,6 +137,8 @@ export default function MiProgreso({
       </section>
 
       <FotosProgreso clienteId={clienteId} entradasIniciales={entradasFotos} />
+
+      <MapaMuscular volumen={volumenMuscular} />
 
       <HistorialProgreso
         prs={prs}

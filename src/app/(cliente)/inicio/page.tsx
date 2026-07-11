@@ -10,6 +10,7 @@ import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
 import { semanaHabitosCompleta } from "@/lib/habitos";
 import { logrosCumplidos } from "@/lib/logros";
+import { calcularVolumenMuscular, grupoMasDescuidado } from "@/lib/musculos";
 import { INFO_MACRO } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -38,7 +39,9 @@ interface FilaSerieParaPR {
   kg: number | null;
   completada: boolean;
   tipo: string;
-  rutina_ejercicios: { ejercicios: { nombre: string } | null } | null;
+  rutina_ejercicios: {
+    ejercicios: { nombre: string; grupo_muscular: string } | null;
+  } | null;
 }
 
 interface FilaSesionParaPR {
@@ -114,7 +117,7 @@ export default async function PaginaInicio() {
       .select(
         `fecha_inicio, dia_id,
          series_realizadas ( kg, completada, tipo,
-           rutina_ejercicios ( ejercicios ( nombre ) ) )`
+           rutina_ejercicios ( ejercicios ( nombre, grupo_muscular ) ) )`
       )
       .eq("cliente_id", user.id)
       .gte("fecha_inicio", hace60dias)
@@ -238,6 +241,27 @@ export default async function PaginaInicio() {
   }
   const clavesDesbloqueadas = new Set([...clavesPrevias, ...nuevosLogros]);
 
+  // Grupo muscular más descuidado (de los que sí trabaja su rutina) —
+  // solo se avisa si ya lleva unas cuantas sesiones, para no ser
+  // repetitivo con clientes que acaban de empezar.
+  const volumenMuscular = calcularVolumenMuscular(
+    (listaSesiones as unknown as FilaSesionParaPR[]).flatMap((s) =>
+      (s.series_realizadas ?? []).flatMap((serie) => {
+        const grupo = serie.rutina_ejercicios?.ejercicios?.grupo_muscular;
+        return grupo
+          ? [{ fecha: s.fecha_inicio, grupo, completada: serie.completada, tipo: serie.tipo }]
+          : [];
+      })
+    )
+  );
+  const gruposEnRutina = new Set(
+    (rutinaCompleta?.dias ?? []).flatMap((d) => d.ejercicios.map((e) => e.grupo_muscular))
+  );
+  const avisoMuscular =
+    (totalSesiones ?? 0) >= 3
+      ? grupoMasDescuidado(volumenMuscular, gruposEnRutina)
+      : null;
+
   // Próximo día sugerido: el siguiente al de la última sesión
   let proximoIndice = 0;
   if (rutina && rutina.dias.length > 0) {
@@ -292,6 +316,16 @@ export default async function PaginaInicio() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {avisoMuscular && (
+        <div className="tarjeta !border-acento/30 !mb-2.5 text-[13.5px] text-texto-2">
+          💪 Llevas{" "}
+          {avisoMuscular.diasDesdeUltimoEntreno === null
+            ? "un tiempo"
+            : `${avisoMuscular.diasDesdeUltimoEntreno} días`}{" "}
+          sin trabajar <b>{avisoMuscular.grupo}</b> — está en tu rutina, ¡tócalo pronto!
         </div>
       )}
 

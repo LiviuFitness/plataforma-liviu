@@ -14,7 +14,7 @@ export default async function PaginaMiProgreso() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const [{ data: medidas }, { prs, progresiones, historial }] = await Promise.all([
+  const [{ data: medidas }, { prs, progresiones, historial, volumenMuscular }] = await Promise.all([
     supabase
       .from("medidas")
       .select("*")
@@ -42,6 +42,7 @@ export default async function PaginaMiProgreso() {
       semanaActual={semanaActual}
       progresiones={progresiones}
       entradasFotos={entradasFotos}
+      volumenMuscular={volumenMuscular}
     />
   );
 }

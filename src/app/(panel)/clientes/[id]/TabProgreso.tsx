@@ -12,6 +12,7 @@ import {
 } from "@/lib/revision";
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
+import MapaMuscular from "@/componentes/MapaMuscular";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type { EntradaFotosProgreso, Medida, Perfil } from "@/lib/tipos";
 
@@ -215,6 +216,8 @@ export default function TabProgreso({
         <div className="titulo-tarjeta">FOTOS DE PROGRESO</div>
         <GaleriaFotosProgreso entradas={entradasFotos} />
       </section>
+
+      <MapaMuscular volumen={progresoEntreno.volumenMuscular} />
 
       <HistorialProgreso
         prs={progresoEntreno.prs}

@@ -38,18 +38,25 @@ export default function HistorialProgreso({
           return (
             <div key={pr.ejercicio} className="border-b border-borde last:border-0">
               <button
-                className="flex justify-between items-baseline py-2.5 w-full text-left cursor-pointer"
+                className="flex justify-between items-center py-2.5 w-full text-left cursor-pointer"
                 onClick={() =>
                   setExpandido(abierto ? null : puntos.length >= 2 ? pr.ejercicio : null)
                 }
               >
                 <span className="text-[14px]">{pr.ejercicio}</span>
-                <span className="text-[14px]">
-                  <b className="text-acento">{pr.kg} kg</b>
-                  <span className="text-atenuado"> × {pr.reps}</span>
-                  {puntos.length >= 2 && (
-                    <span className="text-atenuado text-[12px] ml-1.5">
-                      {abierto ? "▲" : "▼"}
+                <span className="text-right">
+                  <span className="text-[14px] block">
+                    <b className="text-acento">{pr.kg} kg</b>
+                    <span className="text-atenuado"> × {pr.reps}</span>
+                    {puntos.length >= 2 && (
+                      <span className="text-atenuado text-[12px] ml-1.5">
+                        {abierto ? "▲" : "▼"}
+                      </span>
+                    )}
+                  </span>
+                  {pr.reps > 1 && (
+                    <span className="text-atenuado text-[11.5px] block">
+                      ~1RM {pr.unRM} kg
                     </span>
                   )}
                 </span>
