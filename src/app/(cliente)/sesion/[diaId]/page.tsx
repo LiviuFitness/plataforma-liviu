@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { componerCarga, componerReps, componerRir } from "@/lib/rutinas";
 import SesionEnCurso, { type EjercicioSesion } from "@/componentes/SesionEnCurso";
 import type { TipoSerie } from "@/lib/tipos";
@@ -57,9 +57,7 @@ export default async function PaginaSesion({
 }) {
   const { diaId } = await params;
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   // RLS garantiza que el cliente solo puede leer días de SU rutina

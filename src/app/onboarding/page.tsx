@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import OnboardingCliente from "./OnboardingCliente";
 
 export const dynamic = "force-dynamic";
@@ -11,9 +11,7 @@ export const dynamic = "force-dynamic";
  */
 export default async function PaginaOnboarding() {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   const { data: perfil } = await supabase

@@ -21,6 +21,7 @@ export interface Perfil {
   avatar_url: string | null;
   rutina_vista_en: string | null;
   dieta_vista_en: string | null;
+  chat_visto_en: string | null;
   // Datos físicos (para el auto-cálculo de macros)
   fecha_nacimiento: string | null;
   altura_cm: number | null;
@@ -79,6 +80,39 @@ export interface EntradaFotosProgreso {
   frontal: FotoProgreso | null;
   lateral: FotoProgreso | null;
   espalda: FotoProgreso | null;
+}
+
+export interface Habito {
+  id: string;
+  cliente_id: string;
+  nombre: string;
+  icono: string;
+  orden: number;
+  activo: boolean;
+  creado_en: string;
+}
+
+export interface HabitoRegistro {
+  id: string;
+  habito_id: string;
+  cliente_id: string;
+  fecha: string;
+  completado: boolean;
+}
+
+/** Hábitos sugeridos al cliente que aún no tiene ninguno configurado. */
+export const HABITOS_SUGERIDOS: { nombre: string; icono: string }[] = [
+  { nombre: "Pasos", icono: "footprints" },
+  { nombre: "Agua", icono: "glass-water" },
+  { nombre: "Sueño", icono: "moon" },
+];
+
+export interface Mensaje {
+  id: string;
+  cliente_id: string;
+  remitente: "cliente" | "entrenador";
+  texto: string;
+  creado_en: string;
 }
 
 export interface Alerta {

@@ -5,7 +5,16 @@ import { SELECT_DIETA_COMPLETA, type Alimento } from "@/lib/dietas";
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
 import FichaCliente from "./FichaCliente";
-import type { Alerta, Dieta, Ejercicio, Medida, Perfil } from "@/lib/tipos";
+import type {
+  Alerta,
+  Dieta,
+  Ejercicio,
+  Habito,
+  HabitoRegistro,
+  Medida,
+  Mensaje,
+  Perfil,
+} from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +33,9 @@ export default async function PaginaFichaCliente({
   inicioSemana.setDate(inicioSemana.getDate() - diaSemana);
   inicioSemana.setHours(0, 0, 0, 0);
 
+  const hace28dias = new Date();
+  hace28dias.setDate(hace28dias.getDate() - 28);
+
   const [
     { data: perfil },
     { data: medidas },
@@ -37,6 +49,9 @@ export default async function PaginaFichaCliente({
     { data: alimentos },
     { data: exclusiones },
     { data: exclusionesEjercicio },
+    { data: habitos },
+    { data: registrosHabitos },
+    { data: mensajes },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -88,6 +103,17 @@ export default async function PaginaFichaCliente({
       .order("nombre"),
     supabase.from("alimentos_excluidos").select("alimento_id").eq("cliente_id", id),
     supabase.from("ejercicios_excluidos").select("ejercicio_id").eq("cliente_id", id),
+    supabase.from("habitos").select("*").eq("cliente_id", id).order("orden"),
+    supabase
+      .from("habitos_registros")
+      .select("*")
+      .eq("cliente_id", id)
+      .gte("fecha", hace28dias.toLocaleDateString("sv-SE")),
+    supabase
+      .from("mensajes")
+      .select("*")
+      .eq("cliente_id", id)
+      .order("creado_en", { ascending: true }),
   ]);
 
   if (!perfil) notFound();
@@ -120,6 +146,9 @@ export default async function PaginaFichaCliente({
       ejerciciosExcluidos={(exclusionesEjercicio ?? []).map((e) => e.ejercicio_id)}
       entradasFotos={entradasFotos}
       progresoEntreno={progresoEntreno}
+      habitos={(habitos ?? []) as Habito[]}
+      registrosHabitos={(registrosHabitos ?? []) as HabitoRegistro[]}
+      mensajes={(mensajes ?? []) as Mensaje[]}
     />
   );
 }

@@ -7,6 +7,8 @@ import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
 import TabResumen from "./TabResumen";
 import TabProgreso from "./TabProgreso";
+import TabHabitos from "./TabHabitos";
+import HiloChat from "@/componentes/HiloChat";
 import type { Alimento } from "@/lib/dietas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type {
@@ -14,7 +16,10 @@ import type {
   Dieta,
   Ejercicio,
   EntradaFotosProgreso,
+  Habito,
+  HabitoRegistro,
   Medida,
+  Mensaje,
   Perfil,
   RutinaUI,
 } from "@/lib/tipos";
@@ -24,6 +29,8 @@ const PESTANAS = [
   ["entreno", "Entreno"],
   ["dieta", "Dieta"],
   ["progreso", "Progreso"],
+  ["habitos", "Hábitos"],
+  ["chat", "Chat"],
 ] as const;
 
 type Pestana = (typeof PESTANAS)[number][0];
@@ -44,6 +51,9 @@ export default function FichaCliente({
   ejerciciosExcluidos,
   entradasFotos,
   progresoEntreno,
+  habitos,
+  registrosHabitos,
+  mensajes,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -59,6 +69,9 @@ export default function FichaCliente({
   ejerciciosExcluidos: string[];
   entradasFotos: EntradaFotosProgreso[];
   progresoEntreno: ProgresoEntreno;
+  habitos: Habito[];
+  registrosHabitos: HabitoRegistro[];
+  mensajes: Mensaje[];
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
@@ -168,6 +181,20 @@ export default function FichaCliente({
           dietaKcal={dieta?.kcal_obj ?? null}
           entradasFotos={entradasFotos}
           progresoEntreno={progresoEntreno}
+        />
+      )}
+
+      {pestana === "habitos" && (
+        <TabHabitos habitos={habitos} registros={registrosHabitos} />
+      )}
+
+      {pestana === "chat" && (
+        <HiloChat
+          clienteId={perfil.id}
+          mensajesIniciales={mensajes}
+          remitentePropio="entrenador"
+          nombreOtro={perfil.nombre}
+          anchoMaximo="max-w-[480px] md:max-w-[760px]"
         />
       )}
     </>

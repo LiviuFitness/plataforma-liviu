@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import {
   SELECT_DIETA_COMPLETA,
   type Alimento,
@@ -25,9 +25,7 @@ function aPlan(fila: unknown): PlanDieta | null {
  * gramos y equivalencias. */
 export default async function PaginaMiDieta() {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   const [{ data: filaEntreno }, { data: filaDescanso }] = await Promise.all([

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 
@@ -27,3 +28,18 @@ export async function crearClienteServidor() {
     }
   );
 }
+
+/**
+ * Usuario autenticado, memorizado por petición (con `cache` de React).
+ * El layout y la página de cada ruta necesitan saber quién ha iniciado
+ * sesión; sin este cache, `auth.getUser()` — que valida el token contra
+ * el servidor de Supabase, no es una simple lectura de cookie — se
+ * repetía dos veces por navegación y frenaba cada cambio de página.
+ */
+export const obtenerUsuario = cache(async () => {
+  const supabase = await crearClienteServidor();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user;
+});

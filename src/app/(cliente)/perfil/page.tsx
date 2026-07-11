@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import PerfilCliente from "./PerfilCliente";
 import type { Ejercicio, Perfil } from "@/lib/tipos";
 
@@ -8,9 +8,7 @@ export const dynamic = "force-dynamic";
 /** Perfil del cliente: datos, contraseña, ejercicios a evitar y RGPD. */
 export default async function PaginaPerfil() {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   const [{ data: perfil }, { data: biblioteca }, { data: exclusiones }] =

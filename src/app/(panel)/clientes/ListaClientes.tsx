@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { MessageCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { AnilloAdherencia } from "@/componentes/ui";
 import { OBJETIVOS, type Invitacion, type Perfil } from "@/lib/tipos";
@@ -13,6 +14,7 @@ export default function ListaClientes({
   adherencias,
   alertas,
   diasSinEntrenar,
+  chatSinLeer,
   invitaciones,
 }: {
   clientes: Perfil[];
@@ -20,6 +22,8 @@ export default function ListaClientes({
   alertas: Record<string, number>;
   /** Días desde la última sesión; sin entrada = nunca ha entrenado */
   diasSinEntrenar: Record<string, number>;
+  /** true si el último mensaje del hilo lo mandó el cliente (pendiente de responder) */
+  chatSinLeer: Record<string, boolean>;
   invitaciones: Invitacion[];
 }) {
   const router = useRouter();
@@ -226,6 +230,11 @@ export default function ListaClientes({
                 {c.estado !== "activo" ? ` · ${c.estado}` : ""}
               </div>
             </div>
+            {chatSinLeer[c.id] && (
+              <span title="Mensaje sin responder" className="shrink-0">
+                <MessageCircle size={18} className="text-acento" fill="currentColor" />
+              </span>
+            )}
             {(alertas[c.id] ?? 0) > 0 && (
               <span className="bg-peligro text-white text-[12px] font-bold rounded-full px-[9px] py-[3px]">
                 {alertas[c.id]}

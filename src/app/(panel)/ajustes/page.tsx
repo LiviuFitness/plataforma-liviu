@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import Ajustes from "./Ajustes";
 import type { Perfil } from "@/lib/tipos";
 
@@ -8,9 +8,7 @@ export const dynamic = "force-dynamic";
 /** Ajustes del entrenador: datos, correo y contraseña. */
 export default async function PaginaAjustes() {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   const { data: perfil } = await supabase

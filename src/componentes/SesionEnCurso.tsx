@@ -56,6 +56,41 @@ interface EjercicioConIndice extends EjercicioSesion {
   indiceGlobal: number;
 }
 
+/* --- Autoguardado local: si el cliente cierra la app sin querer a
+   mitad de entreno, al volver a abrir esta misma sesión se recupera
+   todo lo marcado (no se pierde por un cierre accidental). Se borra
+   solo cuando la sesión se guarda de verdad o el cliente confirma
+   que quiere salir sin guardar. --- */
+interface AutosaveSesion {
+  fase: "previo" | "entrenando" | "final";
+  inicio: number | null;
+  prsPre: number | null;
+  sensacion: number | null;
+  nota: string;
+  ejercicios: EjercicioSesion[];
+}
+
+function claveAutosave(clienteId: string, diaId: string) {
+  return `sesion-en-curso:${clienteId}:${diaId}`;
+}
+
+function leerAutosave(clienteId: string, diaId: string): AutosaveSesion | null {
+  try {
+    const bruto = localStorage.getItem(claveAutosave(clienteId, diaId));
+    return bruto ? (JSON.parse(bruto) as AutosaveSesion) : null;
+  } catch {
+    return null;
+  }
+}
+
+function borrarAutosave(clienteId: string, diaId: string) {
+  try {
+    localStorage.removeItem(claveAutosave(clienteId, diaId));
+  } catch {
+    /* almacenamiento no disponible: no hay nada que limpiar */
+  }
+}
+
 const SENSACIONES = [
   { valor: 1, emoji: "😖", etiqueta: "Muy duro" },
   { valor: 2, emoji: "😕", etiqueta: "Duro" },
@@ -115,11 +150,45 @@ export default function SesionEnCurso({
   const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
   const [videoAbierto, setVideoAbierto] = useState<number | null>(null);
   const avisado = useRef(false);
+  const hidratado = useRef(false);
 
   function empezarEntreno() {
     setInicio(Date.now());
     setFase("entrenando");
   }
+
+  /* Al abrir esta sesión, recupera del navegador un entreno que se
+   * hubiera quedado a mitad (mismo número de ejercicios: si la rutina
+   * cambió mientras tanto, se descarta el autoguardado y se empieza
+   * de cero para no mezclar series de un día distinto). */
+  useEffect(() => {
+    const guardado = leerAutosave(clienteId, diaId);
+    if (guardado && guardado.ejercicios.length === ejerciciosIniciales.length) {
+      // El servidor no puede leer localStorage: esta hidratación solo
+      // puede pasar aquí, tras el primer render en el navegador.
+      /* eslint-disable react-hooks/set-state-in-effect */
+      setEjercicios(guardado.ejercicios);
+      setFase(guardado.fase);
+      setInicio(guardado.inicio);
+      setPrsPre(guardado.prsPre);
+      setSensacion(guardado.sensacion);
+      setNota(guardado.nota);
+      /* eslint-enable react-hooks/set-state-in-effect */
+    }
+    hidratado.current = true;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  /* Autoguardado continuo: cualquier cambio (serie marcada, kg/reps
+   * editados, sensación…) se persiste al momento. Así, si la app se
+   * cierra sin querer a mitad de entreno, nada se pierde. */
+  useEffect(() => {
+    if (!hidratado.current || fase === "previo") return;
+    localStorage.setItem(
+      claveAutosave(clienteId, diaId),
+      JSON.stringify({ fase, inicio, prsPre, sensacion, nota, ejercicios })
+    );
+  }, [clienteId, diaId, fase, inicio, prsPre, sensacion, nota, ejercicios]);
 
   /* Reloj: tiempo de sesión y cuenta atrás del descanso */
   useEffect(() => {
@@ -281,6 +350,7 @@ export default function SesionEnCurso({
       setError("La sesión se creó pero fallaron las series. Inténtalo de nuevo.");
       return;
     }
+    borrarAutosave(clienteId, diaId);
     router.push(volverA);
     router.refresh();
   }
@@ -291,6 +361,7 @@ export default function SesionEnCurso({
       !confirm("La sesión no está guardada. ¿Salir sin guardar?")
     )
       return;
+    borrarAutosave(clienteId, diaId);
     router.push(volverA);
   }
 

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { calcularRevisionSemanal } from "@/lib/revision";
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
@@ -11,9 +11,7 @@ export const dynamic = "force-dynamic";
 /** Progreso del cliente: peso propio, récords personales e historial. */
 export default async function PaginaMiProgreso() {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   const [{ data: medidas }, { prs, progresiones, historial }] = await Promise.all([

@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
 import { Flame, Trophy } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
+import WidgetHabitos from "./WidgetHabitos";
+import { inicioSemana as inicioSemanaHabitos } from "@/lib/habitos";
 
 export const dynamic = "force-dynamic";
 
@@ -73,9 +75,7 @@ function calcularPrReciente(
 /** Inicio del cliente: frase del día, racha, semana, próximo entreno, peso y PR reciente. */
 export default async function PaginaInicio() {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
   const hace60dias = new Date(Date.now() - 60 * 86400000).toISOString();
@@ -88,6 +88,8 @@ export default async function PaginaInicio() {
     { data: medidas },
     { data: rutinaMeta },
     { data: dietaMeta },
+    { data: habitos },
+    { data: registrosHabitos },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -145,6 +147,16 @@ export default async function PaginaInicio() {
       .order("actualizada_en", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("habitos")
+      .select("*")
+      .eq("cliente_id", user.id)
+      .order("orden"),
+    supabase
+      .from("habitos_registros")
+      .select("*")
+      .eq("cliente_id", user.id)
+      .gte("fecha", inicioSemanaHabitos().toLocaleDateString("sv-SE")),
   ]);
 
   const avisoRutina = !!(
@@ -344,6 +356,12 @@ export default async function PaginaInicio() {
         clienteId={user.id}
         ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
         deltaKg={deltaPeso}
+      />
+
+      <WidgetHabitos
+        clienteId={user.id}
+        habitos={habitos ?? []}
+        registros={registrosHabitos ?? []}
       />
 
       {/* Acceso rápido a la dieta */}

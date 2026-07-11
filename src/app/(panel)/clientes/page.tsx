@@ -14,6 +14,7 @@ export default async function PaginaClientes() {
     { data: alertas },
     { data: invitaciones },
     { data: sesiones },
+    { data: mensajes },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -33,6 +34,11 @@ export default async function PaginaClientes() {
       .select("cliente_id, fecha_inicio")
       .order("fecha_inicio", { ascending: false })
       .limit(300),
+    supabase
+      .from("mensajes")
+      .select("cliente_id, remitente")
+      .order("creado_en", { ascending: false })
+      .limit(500),
   ]);
 
   const mapaAdh = new Map(
@@ -54,12 +60,21 @@ export default async function PaginaClientes() {
     }
   }
 
+  // Chat pendiente de responder: el último mensaje del hilo lo mandó el cliente
+  const chatSinLeer = new Map<string, boolean>();
+  for (const m of mensajes ?? []) {
+    if (!chatSinLeer.has(m.cliente_id)) {
+      chatSinLeer.set(m.cliente_id, m.remitente === "cliente");
+    }
+  }
+
   return (
     <ListaClientes
       clientes={(clientes ?? []) as Perfil[]}
       adherencias={Object.fromEntries(mapaAdh)}
       alertas={Object.fromEntries(numAlertas)}
       diasSinEntrenar={Object.fromEntries(diasSinEntrenar)}
+      chatSinLeer={Object.fromEntries(chatSinLeer)}
       invitaciones={(invitaciones ?? []) as Invitacion[]}
     />
   );

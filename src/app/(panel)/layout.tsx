@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { crearClienteServidor } from "@/lib/supabase/servidor";
+import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { Logo } from "@/componentes/ui";
 import BarraInferior from "@/componentes/BarraInferior";
 import BotonSalir from "@/componentes/BotonSalir";
@@ -14,9 +14,7 @@ export default async function LayoutPanel({
   children: React.ReactNode;
 }) {
   const supabase = await crearClienteServidor();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await obtenerUsuario();
 
   if (!user) redirect("/login");
 
