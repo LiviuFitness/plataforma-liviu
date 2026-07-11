@@ -195,8 +195,13 @@ export const INFO_TIPO_SERIE: Record<
   TipoSerie,
   { etiqueta: string; color: string }
 > = {
-  calentamiento: { etiqueta: "Calent.", color: "#8A949C" },
-  efectiva: { etiqueta: "Efectiva", color: "#29ABE2" },
+  // "Efectiva" es la inmensa mayoría de las series de cualquier sesión:
+  // si llevara el mismo cian que el resto de acciones de la pantalla
+  // (el check, los enlaces...), ese color deja de significar nada y todo
+  // se ve "del mismo azul". Un gris neutro para lo normal deja el cian
+  // reservado para lo que de verdad importa.
+  calentamiento: { etiqueta: "Calent.", color: "#6B7680" },
+  efectiva: { etiqueta: "Efectiva", color: "#8FA6B3" },
   dropset: { etiqueta: "Dropset", color: "#E2B429" },
   fallo: { etiqueta: "Al fallo", color: "#E25529" },
 };

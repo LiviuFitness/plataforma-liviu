@@ -696,7 +696,7 @@ export default function SesionEnCurso({
                         {INFO_TIPO_SERIE[s.tipo].etiqueta}
                       </span>
                       <input
-                        className="campo-serie placeholder:text-atenuado/60"
+                        className="campo-serie placeholder:text-atenuado/45"
                         placeholder={s.kgPrescrito || "kg"}
                         inputMode="decimal"
                         value={s.kg}
@@ -704,14 +704,14 @@ export default function SesionEnCurso({
                         aria-label="Carga"
                       />
                       <input
-                        className="campo-serie placeholder:text-atenuado/60"
+                        className="campo-serie placeholder:text-atenuado/45"
                         placeholder={s.repsPrescrito || "reps"}
                         value={s.reps}
                         onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
                         aria-label="Repeticiones (admite 8+3)"
                       />
                       <input
-                        className="campo-serie placeholder:text-atenuado/60"
+                        className="campo-serie placeholder:text-atenuado/45"
                         placeholder={s.rirPrescrito || "—"}
                         value={s.rir}
                         onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
@@ -723,7 +723,7 @@ export default function SesionEnCurso({
                         className={`h-[38px] rounded-[10px] cursor-pointer border flex items-center justify-center transition-colors ${
                           s.completada
                             ? "bg-acento text-fondo border-acento anim-pop"
-                            : "bg-campo text-atenuado border-borde-2"
+                            : "bg-campo text-acento border-acento/40"
                         }`}
                       >
                         <Check size={18} strokeWidth={3} />
