@@ -11,7 +11,12 @@ import {
 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { casillasSemana, fechaLocal } from "@/lib/habitos";
-import { HABITOS_SUGERIDOS, type Habito, type HabitoRegistro } from "@/lib/tipos";
+import {
+  COLOR_ICONO_HABITO,
+  HABITOS_SUGERIDOS,
+  type Habito,
+  type HabitoRegistro,
+} from "@/lib/tipos";
 
 const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -104,6 +109,7 @@ export default function WidgetHabitos({
       <div className="flex flex-col gap-2.5">
         {activos.map((h) => {
           const Icono = ICONOS[h.icono] ?? CircleCheck;
+          const color = COLOR_ICONO_HABITO[h.icono] ?? COLOR_ICONO_HABITO["circle-check"];
           const hecho = marcadosHoy.has(h.id);
           const semana = casillasSemana(registros, h.id);
           return (
@@ -116,11 +122,12 @@ export default function WidgetHabitos({
                 disabled={pendientes.has(h.id)}
               >
                 <span
-                  className={`shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-colors ${
+                  className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center border transition-colors"
+                  style={
                     hecho
-                      ? "bg-acento/15 border-acento text-acento"
-                      : "border-borde-2 text-atenuado"
-                  }`}
+                      ? { background: `${color}26`, borderColor: color, color }
+                      : { borderColor: "var(--color-borde-2)", color: "var(--color-atenuado)" }
+                  }
                 >
                   <Icono size={18} />
                 </span>
@@ -133,9 +140,8 @@ export default function WidgetHabitos({
                   <div
                     key={i}
                     title={DIAS_SEMANA[i]}
-                    className={`w-2 h-2 rounded-full ${
-                      activo ? "bg-acento" : "bg-borde-2"
-                    }`}
+                    className="w-2 h-2 rounded-full"
+                    style={{ background: activo ? color : "var(--color-borde-2)" }}
                   />
                 ))}
               </div>

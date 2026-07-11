@@ -8,6 +8,7 @@ import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 import WidgetHabitos from "./WidgetHabitos";
 import { inicioSemana as inicioSemanaHabitos } from "@/lib/habitos";
+import { INFO_MACRO } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -370,8 +371,10 @@ export default async function PaginaInicio() {
           <div className="flex-1">
             <div className="titulo-tarjeta !mb-1">TU DIETA DE HOY</div>
             <div className="text-[14px]">
-              <b className="text-acento">{dieta.kcal_obj}</b> kcal · P
-              {dieta.prot_obj} / C{dieta.carb_obj} / G{dieta.gras_obj}
+              <b className="text-acento">{dieta.kcal_obj}</b> kcal ·{" "}
+              <span style={{ color: INFO_MACRO.proteina.color }}>P{dieta.prot_obj}</span>{" "}
+              / <span style={{ color: INFO_MACRO.carbohidratos.color }}>C{dieta.carb_obj}</span>{" "}
+              / <span style={{ color: INFO_MACRO.grasas.color }}>G{dieta.gras_obj}</span>
             </div>
           </div>
           <span className="text-acento text-[13.5px]">Ver →</span>

@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { AnilloAdherencia } from "@/componentes/ui";
 import { consistencia, fechaLocal } from "@/lib/habitos";
-import type { Habito, HabitoRegistro } from "@/lib/tipos";
+import { COLOR_ICONO_HABITO, type Habito, type HabitoRegistro } from "@/lib/tipos";
 
 const SEMANAS = 4;
 
@@ -64,6 +64,7 @@ export default function TabHabitos({
       <div className="flex flex-col gap-4">
         {activos.map((h) => {
           const Icono = ICONOS[h.icono] ?? CircleCheck;
+          const color = COLOR_ICONO_HABITO[h.icono] ?? COLOR_ICONO_HABITO["circle-check"];
           const marcados = new Set(
             registros
               .filter((r) => r.habito_id === h.id && r.completado)
@@ -73,7 +74,7 @@ export default function TabHabitos({
           return (
             <div key={h.id}>
               <div className="flex items-center gap-2 mb-1.5">
-                <Icono size={16} className="text-acento shrink-0" />
+                <Icono size={16} className="shrink-0" style={{ color }} />
                 <span className="font-bold text-[14px] flex-1">{h.nombre}</span>
                 <span className="text-atenuado text-[12.5px]">{pct}%</span>
               </div>
@@ -82,9 +83,8 @@ export default function TabHabitos({
                   <div
                     key={f}
                     title={f}
-                    className={`aspect-square rounded-[2px] ${
-                      marcados.has(f) ? "bg-acento" : "bg-borde-2"
-                    }`}
+                    className="aspect-square rounded-[2px]"
+                    style={{ background: marcados.has(f) ? color : "var(--color-borde-2)" }}
                   />
                 ))}
               </div>

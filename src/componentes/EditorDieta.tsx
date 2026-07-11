@@ -18,7 +18,7 @@ import {
 } from "@/lib/dietas";
 import { Sparkles } from "lucide-react";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
-import type { Dieta } from "@/lib/tipos";
+import { INFO_MACRO, type Dieta } from "@/lib/tipos";
 
 interface ItemUI {
   alimento: Alimento;
@@ -363,9 +363,9 @@ export default function EditorDieta({
   }
 
   const objetivos: Array<[string, number, (v: number) => void, number, string]> = [
-    ["Proteína", prot, setProt, totalesPlan.prot, "#fff"],
-    ["Carbohidratos", carb, setCarb, totalesPlan.carb, "#29ABE2"],
-    ["Grasas", gras, setGras, totalesPlan.gras, "#8A949C"],
+    [INFO_MACRO.proteina.etiqueta, prot, setProt, totalesPlan.prot, INFO_MACRO.proteina.color],
+    [INFO_MACRO.carbohidratos.etiqueta, carb, setCarb, totalesPlan.carb, INFO_MACRO.carbohidratos.color],
+    [INFO_MACRO.grasas.etiqueta, gras, setGras, totalesPlan.gras, INFO_MACRO.grasas.color],
   ];
 
   return (

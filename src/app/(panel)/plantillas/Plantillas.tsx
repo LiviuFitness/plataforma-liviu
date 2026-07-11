@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import type { Dieta } from "@/lib/tipos";
+import { INFO_MACRO, type Dieta } from "@/lib/tipos";
 import type { PlantillaRutina } from "./page";
 
 interface ClienteMin {
@@ -178,7 +178,10 @@ export default function Plantillas({
                 {p.nombre ?? "Plantilla de dieta"}
               </div>
               <div className="text-atenuado text-[12.5px]">
-                {p.kcal_obj} kcal · P{p.prot_obj} / C{p.carb_obj} / G{p.gras_obj}
+                {p.kcal_obj} kcal ·{" "}
+                <span style={{ color: INFO_MACRO.proteina.color }}>P{p.prot_obj}</span>{" "}
+                / <span style={{ color: INFO_MACRO.carbohidratos.color }}>C{p.carb_obj}</span>{" "}
+                / <span style={{ color: INFO_MACRO.grasas.color }}>G{p.gras_obj}</span>
               </div>
             </div>
             <Link href={`/plantillas/dieta/${p.id}`} className="ghost">

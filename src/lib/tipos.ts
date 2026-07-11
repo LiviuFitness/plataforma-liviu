@@ -107,6 +107,14 @@ export const HABITOS_SUGERIDOS: { nombre: string; icono: string }[] = [
   { nombre: "Sueño", icono: "moon" },
 ];
 
+/** Color por icono de hábito, para que no todos se vean del mismo azul. */
+export const COLOR_ICONO_HABITO: Record<string, string> = {
+  footprints: "#F2B84B",
+  "glass-water": "#29ABE2",
+  moon: "#9B8CF2",
+  "circle-check": "#4ECB8D",
+};
+
 export interface Mensaje {
   id: string;
   cliente_id: string;
@@ -191,6 +199,14 @@ export const INFO_TIPO_SERIE: Record<
   dropset: { etiqueta: "Dropset", color: "#E2B429" },
   fallo: { etiqueta: "Al fallo", color: "#E25529" },
 };
+
+/** Colores fijos de cada macronutriente, para reconocerlos de un
+ * vistazo (dieta del cliente, editor del entrenador, plantillas…). */
+export const INFO_MACRO = {
+  proteina: { etiqueta: "Proteína", color: "#F2617A" },
+  carbohidratos: { etiqueta: "Carbohidratos", color: "#F5C24C" },
+  grasas: { etiqueta: "Grasas", color: "#4ECB8D" },
+} as const;
 
 export const ORDEN_TIPOS: TipoSerie[] = [
   "calentamiento",

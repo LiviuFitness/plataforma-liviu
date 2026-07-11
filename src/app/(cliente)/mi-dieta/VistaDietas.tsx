@@ -10,7 +10,7 @@ import {
   type Alternativa,
   type ComidaEstructurada,
 } from "@/lib/dietas";
-import type { Dieta } from "@/lib/tipos";
+import { INFO_MACRO, type Dieta } from "@/lib/tipos";
 import MiDietaComida from "./MiDietaComida";
 
 export interface PlanDieta {
@@ -98,9 +98,9 @@ export default function VistaDietas({
         <div className="space-y-3">
           {(
             [
-              ["Proteína", dieta.prot_obj, totalesPlan.prot, "#FFFFFF"],
-              ["Carbohidratos", dieta.carb_obj, totalesPlan.carb, "#29ABE2"],
-              ["Grasas", dieta.gras_obj, totalesPlan.gras, "#8A949C"],
+              [INFO_MACRO.proteina.etiqueta, dieta.prot_obj, totalesPlan.prot, INFO_MACRO.proteina.color],
+              [INFO_MACRO.carbohidratos.etiqueta, dieta.carb_obj, totalesPlan.carb, INFO_MACRO.carbohidratos.color],
+              [INFO_MACRO.grasas.etiqueta, dieta.gras_obj, totalesPlan.gras, INFO_MACRO.grasas.color],
             ] as const
           ).map(([etiqueta, objetivo, plan2, color]) => (
             <div key={etiqueta}>
