@@ -13,28 +13,11 @@ import { logrosCumplidos } from "@/lib/logros";
 import { calcularVolumenMuscular, grupoMasDescuidado } from "@/lib/musculos";
 import { INFO_MACRO } from "@/lib/tipos";
 import { IconoTarjeta } from "@/componentes/ui";
+import { calcularRacha } from "@/lib/racha";
 
 export const dynamic = "force-dynamic";
 
 const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
-
-/** Racha: días de calendario consecutivos con sesión, terminando hoy o ayer. */
-function calcularRacha(fechas: string[]): number {
-  const dias = new Set(
-    fechas.map((f) => new Date(f).toLocaleDateString("sv-SE")) // AAAA-MM-DD local
-  );
-  const cursor = new Date();
-  let racha = 0;
-  // Si hoy no hay sesión todavía, la racha puede seguir viva desde ayer
-  if (!dias.has(cursor.toLocaleDateString("sv-SE"))) {
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  while (dias.has(cursor.toLocaleDateString("sv-SE"))) {
-    racha++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-  return racha;
-}
 
 interface FilaSerieParaPR {
   kg: number | null;

@@ -93,7 +93,8 @@ body {
   .tarjeta-turquesa,
   .tarjeta-verde,
   .tarjeta-morado,
-  .tarjeta-dorado {
+  .tarjeta-dorado,
+  .tarjeta-naranja {
     box-shadow: 0 0 0 1px color-mix(in srgb, var(--tc) 8%, transparent) inset;
     border-color: color-mix(in srgb, var(--tc) 45%, transparent);
   }
@@ -111,6 +112,9 @@ body {
   }
   .tarjeta-dorado {
     --tc: var(--color-dorado);
+  }
+  .tarjeta-naranja {
+    --tc: var(--color-naranja);
   }
 
   /* Icono circular consistente (mismo grosor/tamaño en toda la app) */
@@ -198,9 +202,9 @@ body {
     border-color: rgba(226, 85, 41, 0.4);
   }
   .mini {
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
     border: 1px solid var(--color-borde-2);
     background: var(--color-campo);
     color: var(--color-texto-2);
@@ -209,6 +213,10 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    transition: transform 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  }
+  .mini:active {
+    transform: scale(0.93);
   }
   .mini-peligro {
     color: var(--color-peligro);
