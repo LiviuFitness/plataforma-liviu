@@ -2,24 +2,38 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { Download, Flame, Scale, Trophy } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import { IconoTarjeta } from "@/componentes/ui";
+import { useCountUp } from "@/lib/useCountUp";
 import SubidaAvatar from "@/componentes/SubidaAvatar";
+import Switch from "@/componentes/Switch";
+import BotonSalir from "@/componentes/BotonSalir";
 import PreferenciasEjercicios from "./PreferenciasEjercicios";
 import type { Ejercicio, Perfil } from "@/lib/tipos";
 
-/** Perfil del cliente: datos, contraseña, ejercicios a evitar y RGPD. */
+/** Perfil del cliente: dashboard, datos, contraseña, ejercicios a evitar y RGPD. */
 export default function PerfilCliente({
   perfil,
   biblioteca,
   ejerciciosExcluidos,
+  racha,
+  totalSesiones,
+  ultimoPeso,
 }: {
   perfil: Perfil;
   biblioteca: Ejercicio[];
   ejerciciosExcluidos: string[];
+  racha: number;
+  totalSesiones: number;
+  ultimoPeso: number | null;
 }) {
   const [visibleComunidad, setVisibleComunidad] = useState(perfil.visible_en_comunidad);
   const [guardandoComunidad, setGuardandoComunidad] = useState(false);
+
+  const rachaAnimada = useCountUp(racha);
+  const sesionesAnimadas = useCountUp(totalSesiones);
+  const pesoAnimado = useCountUp(ultimoPeso ?? 0, 1);
 
   async function cambiarVisibleComunidad(valor: boolean) {
     setVisibleComunidad(valor);
@@ -111,6 +125,31 @@ export default function PerfilCliente({
       <h1 className="h1">Perfil</h1>
       <div className="sub mb-4">tus datos, bajo control —</div>
 
+      {/* Dashboard: racha, sesiones totales, peso actual */}
+      <div className="grid grid-cols-3 gap-2.5 mb-3.5">
+        <div className="tarjeta tarjeta-dorado !mb-0 !p-3.5 flex flex-col items-center text-center gap-1.5">
+          <IconoTarjeta Icono={Flame} color="var(--color-dorado)" tamano={34} />
+          <span className="num-grande !text-[19px]">{rachaAnimada}</span>
+          <span className="text-atenuado text-[10.5px] leading-tight">
+            {racha === 1 ? "día de racha" : "días de racha"}
+          </span>
+        </div>
+        <div className="tarjeta tarjeta-acento !mb-0 !p-3.5 flex flex-col items-center text-center gap-1.5">
+          <IconoTarjeta Icono={Trophy} color="var(--color-acento)" tamano={34} />
+          <span className="num-grande !text-[19px]">{sesionesAnimadas}</span>
+          <span className="text-atenuado text-[10.5px] leading-tight">sesiones totales</span>
+        </div>
+        <div className="tarjeta tarjeta-turquesa !mb-0 !p-3.5 flex flex-col items-center text-center gap-1.5">
+          <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" tamano={34} />
+          <span className="num-grande !text-[19px]">
+            {ultimoPeso !== null ? pesoAnimado.toFixed(1) : "—"}
+          </span>
+          <span className="text-atenuado text-[10.5px] leading-tight">
+            {ultimoPeso !== null ? "kg" : "sin peso"}
+          </span>
+        </div>
+      </div>
+
       <section className="tarjeta">
         <div className="titulo-tarjeta">MIS DATOS</div>
         <SubidaAvatar
@@ -126,35 +165,37 @@ export default function PerfilCliente({
           <span className="text-atenuado">Email</span>
           <span>{perfil.email}</span>
         </div>
-        <div className="flex justify-between py-2 border-b border-borde text-[14px]">
+        <div className="flex justify-between py-2 text-[14px]">
           <span className="text-atenuado">Objetivo</span>
           <span>{perfil.objetivo ?? "—"}</span>
-        </div>
-        <div className="flex justify-between py-2 text-[14px]">
-          <span className="text-atenuado">Plan</span>
-          <span className="capitalize">{perfil.plan ?? "—"}</span>
         </div>
         <p className="text-atenuado text-[12px] mt-2">
           ¿Algún dato incorrecto? Pídele el cambio a tu entrenador.
         </p>
       </section>
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">COMUNIDAD</div>
-        <label className="flex items-start gap-3 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={visibleComunidad}
-            onChange={(e) => cambiarVisibleComunidad(e.target.checked)}
-            disabled={guardandoComunidad}
-            className="mt-1 w-[18px] h-[18px] accent-acento shrink-0"
-          />
-          <span className="text-[13.5px] text-texto-2 leading-snug">
+      {perfil.plan && (
+        <section className="tarjeta !py-3 flex items-center justify-between">
+          <div className="titulo-tarjeta !mb-0">TU PLAN</div>
+          <span className="font-bold text-[14px] capitalize">{perfil.plan}</span>
+        </section>
+      )}
+
+      <section className="tarjeta flex items-start justify-between gap-3">
+        <div>
+          <div className="titulo-tarjeta">COMUNIDAD</div>
+          <p className="text-[13.5px] text-texto-2 leading-snug">
             Aparecer en la comunidad: otros clientes verán tu nombre cuando
             consigas un logro, y tu constancia en el ranking. Puedes
             desactivarlo cuando quieras.
-          </span>
-        </label>
+          </p>
+        </div>
+        <Switch
+          checked={visibleComunidad}
+          onChange={cambiarVisibleComunidad}
+          disabled={guardandoComunidad}
+          label="Aparecer en la comunidad"
+        />
       </section>
 
       <PreferenciasEjercicios
@@ -223,6 +264,11 @@ export default function PerfilCliente({
           </Link>
           . Se atenderá en un plazo máximo de un mes.
         </p>
+      </section>
+
+      <section className="tarjeta flex items-center justify-between">
+        <span className="text-[14px] text-texto-2">¿Quieres cambiar de cuenta?</span>
+        <BotonSalir />
       </section>
 
       <div className="text-center text-[12px] text-atenuado mt-2">
