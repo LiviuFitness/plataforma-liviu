@@ -316,33 +316,34 @@ export default async function PaginaInicio() {
 
       <AvisosActualizacion avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
 
-      <div className="tarjeta !border-acento/20 text-texto-2 text-[13.5px] italic">
+      <div className="tarjeta tarjeta-acento text-texto-2 text-[13.5px] italic">
         “{fraseDelDia()}”
       </div>
 
       {prReciente && (
-        <div className="tarjeta !border-aviso/40 !mb-2.5">
-          <div className="flex items-center gap-2.5">
-            <Trophy size={22} className="text-aviso shrink-0" />
-            <div>
-              <div className="font-bold text-[14.5px]">
-                Nuevo récord: {prReciente.ejercicio}
-              </div>
-              <div className="text-atenuado text-[12.5px]">
-                {prReciente.kg} kg — ¡sigue así!
-              </div>
+        <div className="tarjeta tarjeta-dorado !mb-2.5 flex items-center gap-3">
+          <IconoTarjeta Icono={Trophy} color="var(--color-dorado)" tamano={36} />
+          <div>
+            <div className="font-bold text-[14.5px]">
+              Nuevo récord: {prReciente.ejercicio}
+            </div>
+            <div className="text-atenuado text-[12.5px]">
+              {prReciente.kg} kg — ¡sigue así!
             </div>
           </div>
         </div>
       )}
 
       {avisoMuscular && (
-        <div className="tarjeta !border-acento/30 !mb-2.5 text-[13.5px] text-texto-2">
-          💪 Llevas{" "}
-          {avisoMuscular.diasDesdeUltimoEntreno === null
-            ? "un tiempo"
-            : `${avisoMuscular.diasDesdeUltimoEntreno} días`}{" "}
-          sin trabajar <b>{avisoMuscular.grupo}</b> — está en tu rutina, ¡tócalo pronto!
+        <div className="tarjeta tarjeta-acento !mb-2.5 flex items-center gap-3">
+          <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={36} />
+          <div className="text-[13.5px] text-texto-2">
+            Llevas{" "}
+            {avisoMuscular.diasDesdeUltimoEntreno === null
+              ? "un tiempo"
+              : `${avisoMuscular.diasDesdeUltimoEntreno} días`}{" "}
+            sin trabajar <b>{avisoMuscular.grupo}</b> — está en tu rutina, ¡tócalo pronto!
+          </div>
         </div>
       )}
 

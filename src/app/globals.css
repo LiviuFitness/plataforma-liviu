@@ -39,6 +39,14 @@ body {
   min-height: 100vh;
 }
 
+/* Foco de teclado consistente en toda la app (solo navegación por
+   teclado, no al pulsar con el ratón/dedo — :focus-visible). */
+:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
 /* ============================================================
    Piezas repetidas del panel (estética de los prototipos v1/v2)
    ============================================================ */

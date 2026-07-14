@@ -40,15 +40,14 @@ export default function WidgetLogros({
         {ultimos.length > 0 ? (
           <div className="flex items-center gap-1.5">
             {ultimos.map((l) => (
-              <span
+              <IconoTarjeta
                 key={l.clave}
-                className={`w-7 h-7 rounded-full bg-dorado/10 border border-dorado/40 flex items-center justify-center text-dorado shrink-0 ${
-                  nuevos.includes(l.clave) ? "anim-pop" : ""
-                }`}
-                title={l.etiqueta}
-              >
-                <l.Icono size={14} />
-              </span>
+                Icono={l.Icono}
+                color="var(--color-dorado)"
+                tamano={28}
+                titulo={l.etiqueta}
+                className={nuevos.includes(l.clave) ? "anim-pop" : ""}
+              />
             ))}
           </div>
         ) : (

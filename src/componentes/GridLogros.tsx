@@ -6,7 +6,7 @@ import { IconoTarjeta } from "./ui";
 export default function GridLogros({ desbloqueados }: { desbloqueados: string[] }) {
   const set = new Set(desbloqueados);
   return (
-    <section className="tarjeta tarjeta-dorado">
+    <section className="tarjeta">
       <div className="flex items-center justify-between mb-3.5">
         <div className="titulo-tarjeta !mb-0">LOGROS</div>
         <span className="texto-secundario">

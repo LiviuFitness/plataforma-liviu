@@ -14,15 +14,20 @@ export function IconoTarjeta({
   Icono,
   color,
   tamano = 40,
+  className = "",
+  titulo,
 }: {
   Icono: LucideIcon;
   color: string;
   tamano?: number;
+  className?: string;
+  titulo?: string;
 }) {
   return (
     <span
-      className="icono-tarjeta"
+      className={`icono-tarjeta ${className}`}
       style={{ "--tc": color, width: tamano, height: tamano } as React.CSSProperties}
+      title={titulo}
     >
       <Icono size={Math.round(tamano * 0.5)} strokeWidth={1.75} />
     </span>
