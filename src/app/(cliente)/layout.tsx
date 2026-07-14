@@ -60,7 +60,7 @@ export default async function LayoutCliente({
           <BotonSalir />
         </header>
 
-        <main className="p-[18px] pb-24 md:pb-[18px]">{children}</main>
+        <main className="p-[18px] pb-32 md:pb-[18px]">{children}</main>
 
         <BarraCliente chatSinLeer={hayChatSinLeer} />
       </div>

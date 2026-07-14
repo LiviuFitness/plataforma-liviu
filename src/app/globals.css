@@ -20,6 +20,7 @@
   --color-verde: #4ecb8d; /* dieta */
   --color-morado: #9b8cf2; /* sueño */
   --color-dorado: #e2b429; /* logros */
+  --color-naranja: #f2984b; /* merienda */
 
   /* Tipografía limpia única: Inter (variable, self-hosted) */
   --font-display: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
@@ -135,6 +136,24 @@ body {
     border-radius: 999px;
     background: var(--tc, var(--color-acento));
     transition: width 0.22s ease-out;
+  }
+
+  /* Caja de icono de la barra de navegación inferior (móvil) */
+  .caja-nav {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    border-radius: 16px;
+    border: 1px solid var(--color-borde-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  .caja-nav-activa {
+    border-color: color-mix(in srgb, var(--color-acento) 45%, transparent);
+    background: color-mix(in srgb, var(--color-acento) 10%, transparent);
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-acento) 15%, transparent) inset;
   }
 
   /* Botones */

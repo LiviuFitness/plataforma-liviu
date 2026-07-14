@@ -19,21 +19,26 @@ export default function BarraCliente({ chatSinLeer = false }: { chatSinLeer?: bo
           <Link
             key={p.ruta}
             href={p.ruta}
-            className="relative flex-1 flex justify-center py-1"
+            className="anim-pulsable flex-1 flex flex-col items-center gap-1 py-1"
           >
+            <span className={`caja-nav ${activa ? "caja-nav-activa" : ""}`}>
+              <p.Icono
+                size={20}
+                strokeWidth={1.75}
+                className={activa ? "text-acento" : "text-atenuado"}
+              />
+              {p.ruta === "/chat" && chatSinLeer && (
+                <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-peligro" />
+              )}
+            </span>
             <span
-              className={`relative flex flex-col items-center gap-0.5 font-semibold text-[11px] w-full py-1.5 rounded-full border transition-all duration-200 ${
-                activa
-                  ? "text-acento bg-acento/12 border-acento/30 scale-100"
-                  : "text-atenuado border-transparent scale-[0.97]"
+              className={`text-[10.5px] font-semibold transition-colors ${
+                activa ? "text-acento" : "text-atenuado"
               }`}
             >
-              <p.Icono size={20} strokeWidth={1.75} />
-              {p.ruta === "/chat" && chatSinLeer && (
-                <span className="absolute top-0.5 right-[calc(50%-16px)] w-2 h-2 rounded-full bg-peligro" />
-              )}
               {p.etiqueta}
             </span>
+            {activa && <span className="w-4 h-[2px] rounded-full bg-acento anim-aparecer" />}
           </Link>
         );
       })}

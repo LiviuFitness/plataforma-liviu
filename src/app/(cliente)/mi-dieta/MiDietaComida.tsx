@@ -11,6 +11,7 @@ import {
   Utensils,
   UtensilsCrossed,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import {
   macrosDe,
@@ -20,18 +21,20 @@ import {
   type Alternativa,
   type ComidaEstructurada,
 } from "@/lib/dietas";
+import { IconoTarjeta } from "@/componentes/ui";
 
-/** Icono según el nombre de la comida (Desayuno → café, Cena → luna…). */
-function IconoComida({ nombre }: { nombre: string }) {
+/** Icono + color según el nombre de la comida (Desayuno → café azul,
+ * Cena → luna morada…), mismo criterio de color que el resto de la app. */
+function infoComida(nombre: string): { Icono: LucideIcon; color: string } {
   const n = nombre.toLowerCase();
-  const props = { size: 17 } as const;
-  if (n.includes("desayuno")) return <Coffee {...props} />;
-  if (n.includes("media mañana") || n.includes("almuerzo")) return <Apple {...props} />;
-  if (n.includes("merienda")) return <Cookie {...props} />;
-  if (n.includes("recena")) return <BedDouble {...props} />;
-  if (n.includes("cena")) return <Moon {...props} />;
-  if (n.includes("comida")) return <UtensilsCrossed {...props} />;
-  return <Utensils {...props} />;
+  if (n.includes("desayuno")) return { Icono: Coffee, color: "var(--color-acento)" };
+  if (n.includes("media mañana") || n.includes("almuerzo"))
+    return { Icono: Apple, color: "var(--color-verde)" };
+  if (n.includes("merienda")) return { Icono: Cookie, color: "var(--color-naranja)" };
+  if (n.includes("recena")) return { Icono: BedDouble, color: "var(--color-turquesa)" };
+  if (n.includes("cena")) return { Icono: Moon, color: "var(--color-morado)" };
+  if (n.includes("comida")) return { Icono: UtensilsCrossed, color: "var(--color-dorado)" };
+  return { Icono: Utensils, color: "var(--color-atenuado)" };
 }
 
 const MACROS_LEYENDA = [
@@ -60,14 +63,13 @@ export default function MiDietaComida({
 
   const total = sumar(items.map((i) => macrosDe(i.alimentos!, Number(i.gramos))));
   const valores = [total.prot, total.carb, total.gras];
+  const { Icono, color } = infoComida(comida.nombre);
 
   return (
     <section className="tarjeta !p-0 overflow-hidden">
       {/* Cabecera: icono + nombre + kcal de la comida */}
       <div className="flex items-center gap-3 px-4 pt-3.5 pb-2.5 border-b border-borde">
-        <div className="w-9 h-9 rounded-[10px] bg-acento/10 text-acento flex items-center justify-center shrink-0">
-          <IconoComida nombre={comida.nombre} />
-        </div>
+        <IconoTarjeta Icono={Icono} color={color} tamano={36} />
         <div className="flex-1 min-w-0">
           <div className="font-bold text-[15px] leading-tight truncate">
             {comida.nombre}
