@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { Medal } from "lucide-react";
 import { CATALOGO_LOGROS } from "@/lib/logros";
+import { IconoTarjeta } from "@/componentes/ui";
 
 /** Tarjeta de Inicio: resumen de logros desbloqueados, con acceso a
  * la comunidad (feed de logros + ranking de constancia). */
@@ -13,38 +15,49 @@ export default function WidgetLogros({
   const set = new Set(desbloqueados);
   const conseguidos = CATALOGO_LOGROS.filter((l) => set.has(l.clave));
   const ultimos = conseguidos.slice(-4).reverse();
+  const pct = Math.round((conseguidos.length / CATALOGO_LOGROS.length) * 100);
 
   return (
     <Link
       href="/comunidad"
-      className="tarjeta !mb-2.5 flex items-center gap-3.5 w-full"
+      className="tarjeta tarjeta-dorado anim-pulsable anim-entrada-4 flex items-center gap-3.5 w-full"
     >
+      <IconoTarjeta Icono={Medal} color="var(--color-dorado)" />
       <div className="flex-1 min-w-0">
         <div className="titulo-tarjeta !mb-1">TUS LOGROS</div>
+        <div className="flex items-baseline gap-1.5 mb-1.5">
+          <span className="num-grande !text-[20px]" style={{ color: "var(--color-dorado)" }}>
+            {conseguidos.length}
+          </span>
+          <span className="text-atenuado text-[13px]">de {CATALOGO_LOGROS.length} desbloqueados</span>
+        </div>
+        <div className="barra-capsula mb-2" style={{ maxWidth: 160 }}>
+          <div
+            className="barra-capsula-relleno"
+            style={{ "--tc": "var(--color-dorado)", width: `${pct}%` } as React.CSSProperties}
+          />
+        </div>
         {ultimos.length > 0 ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             {ultimos.map((l) => (
               <span
                 key={l.clave}
-                className={`w-8 h-8 rounded-full bg-acento/10 border border-acento/40 flex items-center justify-center text-acento shrink-0 ${
+                className={`w-7 h-7 rounded-full bg-dorado/10 border border-dorado/40 flex items-center justify-center text-dorado shrink-0 ${
                   nuevos.includes(l.clave) ? "anim-pop" : ""
                 }`}
                 title={l.etiqueta}
               >
-                <l.Icono size={16} />
+                <l.Icono size={14} />
               </span>
             ))}
-            <span className="text-atenuado text-[13px]">
-              {conseguidos.length} de {CATALOGO_LOGROS.length}
-            </span>
           </div>
         ) : (
-          <div className="text-atenuado text-[13.5px]">
+          <div className="text-atenuado text-[13px]">
             Entrena y marca hábitos para desbloquear tus primeros logros.
           </div>
         )}
       </div>
-      <span className="text-acento text-[13.5px] shrink-0">Comunidad →</span>
+      <span className="texto-secundario shrink-0">Comunidad →</span>
     </Link>
   );
 }

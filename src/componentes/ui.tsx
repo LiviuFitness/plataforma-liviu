@@ -3,8 +3,31 @@
    ============================================================ */
 
 import Image from "next/image";
+import type { LucideIcon } from "lucide-react";
 
 const CIAN = "#29ABE2";
+
+/** Icono circular consistente (mismo grosor/tamaño en toda la app):
+ * fondo tintado al 14% del color + icono del color sólido. `tamano`
+ * es el diámetro del círculo; el icono ocupa la mitad. */
+export function IconoTarjeta({
+  Icono,
+  color,
+  tamano = 40,
+}: {
+  Icono: LucideIcon;
+  color: string;
+  tamano?: number;
+}) {
+  return (
+    <span
+      className="icono-tarjeta"
+      style={{ "--tc": color, width: tamano, height: tamano } as React.CSSProperties}
+    >
+      <Icono size={Math.round(tamano * 0.5)} strokeWidth={1.75} />
+    </span>
+  );
+}
 
 /** Logo oficial LivFit (wordmark recortado con fondo transparente). */
 export function Logo({ tamano = 32 }: { tamano?: number }) {
@@ -74,7 +97,7 @@ export function AnilloAdherencia({
 
 /** Gráfico de área de evolución (peso, cargas): línea con relleno en
  * degradado, puntos marcados y el último destacado. */
-export function Sparkline({ datos }: { datos: number[] }) {
+export function Sparkline({ datos, color = CIAN }: { datos: number[]; color?: string }) {
   if (datos.length < 2) {
     return (
       <div className="text-atenuado text-[13.5px] py-4">
@@ -103,25 +126,25 @@ export function Sparkline({ datos }: { datos: number[] }) {
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width: "100%", height: 72 }}>
       <defs>
         <linearGradient id={idGrad} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={CIAN} stopOpacity="0.32" />
-          <stop offset="100%" stopColor={CIAN} stopOpacity="0" />
+          <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+          <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
       <polygon points={area} fill={`url(#${idGrad})`} />
       <polyline
         points={linea}
         fill="none"
-        stroke={CIAN}
+        stroke={color}
         strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
       {coords.length <= 20 &&
         coords.slice(0, -1).map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#0E1215" stroke={CIAN} strokeWidth="1.5" />
+          <circle key={i} cx={p.x} cy={p.y} r="2.5" fill="#0E1215" stroke={color} strokeWidth="1.5" />
         ))}
-      <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill={CIAN} />
-      <circle cx={ultimo.x} cy={ultimo.y} r="8" fill={CIAN} opacity="0.25" />
+      <circle cx={ultimo.x} cy={ultimo.y} r="4.5" fill={color} />
+      <circle cx={ultimo.x} cy={ultimo.y} r="8" fill={color} opacity="0.25" />
     </svg>
   );
 }

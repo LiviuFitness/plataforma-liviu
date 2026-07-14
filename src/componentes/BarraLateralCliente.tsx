@@ -26,11 +26,13 @@ export default function BarraLateralCliente({
             <Link
               key={p.ruta}
               href={p.ruta}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-[10px] font-semibold text-[14px] transition-colors ${
-                activa ? "text-acento bg-acento/10" : "text-atenuado hover:text-texto-2"
+              className={`relative flex items-center gap-3 px-3.5 py-2.5 rounded-full border font-semibold text-[14px] transition-all duration-200 ${
+                activa
+                  ? "text-acento bg-acento/12 border-acento/30"
+                  : "text-atenuado border-transparent hover:text-texto-2"
               }`}
             >
-              <p.Icono size={19} strokeWidth={activa ? 2.4 : 2} />
+              <p.Icono size={19} strokeWidth={1.75} />
               {p.etiqueta}
               {p.ruta === "/chat" && chatSinLeer && (
                 <span className="absolute top-2 left-7 w-2 h-2 rounded-full bg-peligro" />

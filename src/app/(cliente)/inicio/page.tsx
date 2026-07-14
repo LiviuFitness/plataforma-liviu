@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
-import { Flame, Trophy } from "lucide-react";
+import { Flame, Trophy, Dumbbell, UtensilsCrossed } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 import WidgetHabitos from "./WidgetHabitos";
@@ -12,6 +12,7 @@ import { semanaHabitosCompleta } from "@/lib/habitos";
 import { logrosCumplidos } from "@/lib/logros";
 import { calcularVolumenMuscular, grupoMasDescuidado } from "@/lib/musculos";
 import { INFO_MACRO } from "@/lib/tipos";
+import { IconoTarjeta } from "@/componentes/ui";
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +137,7 @@ export default async function PaginaInicio() {
       .eq("cliente_id", user.id)
       .not("peso", "is", null)
       .order("fecha", { ascending: false })
-      .limit(2),
+      .limit(20),
     supabase
       .from("rutinas")
       .select("actualizada_en")
@@ -273,14 +274,47 @@ export default async function PaginaInicio() {
   }
   const proximoDia = rutina?.dias[proximoIndice] ?? null;
 
+  // Duración estimada: no existe como dato en el modelo, se aproxima a
+  // partir de las series efectivas (~2.5-3.2 min por serie, cambio de
+  // ejercicio incluido) solo para mostrar un rango orientativo.
+  const seriesEfectivasProximo = proximoDia
+    ? proximoDia.ejercicios.reduce(
+        (a, e) => a + e.series.filter((s) => s.tipo !== "calentamiento").length,
+        0
+      )
+    : 0;
+  const duracionMin = Math.round(seriesEfectivasProximo * 2.5);
+  const duracionMax = Math.round(seriesEfectivasProximo * 3.2);
+
+  // Proporción de kcal por macro (P/C 4 kcal/g, G 9 kcal/g) para la
+  // barra apilada de distribución de la tarjeta de dieta.
+  const macroPct = dieta
+    ? (() => {
+        const kcalP = dieta.prot_obj * 4;
+        const kcalC = dieta.carb_obj * 4;
+        const kcalG = dieta.gras_obj * 9;
+        const total = kcalP + kcalC + kcalG || 1;
+        return { p: (kcalP / total) * 100, c: (kcalC / total) * 100, g: (kcalG / total) * 100 };
+      })()
+    : null;
+
   const nombrePila = perfil?.nombre?.split(" ")[0] ?? "";
 
+  // listaMedidas viene ordenada de más reciente a más antigua (limit 20)
   const listaMedidas = medidas ?? [];
   const ultimoPeso = listaMedidas[0]?.peso ?? null;
+  // "Desde el inicio" = frente al registro más antiguo que tenemos (los
+  // últimos 20 pesajes cubren de sobra el histórico real en la práctica).
+  const primerPeso = listaMedidas[listaMedidas.length - 1]?.peso ?? null;
   const deltaPeso =
-    listaMedidas.length >= 2 && ultimoPeso !== null
-      ? Number(ultimoPeso) - Number(listaMedidas[1].peso)
+    listaMedidas.length >= 2 && ultimoPeso !== null && primerPeso !== null
+      ? Number(ultimoPeso) - Number(primerPeso)
       : null;
+  // Cronológico (antiguo → reciente) para el sparkline.
+  const historialPeso = listaMedidas
+    .slice()
+    .reverse()
+    .map((m) => Number(m.peso));
 
   // Mensaje contextual: prioriza racha activa, luego semana, luego invita a empezar
   let mensaje = "hoy es un buen día para tu primera sesión —";
@@ -330,18 +364,19 @@ export default async function PaginaInicio() {
       )}
 
       {/* Racha y semana */}
-      <div className="grid grid-cols-2 gap-2.5 my-[18px]">
-        <div className="tarjeta !mb-0 text-center !p-4">
+      <div className="grid grid-cols-2 gap-2.5 my-[18px] anim-entrada-1">
+        <div className={`tarjeta !mb-0 text-center !p-4 ${racha > 0 ? "tarjeta-dorado" : ""}`}>
           <Flame
             size={26}
-            className={`mx-auto mb-1 ${racha > 0 ? "text-aviso" : "text-atenuado"}`}
+            className={`mx-auto mb-1 ${racha > 0 ? "text-dorado" : "text-atenuado"}`}
+            strokeWidth={1.75}
           />
           <div className="num-grande">{racha}</div>
           <div className="text-[11px] text-atenuado mt-0.5">
             {racha === 1 ? "día de racha" : "días de racha"}
           </div>
         </div>
-        <div className="tarjeta !mb-0 text-center !p-4">
+        <div className="tarjeta tarjeta-acento !mb-0 text-center !p-4">
           <div className="num-grande !text-[30px] text-acento">
             {hechasSemana}
             <span className="text-atenuado text-[17px]">
@@ -365,31 +400,36 @@ export default async function PaginaInicio() {
         </div>
       </div>
 
-      {/* Próximo entreno */}
+      {/* Próximo entreno — hero card, primera llamada a la acción de la pantalla */}
       {proximoDia ? (
-        <section className="tarjeta !border-acento/30">
-          <div className="titulo-tarjeta">
-            TU PRÓXIMO ENTRENO · SEMANA {rutina?.semana_actual ?? 1}
+        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-5">
+          <div className="flex items-center gap-3.5 mb-4">
+            <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={46} />
+            <div className="min-w-0">
+              <div className="titulo-tarjeta !mb-1">
+                TU PRÓXIMO ENTRENO · SEMANA {rutina?.semana_actual ?? 1}
+              </div>
+              <div className="font-bold text-[19px]">{proximoDia.nombre}</div>
+            </div>
           </div>
-          <div className="font-bold text-[18px] mb-0.5">{proximoDia.nombre}</div>
-          <div className="text-atenuado text-[13px] mb-4">
-            {proximoDia.ejercicios.length} ejercicios ·{" "}
-            {proximoDia.ejercicios.reduce(
-              (a, e) =>
-                a + e.series.filter((s) => s.tipo !== "calentamiento").length,
-              0
-            )}{" "}
-            series efectivas
+          <div className="flex flex-wrap gap-2 mb-4">
+            <span className="chip !cursor-default">
+              {proximoDia.ejercicios.length} ejercicios
+            </span>
+            <span className="chip !cursor-default">{seriesEfectivasProximo} series</span>
+            <span className="chip !cursor-default">
+              {duracionMin}–{duracionMax} min aprox.
+            </span>
           </div>
           <Link
             href={`/sesion/${proximoDia.id}`}
-            className="cta !mb-0 block text-center"
+            className="cta anim-pulsable !mb-0 block text-center"
           >
-            Empezar sesión
+            Empezar sesión →
           </Link>
         </section>
       ) : (
-        <section className="tarjeta">
+        <section className="tarjeta anim-entrada-2">
           <div className="titulo-tarjeta">TU PRÓXIMO ENTRENO</div>
           <div className="text-atenuado text-[14px]">
             Tu rutina está en el horno 🔥 En cuanto tu entrenador te asigne el
@@ -427,6 +467,7 @@ export default async function PaginaInicio() {
         clienteId={user.id}
         ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
         deltaKg={deltaPeso}
+        historial={historialPeso}
       />
 
       <WidgetHabitos
@@ -442,17 +483,54 @@ export default async function PaginaInicio() {
 
       {/* Acceso rápido a la dieta */}
       {dieta && (
-        <Link href="/mi-dieta" className="tarjeta !mb-2.5 flex items-center gap-3.5 w-full">
-          <div className="flex-1">
+        <Link
+          href="/mi-dieta"
+          className="tarjeta tarjeta-verde anim-pulsable anim-entrada-5 flex items-center gap-3.5 w-full"
+        >
+          <IconoTarjeta Icono={UtensilsCrossed} color="var(--color-verde)" />
+          <div className="flex-1 min-w-0">
             <div className="titulo-tarjeta !mb-1">TU DIETA DE HOY</div>
-            <div className="text-[14px]">
-              <b className="text-acento">{dieta.kcal_obj}</b> kcal ·{" "}
-              <span style={{ color: INFO_MACRO.proteina.color }}>P{dieta.prot_obj}</span>{" "}
-              / <span style={{ color: INFO_MACRO.carbohidratos.color }}>C{dieta.carb_obj}</span>{" "}
-              / <span style={{ color: INFO_MACRO.grasas.color }}>G{dieta.gras_obj}</span>
+            <div className="flex items-baseline gap-1.5 mb-2">
+              <span className="num-grande !text-[20px]" style={{ color: "var(--color-verde)" }}>
+                {dieta.kcal_obj}
+              </span>
+              <span className="text-atenuado text-[12.5px]">kcal</span>
             </div>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              <span
+                className="chip !cursor-default"
+                style={{ color: INFO_MACRO.proteina.color, borderColor: `${INFO_MACRO.proteina.color}55` }}
+              >
+                P {dieta.prot_obj}g
+              </span>
+              <span
+                className="chip !cursor-default"
+                style={{
+                  color: INFO_MACRO.carbohidratos.color,
+                  borderColor: `${INFO_MACRO.carbohidratos.color}55`,
+                }}
+              >
+                C {dieta.carb_obj}g
+              </span>
+              <span
+                className="chip !cursor-default"
+                style={{ color: INFO_MACRO.grasas.color, borderColor: `${INFO_MACRO.grasas.color}55` }}
+              >
+                G {dieta.gras_obj}g
+              </span>
+            </div>
+            {macroPct && (
+              <div className="barra-capsula flex" style={{ maxWidth: 220 }}>
+                <div className="h-full" style={{ width: `${macroPct.p}%`, background: INFO_MACRO.proteina.color }} />
+                <div
+                  className="h-full"
+                  style={{ width: `${macroPct.c}%`, background: INFO_MACRO.carbohidratos.color }}
+                />
+                <div className="h-full" style={{ width: `${macroPct.g}%`, background: INFO_MACRO.grasas.color }} />
+              </div>
+            )}
           </div>
-          <span className="text-acento text-[13.5px]">Ver →</span>
+          <span className="texto-secundario shrink-0">Ver →</span>
         </Link>
       )}
     </>

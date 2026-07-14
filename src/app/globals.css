@@ -15,6 +15,12 @@
   --color-peligro: #e25529;
   --color-aviso: #e2b429;
 
+  /* Acentos semánticos por dominio (§ rediseño Inicio) */
+  --color-turquesa: #2dd4bf; /* peso */
+  --color-verde: #4ecb8d; /* dieta */
+  --color-morado: #9b8cf2; /* sueño */
+  --color-dorado: #e2b429; /* logros */
+
   /* Tipografía limpia única: Inter (variable, self-hosted) */
   --font-display: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
   --font-cuerpo: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
@@ -40,8 +46,8 @@ body {
   .h1 {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 26px;
-    letter-spacing: -0.3px;
+    font-size: 28px;
+    letter-spacing: -0.4px;
   }
   .num-grande {
     font-family: var(--font-display);
@@ -74,6 +80,61 @@ body {
     color: var(--color-atenuado);
     margin-bottom: 12px;
     text-transform: uppercase;
+  }
+  .texto-secundario {
+    color: var(--color-atenuado);
+    font-size: 12.5px;
+  }
+
+  /* Tarjetas con personalidad: borde + resplandor interior muy sutil
+     por dominio, sustituye a los overrides !border-x/30 sueltos. */
+  .tarjeta-acento,
+  .tarjeta-turquesa,
+  .tarjeta-verde,
+  .tarjeta-morado,
+  .tarjeta-dorado {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--tc) 8%, transparent) inset;
+    border-color: color-mix(in srgb, var(--tc) 45%, transparent);
+  }
+  .tarjeta-acento {
+    --tc: var(--color-acento);
+  }
+  .tarjeta-turquesa {
+    --tc: var(--color-turquesa);
+  }
+  .tarjeta-verde {
+    --tc: var(--color-verde);
+  }
+  .tarjeta-morado {
+    --tc: var(--color-morado);
+  }
+  .tarjeta-dorado {
+    --tc: var(--color-dorado);
+  }
+
+  /* Icono circular consistente (mismo grosor/tamaño en toda la app) */
+  .icono-tarjeta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    flex-shrink: 0;
+    background: color-mix(in srgb, var(--tc) 14%, transparent);
+    color: var(--tc);
+  }
+
+  /* Barra de progreso tipo cápsula (hábitos, macros) */
+  .barra-capsula {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-borde-2);
+    overflow: hidden;
+  }
+  .barra-capsula-relleno {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--tc, var(--color-acento));
+    transition: width 0.22s ease-out;
   }
 
   /* Botones */
@@ -294,6 +355,33 @@ body {
   }
   .anim-subir-barra {
     animation: subir-barra 0.25s ease both;
+  }
+  /* Entrada en cascada de las tarjetas de Inicio */
+  .anim-entrada-1 {
+    animation: aparecer 0.3s ease both;
+  }
+  .anim-entrada-2 {
+    animation: aparecer 0.3s ease both;
+    animation-delay: 0.04s;
+  }
+  .anim-entrada-3 {
+    animation: aparecer 0.3s ease both;
+    animation-delay: 0.08s;
+  }
+  .anim-entrada-4 {
+    animation: aparecer 0.3s ease both;
+    animation-delay: 0.12s;
+  }
+  .anim-entrada-5 {
+    animation: aparecer 0.3s ease both;
+    animation-delay: 0.16s;
+  }
+  /* Pulsación táctil reutilizable (misma sensación que .cta:active) */
+  .anim-pulsable {
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+  .anim-pulsable:active {
+    transform: scale(0.97);
   }
 }
 
