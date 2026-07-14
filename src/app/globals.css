@@ -174,8 +174,8 @@ body {
   /* Stepper de +/- para peso y repeticiones (sesión de entreno):
      pensado para usarse sin mirar demasiado y con los dedos sudados. */
   .stepper-boton {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     border: 1px solid var(--color-borde-2);
     background: var(--color-campo);
@@ -211,6 +211,16 @@ body {
   /* Fila de serie (sesión de entreno): transición suave al completarla */
   .fila-serie {
     transition: background-color 0.22s ease, border-color 0.22s ease;
+  }
+
+  /* Quita el triángulo nativo de <summary> — ya llevamos icono propio
+     (FileText) delante del texto, el marcador del navegador duplicaba
+     el icono y no pertenece al sistema de iconografía de la app. */
+  summary {
+    list-style: none;
+  }
+  summary::-webkit-details-marker {
+    display: none;
   }
 
   /* Píldora del índice de ejercicios (sesión de entreno) */

@@ -84,7 +84,7 @@ export default function StepperNumero({
         disabled={disabled}
         aria-label={`Restar ${paso} a ${etiqueta.toLowerCase()}`}
       >
-        <Minus size={14} strokeWidth={2.75} />
+        <Minus size={15} strokeWidth={2.75} />
       </button>
       <button
         type="button"
@@ -104,7 +104,7 @@ export default function StepperNumero({
         disabled={disabled}
         aria-label={`Sumar ${paso} a ${etiqueta.toLowerCase()}`}
       >
-        <Plus size={14} strokeWidth={2.75} />
+        <Plus size={15} strokeWidth={2.75} />
       </button>
     </div>
   );

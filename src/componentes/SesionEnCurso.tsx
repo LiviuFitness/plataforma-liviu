@@ -734,7 +734,7 @@ export default function SesionEnCurso({
                     <div className="flex items-center gap-2 shrink-0 pt-1">
                       {exCompleta && (
                         <button
-                          className="text-atenuado cursor-pointer hover:text-acento transition-colors"
+                          className="text-atenuado cursor-pointer hover:text-acento transition-colors anim-pulsable"
                           onClick={() =>
                             setExpandidoManual((prev) => ({
                               ...prev,
@@ -748,7 +748,7 @@ export default function SesionEnCurso({
                         </button>
                       )}
                       <button
-                        className="text-atenuado cursor-pointer hover:text-acento transition-colors"
+                        className="text-atenuado cursor-pointer hover:text-acento transition-colors anim-pulsable"
                         onClick={() => setCalculadoraPara(ei)}
                         title="Calculadora de discos"
                         aria-label="Calculadora de discos"
@@ -826,99 +826,114 @@ export default function SesionEnCurso({
                     </details>
                   )}
 
-                  <div className="flex items-center gap-2 text-[10px] tracking-wider uppercase text-atenuado pb-1.5 pt-0.5">
-                    <span className="w-[46px] shrink-0">Serie</span>
-                    <span className="flex-1 text-center">Kg</span>
-                    <span className="flex-1 text-center">Reps</span>
-                    <span className="w-[42px] shrink-0 text-center">RIR</span>
-                    <span className="w-12 shrink-0" />
-                  </div>
+                  {/* Se repetía en cada ejercicio sin aportar nada nuevo tras el
+                   * primero — se explica una vez y se confía en que el patrón
+                   * (chip, número grande, número grande, check) ya se entiende. */}
+                  {gi === 0 && posicion === 0 && (
+                    <div className="flex items-center gap-2 text-[10px] tracking-wider uppercase text-atenuado pb-1.5 pt-0.5">
+                      <span className="w-[46px] shrink-0">Serie</span>
+                      <span className="flex-1 text-center">Kg</span>
+                      <span className="flex-1 text-center">Reps</span>
+                      <span className="w-12 shrink-0" />
+                    </div>
+                  )}
                   {ex.series.map((s, si) => {
                     const referenciaRir = (s.rir || s.rirPrescrito).trim();
                     const esTecnica = referenciaRir !== "" && !/^\d+$/.test(referenciaRir);
+                    const mostrarRir = s.rirPrescrito.trim() !== "" || s.rir.trim() !== "";
                     return (
-                      <div
-                        key={si}
-                        className={`fila-serie flex items-center gap-2 py-2 px-2 -mx-2 rounded-[12px] mb-1.5 border-l-[3px] ${
-                          s.completada ? "bg-acento/15 border-acento" : "border-transparent"
-                        }`}
-                      >
-                        <span
-                          className="w-[46px] shrink-0 text-[10.5px] font-bold text-center py-2 rounded-lg bg-campo border"
-                          style={{
-                            color: INFO_TIPO_SERIE[s.tipo].color,
-                            borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
-                          }}
-                        >
-                          {INFO_TIPO_SERIE[s.tipo].etiqueta}
-                        </span>
-                        <div className="flex-1">
-                          {/* La decisión de qué componente mostrar se basa en lo
-                           * PRESCRITO (estable), nunca en el valor que se está
-                           * escribiendo — si mirara el valor en vivo, un estado
-                           * intermedio como "92." (antes de completar "92.5")
-                           * dejaría de encajar con el patrón numérico a mitad
-                           * de tecleo y el campo perdería el foco. */}
-                          {esSteppeable(s.kgPrescrito) ? (
-                            <StepperNumero
-                              valor={s.kg}
-                              placeholder={s.kgPrescrito}
-                              onChange={(v) => parchearSerie(ei, si, { kg: v })}
-                              paso={2.5}
-                              etiqueta="Peso en kilos"
-                            />
-                          ) : (
-                            <input
-                              className="campo-serie placeholder:text-atenuado/45"
-                              placeholder={s.kgPrescrito || "kg"}
-                              inputMode="decimal"
-                              value={s.kg}
-                              onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                              aria-label="Carga"
-                            />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          {esSteppeable(s.repsPrescrito) ? (
-                            <StepperNumero
-                              valor={s.reps}
-                              placeholder={s.repsPrescrito}
-                              onChange={(v) => parchearSerie(ei, si, { reps: v })}
-                              paso={1}
-                              etiqueta="Repeticiones"
-                            />
-                          ) : (
-                            <input
-                              className="campo-serie placeholder:text-atenuado/45"
-                              placeholder={s.repsPrescrito || "reps"}
-                              value={s.reps}
-                              onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                              aria-label="Repeticiones (admite 8+3)"
-                            />
-                          )}
-                        </div>
-                        <div className="w-[42px] shrink-0">
-                          <input
-                            className={`campo-serie !px-1 !text-[12px] placeholder:text-atenuado/45 ${
-                              esTecnica ? "!text-acento" : ""
-                            }`}
-                            placeholder={s.rirPrescrito || "—"}
-                            value={s.rir}
-                            onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                            aria-label={esTecnica ? "Técnica" : "RIR"}
-                          />
-                        </div>
-                        <button
-                          onClick={() => alternarCompletada(ei, si)}
-                          aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
-                          className={`w-12 h-12 shrink-0 rounded-[12px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
-                            s.completada
-                              ? "bg-acento text-fondo border-acento anim-pop"
-                              : "bg-campo text-acento border-acento/40"
+                      <div key={si} className="mb-1.5">
+                        <div
+                          className={`fila-serie flex items-center gap-2 py-2 px-2 -mx-2 rounded-[12px] border-l-[3px] ${
+                            s.completada ? "bg-acento/15 border-acento" : "border-transparent"
                           }`}
                         >
-                          <Check size={20} strokeWidth={3} />
-                        </button>
+                          <span
+                            className="w-[46px] shrink-0 text-[10.5px] font-bold text-center py-2 rounded-lg bg-campo border"
+                            style={{
+                              color: INFO_TIPO_SERIE[s.tipo].color,
+                              borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
+                            }}
+                          >
+                            {INFO_TIPO_SERIE[s.tipo].etiqueta}
+                          </span>
+                          <div className="flex-1">
+                            {/* La decisión de qué componente mostrar se basa en lo
+                             * PRESCRITO (estable), nunca en el valor que se está
+                             * escribiendo — si mirara el valor en vivo, un estado
+                             * intermedio como "92." (antes de completar "92.5")
+                             * dejaría de encajar con el patrón numérico a mitad
+                             * de tecleo y el campo perdería el foco. */}
+                            {esSteppeable(s.kgPrescrito) ? (
+                              <StepperNumero
+                                valor={s.kg}
+                                placeholder={s.kgPrescrito}
+                                onChange={(v) => parchearSerie(ei, si, { kg: v })}
+                                paso={2.5}
+                                etiqueta="Peso en kilos"
+                              />
+                            ) : (
+                              <input
+                                className="campo-serie placeholder:text-atenuado/45"
+                                placeholder={s.kgPrescrito || "kg"}
+                                inputMode="decimal"
+                                value={s.kg}
+                                onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
+                                aria-label="Carga"
+                              />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            {esSteppeable(s.repsPrescrito) ? (
+                              <StepperNumero
+                                valor={s.reps}
+                                placeholder={s.repsPrescrito}
+                                onChange={(v) => parchearSerie(ei, si, { reps: v })}
+                                paso={1}
+                                etiqueta="Repeticiones"
+                              />
+                            ) : (
+                              <input
+                                className="campo-serie placeholder:text-atenuado/45"
+                                placeholder={s.repsPrescrito || "reps"}
+                                value={s.reps}
+                                onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
+                                aria-label="Repeticiones (admite 8+3)"
+                              />
+                            )}
+                          </div>
+                          <button
+                            onClick={() => alternarCompletada(ei, si)}
+                            aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
+                            className={`w-12 h-12 shrink-0 rounded-[12px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
+                              s.completada
+                                ? "bg-acento text-fondo border-acento anim-pop"
+                                : "bg-campo text-acento border-acento/40"
+                            }`}
+                          >
+                            <Check size={20} strokeWidth={3} />
+                          </button>
+                        </div>
+                        {/* RIR/técnica: solo ocupa espacio cuando el entrenador
+                         * la prescribió o el cliente ya escribió algo — la
+                         * mayoría de calentamientos no la usan. Se autoetiqueta
+                         * (RIR o Técnica) en vez de depender solo del color. */}
+                        {mostrarRir && (
+                          <div className="flex items-center gap-1.5 ml-[54px] mt-1">
+                            <span className="text-atenuado text-[9.5px] font-semibold uppercase tracking-wide shrink-0">
+                              {esTecnica ? "Técnica" : "RIR"}
+                            </span>
+                            <input
+                              className={`campo-serie !w-[76px] !py-1 !text-[12.5px] placeholder:text-atenuado/45 ${
+                                esTecnica ? "!text-acento" : ""
+                              }`}
+                              placeholder={s.rirPrescrito || "—"}
+                              value={s.rir}
+                              onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
+                              aria-label={esTecnica ? "Técnica" : "RIR"}
+                            />
+                          </div>
+                        )}
                       </div>
                     );
                   })}
