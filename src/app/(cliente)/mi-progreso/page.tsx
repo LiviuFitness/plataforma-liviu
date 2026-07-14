@@ -14,14 +14,16 @@ export default async function PaginaMiProgreso() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const [{ data: medidas }, { prs, progresiones, historial, volumenMuscular }] = await Promise.all([
-    supabase
-      .from("medidas")
-      .select("*")
-      .eq("cliente_id", user.id)
-      .order("fecha", { ascending: true }),
-    resolverProgresoEntreno(supabase, user.id),
-  ]);
+  const [{ data: medidas }, { prs, progresiones, historial, volumenMuscular }, { data: logrosPrevios }] =
+    await Promise.all([
+      supabase
+        .from("medidas")
+        .select("*")
+        .eq("cliente_id", user.id)
+        .order("fecha", { ascending: true }),
+      resolverProgresoEntreno(supabase, user.id),
+      supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
+    ]);
 
   const semanas = calcularRevisionSemanal(
     (medidas ?? []).map((m) => ({ fecha: m.fecha, peso: m.peso }))
@@ -43,6 +45,7 @@ export default async function PaginaMiProgreso() {
       progresiones={progresiones}
       entradasFotos={entradasFotos}
       volumenMuscular={volumenMuscular}
+      logrosDesbloqueados={(logrosPrevios ?? []).map((l) => l.clave)}
     />
   );
 }

@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Scale } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { fechaCorta, Sparkline } from "@/componentes/ui";
+import { fechaCorta, IconoTarjeta, Sparkline } from "@/componentes/ui";
 import { aNumero } from "@/lib/rutinas";
+import { useCountUp } from "@/lib/useCountUp";
 import FotosProgreso from "@/componentes/FotosProgreso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
+import GridLogros from "@/componentes/GridLogros";
 import type { SemanaRevision } from "@/lib/revision";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
 import type { VolumenMuscular } from "@/lib/musculos";
@@ -23,6 +26,7 @@ export default function MiProgreso({
   progresiones,
   entradasFotos,
   volumenMuscular,
+  logrosDesbloqueados,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -32,6 +36,7 @@ export default function MiProgreso({
   progresiones: Record<string, PuntoProgresion[]>;
   entradasFotos: EntradaFotosProgreso[];
   volumenMuscular: VolumenMuscular[];
+  logrosDesbloqueados: string[];
 }) {
   const router = useRouter();
   const [peso, setPeso] = useState("");
@@ -39,6 +44,7 @@ export default function MiProgreso({
   const [error, setError] = useState("");
 
   const pesos = medidas.filter((m) => m.peso !== null).map((m) => Number(m.peso));
+  const pesoAnimado = useCountUp(pesos[pesos.length - 1] ?? 0, 1);
 
   async function guardarPeso() {
     const valor = aNumero(peso);
@@ -79,7 +85,9 @@ export default function MiProgreso({
       <div className="sub mb-4">cada semana cuenta —</div>
 
       {semanaActual && semanaActual.variacionPct !== null && (
-        <section className="tarjeta !border-acento/30">
+        <section
+          className={`tarjeta ${semanaActual.variacionPct < 0 ? "tarjeta-turquesa" : semanaActual.variacionPct > 0 ? "tarjeta-dorado" : ""}`}
+        >
           <div className="titulo-tarjeta">ESTA SEMANA</div>
           <div className="text-[14px] text-texto-2">
             Media de peso{" "}
@@ -88,9 +96,9 @@ export default function MiProgreso({
             <span
               className={
                 semanaActual.variacionPct < 0
-                  ? "text-acento"
+                  ? "text-turquesa"
                   : semanaActual.variacionPct > 0
-                    ? "text-aviso"
+                    ? "text-dorado"
                     : "text-atenuado"
               }
             >
@@ -101,17 +109,32 @@ export default function MiProgreso({
         </section>
       )}
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">PESO</div>
-        <Sparkline datos={pesos} />
-        {pesos.length >= 1 && (
-          <div className="flex justify-between items-center mb-3">
-            <span className="text-atenuado text-[13.5px]">
-              {pesos.length >= 2 ? `Inicio ${pesos[0]} kg` : ""}
-            </span>
-            <span className="num-grande">{pesos[pesos.length - 1]} kg</span>
+      <section className="tarjeta tarjeta-turquesa">
+        <div className="flex items-center gap-3.5 mb-1">
+          <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" />
+          <div className="flex-1 min-w-0">
+            <div className="titulo-tarjeta !mb-0.5">PESO</div>
+            {pesos.length >= 1 ? (
+              <div className="flex items-baseline gap-1.5">
+                <span
+                  className="num-grande !text-[26px]"
+                  style={{ color: "var(--color-turquesa)" }}
+                >
+                  {pesoAnimado.toFixed(1)}
+                </span>
+                <span className="text-atenuado text-[13px]">kg</span>
+              </div>
+            ) : (
+              <div className="text-atenuado text-[13.5px]">Sin registrar todavía</div>
+            )}
           </div>
-        )}
+          {pesos.length >= 2 && (
+            <span className="texto-secundario shrink-0">Inicio {pesos[0]} kg</span>
+          )}
+        </div>
+        <div className="mt-2 mb-3">
+          <Sparkline datos={pesos} color="var(--color-turquesa)" />
+        </div>
         <div className="flex gap-2">
           <input
             className="input !mb-0 flex-1"
@@ -140,6 +163,8 @@ export default function MiProgreso({
 
       <MapaMuscular volumen={volumenMuscular} />
 
+      <GridLogros desbloqueados={logrosDesbloqueados} />
+
       <HistorialProgreso
         prs={prs}
         progresiones={progresiones}
@@ -150,7 +175,7 @@ export default function MiProgreso({
       {medidas.length > 0 && (
         <section className="tarjeta">
           <div className="titulo-tarjeta">MEDIDAS</div>
-          <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] text-[11px] text-atenuado uppercase tracking-wider border-b border-borde-2 py-[7px]">
+          <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] text-[10.5px] text-atenuado font-semibold uppercase tracking-[0.6px] border-b border-borde-2 py-2">
             <span>Fecha</span>
             <span>Peso</span>
             <span>Cintura</span>
@@ -163,10 +188,12 @@ export default function MiProgreso({
             .map((m) => (
               <div
                 key={m.id}
-                className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] text-[13px] border-b border-borde last:border-0 py-[7px]"
+                className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] text-[13px] border-b border-borde last:border-0 py-2.5"
               >
-                <span>{fechaCorta(m.fecha)}</span>
-                <span className="font-bold text-acento">{m.peso ?? "—"}</span>
+                <span className="text-texto-2">{fechaCorta(m.fecha)}</span>
+                <span className="font-bold" style={{ color: "var(--color-turquesa)" }}>
+                  {m.peso ?? "—"}
+                </span>
                 <span>{m.cintura ?? "—"}</span>
                 <span>{m.pecho ?? "—"}</span>
                 <span>{m.brazo ?? "—"}</span>

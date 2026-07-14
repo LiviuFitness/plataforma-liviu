@@ -1,6 +1,8 @@
 "use client";
 
+import { Camera } from "lucide-react";
 import { fechaCorta } from "@/componentes/ui";
+import EstadoVacio from "@/componentes/EstadoVacio";
 import type { EntradaFotosProgreso } from "@/lib/tipos";
 
 /** Galería de fotos de progreso agrupadas por fecha. Si se pasa
@@ -14,9 +16,11 @@ export default function GaleriaFotosProgreso({
 }) {
   if (entradas.length === 0) {
     return (
-      <div className="text-atenuado text-[13.5px]">
-        Sin fotos de progreso todavía.
-      </div>
+      <EstadoVacio
+        Icono={Camera}
+        titulo="Sin fotos de progreso todavía"
+        descripcion="Sube una foto frontal, lateral y de espalda para comparar tu evolución mes a mes."
+      />
     );
   }
 

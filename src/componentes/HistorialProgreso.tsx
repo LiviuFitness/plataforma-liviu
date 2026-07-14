@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Trophy } from "lucide-react";
+import { History, Trophy } from "lucide-react";
 import { fechaCorta, Sparkline } from "@/componentes/ui";
+import EstadoVacio from "@/componentes/EstadoVacio";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
 
 const EMOJIS: Record<number, string> = { 1: "😖", 2: "😕", 3: "😐", 4: "🙂", 5: "🔥" };
@@ -25,12 +26,15 @@ export default function HistorialProgreso({
 
   return (
     <>
-      <section className="tarjeta">
-        <div className="titulo-tarjeta flex items-center gap-1.5"><Trophy size={13} className="text-aviso" /> RÉCORDS PERSONALES</div>
+      <section className="tarjeta tarjeta-dorado">
+        <div className="titulo-tarjeta flex items-center gap-1.5"><Trophy size={13} className="text-dorado" /> RÉCORDS PERSONALES</div>
         {prs.length === 0 && (
-          <div className="text-atenuado text-[13.5px]">
-            Completa la primera sesión y las mejores marcas aparecerán aquí.
-          </div>
+          <EstadoVacio
+            Icono={Trophy}
+            color="var(--color-dorado)"
+            titulo="Todavía no hay récords"
+            descripcion="Completa tu primera sesión y las mejores marcas de cada ejercicio empezarán a aparecer aquí."
+          />
         )}
         {prs.map((pr) => {
           const puntos = progresiones[pr.ejercicio] ?? [];
@@ -78,7 +82,11 @@ export default function HistorialProgreso({
       <section className="tarjeta">
         <div className="titulo-tarjeta">HISTORIAL DE SESIONES</div>
         {historial.length === 0 && (
-          <div className="text-atenuado text-[13.5px]">Sin sesiones todavía.</div>
+          <EstadoVacio
+            Icono={History}
+            titulo="Sin sesiones todavía"
+            descripcion="Cuando completes entrenamientos, aparecerán aquí con la fecha, las series hechas y cómo te sentiste."
+          />
         )}
         {historial.map((s) => (
           <div
@@ -97,7 +105,7 @@ export default function HistorialProgreso({
                 {s.seriesHechas} series
               </div>
             </div>
-            <span className="text-[15px] flex items-center gap-2">
+            <span className="text-[18px] flex items-center gap-2">
               {s.prsPre && <span title="Cómo llegó">{EMOJIS[s.prsPre]}</span>}
               {s.prsPre && s.sensacion && (
                 <span className="text-atenuado text-[11px]">→</span>
