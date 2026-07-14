@@ -142,6 +142,27 @@ body {
     transition: width 0.22s ease-out;
   }
 
+  /* Acordeón 100% CSS (sin medir alturas en JS): el wrapper anima su
+     grid-template-rows de 0fr a 1fr, el hijo recorta con overflow. */
+  .acordeon {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.22s ease;
+  }
+  .acordeon-abierto {
+    grid-template-rows: 1fr;
+  }
+  .acordeon > div {
+    overflow: hidden;
+    min-height: 0;
+  }
+  .icono-rotable {
+    transition: transform 0.2s ease;
+  }
+  .icono-rotable-abierto {
+    transform: rotate(180deg);
+  }
+
   /* Caja de icono de la barra de navegación inferior (móvil) */
   .caja-nav {
     position: relative;

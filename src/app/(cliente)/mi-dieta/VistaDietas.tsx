@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Dumbbell, Footprints } from "lucide-react";
+import { Dumbbell, Footprints, UtensilsCrossed } from "lucide-react";
 import {
   macrosDe,
   r,
@@ -12,6 +12,8 @@ import {
 } from "@/lib/dietas";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
 import MiDietaComida from "./MiDietaComida";
+import EstadoVacio from "@/componentes/EstadoVacio";
+import { useCountUp } from "@/lib/useCountUp";
 
 export interface PlanDieta {
   dieta: Dieta;
@@ -34,6 +36,7 @@ export default function VistaDietas({
   );
   const plan = tipo === "entreno" ? entreno : descanso;
   const hayAmbas = !!entreno && !!descanso;
+  const kcalAnimado = useCountUp(plan?.dieta.kcal_obj ?? 0);
 
   if (!plan) return null;
 
@@ -68,13 +71,15 @@ export default function VistaDietas({
         </div>
       )}
 
-      <section className="tarjeta">
+      <section className="tarjeta tarjeta-verde">
         <div className="titulo-tarjeta">
           OBJETIVO DIARIO{hayAmbas ? ` · ${tipo === "entreno" ? "ENTRENO" : "DESCANSO"}` : ""}
         </div>
-        <div className="flex items-baseline justify-between mb-1.5">
+        <div className="flex items-baseline justify-between mb-2">
           <div>
-            <span className="num-grande !text-[32px]">{dieta.kcal_obj}</span>
+            <span className="num-grande !text-[34px]" style={{ color: "var(--color-verde)" }}>
+              {kcalAnimado}
+            </span>
             <span className="text-atenuado text-[14px]"> kcal</span>
           </div>
           {hayAlimentos && (
@@ -84,18 +89,17 @@ export default function VistaDietas({
           )}
         </div>
         {hayAlimentos && (
-          <div className="h-1.5 rounded bg-borde-2 overflow-hidden mb-4">
+          <div className="barra-capsula mb-4">
             <div
-              className="h-full rounded"
+              className="barra-capsula-relleno"
               style={{
                 width: `${Math.min(100, (totalesPlan.kcal / dieta.kcal_obj) * 100)}%`,
-                background:
-                  totalesPlan.kcal > dieta.kcal_obj * 1.05 ? "#E2B429" : "#29ABE2",
-              }}
+                "--tc": totalesPlan.kcal > dieta.kcal_obj * 1.05 ? "#E2B429" : "var(--color-verde)",
+              } as React.CSSProperties}
             />
           </div>
         )}
-        <div className="space-y-3">
+        <div className="space-y-3.5">
           {(
             [
               [INFO_MACRO.proteina.etiqueta, dieta.prot_obj, totalesPlan.prot, INFO_MACRO.proteina.color],
@@ -104,7 +108,7 @@ export default function VistaDietas({
             ] as const
           ).map(([etiqueta, objetivo, plan2, color]) => (
             <div key={etiqueta}>
-              <div className="flex justify-between items-baseline mb-1 text-[13.5px]">
+              <div className="flex justify-between items-baseline mb-1.5 text-[13.5px]">
                 <span className="flex items-center gap-1.5">
                   <span
                     className="inline-block w-2 h-2 rounded-full"
@@ -125,13 +129,13 @@ export default function VistaDietas({
                 </span>
               </div>
               {hayAlimentos && (
-                <div className="h-1 rounded bg-borde-2 overflow-hidden">
+                <div className="barra-capsula">
                   <div
-                    className="h-full rounded"
+                    className="barra-capsula-relleno"
                     style={{
                       width: `${Math.min(100, (plan2 / (objetivo || 1)) * 100)}%`,
-                      background: plan2 > objetivo * 1.05 ? "#E2B429" : color,
-                    }}
+                      "--tc": plan2 > objetivo * 1.05 ? "#E2B429" : color,
+                    } as React.CSSProperties}
                   />
                 </div>
               )}
@@ -142,9 +146,12 @@ export default function VistaDietas({
 
       {comidas.length === 0 && (
         <section className="tarjeta">
-          <div className="text-atenuado text-[13.5px]">
-            Sin comidas definidas todavía.
-          </div>
+          <EstadoVacio
+            Icono={UtensilsCrossed}
+            color="var(--color-verde)"
+            titulo="Sin comidas definidas todavía"
+            descripcion="En cuanto tu entrenador añada las comidas de este plan, aparecerán aquí con sus cantidades exactas."
+          />
         </section>
       )}
 

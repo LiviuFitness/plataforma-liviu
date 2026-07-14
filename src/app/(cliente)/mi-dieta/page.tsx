@@ -7,8 +7,10 @@ import {
   type ComidaEstructurada,
 } from "@/lib/dietas";
 import type { Dieta } from "@/lib/tipos";
+import { UtensilsCrossed } from "lucide-react";
 import VistaDietas, { type PlanDieta } from "./VistaDietas";
 import PreferenciasAlimentos from "./PreferenciasAlimentos";
+import EstadoVacio from "@/componentes/EstadoVacio";
 
 export const dynamic = "force-dynamic";
 
@@ -95,10 +97,12 @@ export default async function PaginaMiDieta() {
 
       {!entreno && !descanso ? (
         <section className="tarjeta">
-          <div className="text-atenuado text-[14px]">
-            Tu dieta está en el horno 🔥 En cuanto tu entrenador te asigne el
-            plan, aparecerá aquí.
-          </div>
+          <EstadoVacio
+            Icono={UtensilsCrossed}
+            color="var(--color-verde)"
+            titulo="Tu dieta está en el horno 🔥"
+            descripcion="En cuanto tu entrenador te asigne el plan de comidas, aparecerá aquí con las cantidades exactas de cada alimento."
+          />
         </section>
       ) : (
         <VistaDietas
