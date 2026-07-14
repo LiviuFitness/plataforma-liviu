@@ -171,6 +171,74 @@ body {
     transform: rotate(180deg);
   }
 
+  /* Stepper de +/- para peso y repeticiones (sesión de entreno):
+     pensado para usarse sin mirar demasiado y con los dedos sudados. */
+  .stepper-boton {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    border: 1px solid var(--color-borde-2);
+    background: var(--color-campo);
+    color: var(--color-texto-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.1s ease, border-color 0.15s ease;
+  }
+  .stepper-boton:active:not(:disabled) {
+    transform: scale(0.88);
+    border-color: var(--color-acento);
+  }
+  .stepper-boton:disabled {
+    opacity: 0.4;
+  }
+  .stepper-numero {
+    flex: 1;
+    min-width: 0;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    font-size: 16.5px;
+    padding: 5px 2px;
+    border-radius: 8px;
+    transition: background-color 0.15s ease;
+  }
+  .stepper-numero:active {
+    background: var(--color-campo);
+  }
+
+  /* Fila de serie (sesión de entreno): transición suave al completarla */
+  .fila-serie {
+    transition: background-color 0.22s ease, border-color 0.22s ease;
+  }
+
+  /* Píldora del índice de ejercicios (sesión de entreno) */
+  .pildora-indice {
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 11.5px;
+    font-weight: 700;
+    border: 1.5px solid var(--color-borde-2);
+    color: var(--color-atenuado);
+    transition: all 0.2s ease;
+  }
+  .pildora-indice-actual {
+    border-color: var(--color-acento);
+    color: var(--color-acento);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-acento) 15%, transparent);
+  }
+  .pildora-indice-hecha {
+    background: var(--color-acento);
+    border-color: var(--color-acento);
+    color: var(--color-fondo);
+  }
+
   /* Caja de icono de la barra de navegación inferior (móvil) */
   .caja-nav {
     position: relative;
@@ -401,6 +469,25 @@ body {
     transform: translate(-50%, 0);
   }
 }
+@keyframes caer {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -14px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1);
+  }
+}
+@keyframes destello {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+  50% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-dorado) 35%, transparent);
+  }
+}
 
 @layer components {
   .anim-pop {
@@ -411,6 +498,12 @@ body {
   }
   .anim-subir-barra {
     animation: subir-barra 0.25s ease both;
+  }
+  .anim-caer {
+    animation: caer 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  }
+  .anim-destello {
+    animation: destello 0.5s ease;
   }
   /* Entrada en cascada de las tarjetas de Inicio */
   .anim-entrada-1 {

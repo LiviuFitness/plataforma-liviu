@@ -10,14 +10,18 @@ import {
   parsearRepsRealizadas,
   parsearRir,
 } from "@/lib/rutinas";
+import { desbloquear, pitarDescansoTerminado, pitarRecord } from "@/lib/sonido";
 import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
+import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
   Check,
+  ChevronUp,
   Dumbbell,
   FileText,
   Link2,
+  Plus,
   Scale,
   Timer,
   Trophy,
@@ -110,8 +114,9 @@ const ESTADO_PREVIO = [
 /**
  * Sesión en curso (concepto clave: prescrito vs. realizado).
  * Las series vienen precargadas con lo prescrito: solo hay que
- * confirmar con ✓ o ajustar kg/reps. Al completar una serie arranca
- * el temporizador de descanso del ejercicio.
+ * confirmar con ✓ o ajustar kg/reps con los steppers (sin teclado en el
+ * caso normal). Al completar una serie arranca el temporizador de
+ * descanso del ejercicio.
  *
  * Se usa tanto para que el cliente registre su propio entreno como
  * para que el entrenador registre uno presencial en el momento
@@ -149,8 +154,11 @@ export default function SesionEnCurso({
   const [error, setError] = useState("");
   const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
   const [videoAbierto, setVideoAbierto] = useState<number | null>(null);
+  const [expandidoManual, setExpandidoManual] = useState<Record<string, boolean>>({});
+  const [prToast, setPrToast] = useState<{ nombre: string; kg: number } | null>(null);
   const avisado = useRef(false);
   const hidratado = useRef(false);
+  const gruposRefs = useRef<Record<number, HTMLElement | null>>({});
 
   function empezarEntreno() {
     setInicio(Date.now());
@@ -200,8 +208,9 @@ export default function SesionEnCurso({
         const quedan = Math.max(0, Math.ceil((d.fin - Date.now()) / 1000));
         setRestante(quedan);
         if (quedan === 0) {
-          if (!avisado.current && "vibrate" in navigator) {
-            navigator.vibrate([200, 100, 200]);
+          if (!avisado.current) {
+            if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
+            pitarDescansoTerminado();
           }
           avisado.current = true;
           return null; // descanso terminado
@@ -211,6 +220,13 @@ export default function SesionEnCurso({
     }, 250);
     return () => clearInterval(intervalo);
   }, [inicio]);
+
+  /* El aviso de récord se retira solo tras unos segundos. */
+  useEffect(() => {
+    if (!prToast) return;
+    const t = setTimeout(() => setPrToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [prToast]);
 
   const fmt = (seg: number) =>
     `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`;
@@ -233,7 +249,39 @@ export default function SesionEnCurso({
       )
     );
 
+  function agregarSerie(ei: number) {
+    setEjercicios((prev) =>
+      prev.map((e, i) => {
+        if (i !== ei) return e;
+        const ultima = e.series[e.series.length - 1];
+        const nueva: SerieSesion = ultima
+          ? { ...ultima, kg: "", reps: "", rir: "", completada: false }
+          : {
+              tipo: "efectiva",
+              kgPrescrito: "",
+              repsPrescrito: "",
+              rirPrescrito: "",
+              kg: "",
+              reps: "",
+              rir: "",
+              completada: false,
+            };
+        return { ...e, series: [...e.series, nueva] };
+      })
+    );
+  }
+
+  function ajustarDescanso(deltaSeg: number) {
+    setDescanso((d) => {
+      if (!d) return d;
+      const nuevoFin = Math.max(Date.now() + 1000, d.fin + deltaSeg * 1000);
+      const segRestantes = Math.ceil((nuevoFin - Date.now()) / 1000);
+      return { total: Math.max(d.total, segRestantes), fin: nuevoFin };
+    });
+  }
+
   function alternarCompletada(ei: number, si: number) {
+    desbloquear(); // gesto real del usuario: aprovecha para desbloquear el audio en iOS
     const serie = ejercicios[ei].series[si];
     const ahoraCompletada = !serie.completada;
     // Al marcar ✓ con campos vacíos, se rellenan con lo prescrito
@@ -248,6 +296,19 @@ export default function SesionEnCurso({
       }
     }
     parchearSerie(ei, si, relleno);
+
+    if (ahoraCompletada) {
+      if ("vibrate" in navigator) navigator.vibrate(12);
+      const ejercicio = ejercicios[ei];
+      if (ejercicio.mejorKgAnterior !== null && serie.tipo !== "calentamiento") {
+        const kgFinal = parsearCarga(relleno.kg ?? serie.kg).kg;
+        if (kgFinal !== null && kgFinal > ejercicio.mejorKgAnterior) {
+          setPrToast({ nombre: ejercicio.nombre, kg: kgFinal });
+          pitarRecord();
+        }
+      }
+    }
+
     if (ahoraCompletada && esUltimoDeSuperserie(ei)) {
       // Arranca el descanso automáticamente, pero solo tras el último
       // ejercicio de la superserie (o si el ejercicio va solo)
@@ -271,6 +332,7 @@ export default function SesionEnCurso({
     (a, e) => a + e.series.filter((s) => s.completada).length,
     0
   );
+  const todoCompleto = totalSeries > 0 && completadas === totalSeries;
 
   /* Resumen final: tonelaje total y récords batidos en esta sesión */
   const tonelaje = ejercicios.reduce(
@@ -397,7 +459,7 @@ export default function SesionEnCurso({
               <button
                 key={s.valor}
                 onClick={() => setPrsPre(s.valor)}
-                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-[12px] border cursor-pointer ${
+                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-[12px] border cursor-pointer anim-pulsable ${
                   prsPre === s.valor
                     ? "border-acento bg-acento/10"
                     : "border-borde-2 bg-campo"
@@ -410,7 +472,7 @@ export default function SesionEnCurso({
           </div>
         </section>
 
-        <button className="cta" onClick={empezarEntreno}>
+        <button className="cta anim-pulsable" onClick={empezarEntreno}>
           Empezar sesión
         </button>
       </>
@@ -428,12 +490,12 @@ export default function SesionEnCurso({
         <div className="grid grid-cols-3 gap-2.5 mb-3.5">
           <div className="tarjeta !mb-0 text-center !p-3.5">
             <Timer size={18} className="mx-auto mb-1.5 text-acento" />
-            <div className="num-grande !text-[20px]">{fmt(transcurrido)}</div>
+            <div className="num-grande !text-[20px] tabular-nums">{fmt(transcurrido)}</div>
             <div className="text-[10.5px] text-atenuado mt-0.5">duración</div>
           </div>
           <div className="tarjeta !mb-0 text-center !p-3.5">
             <Check size={18} className="mx-auto mb-1.5 text-acento" />
-            <div className="num-grande !text-[20px]">
+            <div className="num-grande !text-[20px] tabular-nums">
               {completadas}
               <span className="text-atenuado text-[13px]">/{totalSeries}</span>
             </div>
@@ -441,7 +503,7 @@ export default function SesionEnCurso({
           </div>
           <div className="tarjeta !mb-0 text-center !p-3.5">
             <Dumbbell size={18} className="mx-auto mb-1.5 text-acento" />
-            <div className="num-grande !text-[20px]">
+            <div className="num-grande !text-[20px] tabular-nums">
               {tonelaje >= 1000
                 ? `${(tonelaje / 1000).toFixed(1)}t`
                 : `${Math.round(tonelaje)}`}
@@ -453,8 +515,8 @@ export default function SesionEnCurso({
         </div>
 
         {records.length > 0 && (
-          <section className="tarjeta !border-aviso/50">
-            <div className="titulo-tarjeta !text-aviso flex items-center gap-1.5">
+          <section className="tarjeta tarjeta-dorado">
+            <div className="titulo-tarjeta !text-dorado flex items-center gap-1.5">
               <Trophy size={13} /> ¡RÉCORDS BATIDOS!
             </div>
             {records.map((r) => (
@@ -465,7 +527,7 @@ export default function SesionEnCurso({
                 <span className="min-w-0 truncate">{r.nombre}</span>
                 <span className="shrink-0">
                   <span className="text-atenuado">{r.antes} kg → </span>
-                  <b className="text-aviso">{r.kg} kg</b>
+                  <b className="text-dorado">{r.kg} kg</b>
                 </span>
               </div>
             ))}
@@ -479,7 +541,7 @@ export default function SesionEnCurso({
               <button
                 key={s.valor}
                 onClick={() => setSensacion(s.valor)}
-                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-[12px] border cursor-pointer ${
+                className={`flex-1 flex flex-col items-center gap-1 py-3 rounded-[12px] border cursor-pointer anim-pulsable ${
                   sensacion === s.valor
                     ? "border-acento bg-acento/10"
                     : "border-borde-2 bg-campo"
@@ -505,7 +567,7 @@ export default function SesionEnCurso({
 
         {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
 
-        <button className="cta" onClick={guardarSesion} disabled={guardando}>
+        <button className="cta anim-pulsable" onClick={guardarSesion} disabled={guardando}>
           {guardando ? "Guardando…" : "Guardar sesión"}
         </button>
         <button
@@ -520,15 +582,41 @@ export default function SesionEnCurso({
   }
 
   /* --------- Pantalla de entreno --------- */
+  const gruposCalculados = agruparPorSuperserie(
+    ejercicios.map((ex, ei) => ({ ...ex, indiceGlobal: ei }))
+  ) as EjercicioConIndice[][];
+  const estadosGrupo = gruposCalculados.map((grupo) =>
+    grupo.every((ex) => ex.series.length > 0 && ex.series.every((s) => s.completada))
+  );
+  const indiceGrupoActual = estadosGrupo.findIndex((completo) => !completo);
+
   return (
     <>
       <div className="flex justify-between items-center mb-2">
-        <button className="ghost flex items-center gap-1" onClick={salir}>
-          <X size={14} /> Salir
+        <button
+          className="mini shrink-0"
+          onClick={salir}
+          aria-label="Salir del entreno"
+        >
+          <X size={16} />
         </button>
-        <div className="text-atenuado text-[13px] flex items-center gap-1">
-          <Timer size={13} /> {fmt(transcurrido)} · {completadas}/{totalSeries} series
+        <div className="text-atenuado text-[13px] flex items-center gap-1 tabular-nums">
+          <Timer size={13} /> {fmt(transcurrido)} ·{" "}
+          <span className={todoCompleto ? "text-acento font-semibold" : ""}>
+            {completadas}/{totalSeries} series
+          </span>
         </div>
+      </div>
+      <div className="barra-capsula mb-3">
+        <div
+          className="barra-capsula-relleno"
+          style={
+            {
+              "--tc": "var(--color-acento)",
+              width: `${totalSeries ? (completadas / totalSeries) * 100 : 0}%`,
+            } as React.CSSProperties
+          }
+        />
       </div>
 
       {nombreCliente && (
@@ -538,22 +626,45 @@ export default function SesionEnCurso({
       )}
       <h1 className="h1 mb-3">{nombreDia}</h1>
 
+      {gruposCalculados.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto scroll-sin-barra pb-1 mb-3.5">
+          {gruposCalculados.map((grupo, gi) => {
+            const completo = estadosGrupo[gi];
+            const actual = gi === indiceGrupoActual;
+            return (
+              <button
+                key={gi}
+                type="button"
+                className={`pildora-indice anim-pulsable ${
+                  completo ? "pildora-indice-hecha" : actual ? "pildora-indice-actual" : ""
+                }`}
+                onClick={() =>
+                  gruposRefs.current[gi]?.scrollIntoView({ behavior: "smooth", block: "start" })
+                }
+                aria-label={`Ir a ${grupo.map((e) => e.nombre).join(" + ")}`}
+              >
+                {completo ? <Check size={14} strokeWidth={3} /> : gi + 1}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {ejercicios.length === 0 && (
         <div className="tarjeta text-atenuado text-[14px]">
           Este día no tiene ejercicios todavía. Avisa a tu entrenador.
         </div>
       )}
 
-      {agruparPorSuperserie(
-        ejercicios.map((ex, ei) => ({ ...ex, indiceGlobal: ei }))
-      ).map((grupo: EjercicioConIndice[], gi) => {
+      {gruposCalculados.map((grupo, gi) => {
         const esSuperserie = grupo.length > 1;
-        const grupoCompleto = grupo.every(
-          (ex) => ex.series.length > 0 && ex.series.every((s) => s.completada)
-        );
+        const grupoCompleto = estadosGrupo[gi];
         return (
           <section
             key={gi}
+            ref={(el) => {
+              gruposRefs.current[gi] = el;
+            }}
             className={`tarjeta ${
               esSuperserie
                 ? "!p-0 overflow-hidden !border-acento/50"
@@ -571,6 +682,8 @@ export default function SesionEnCurso({
               const ei = ex.indiceGlobal;
               const esUltimoDelGrupo = posicion === grupo.length - 1;
               const hechas = ex.series.filter((s) => s.completada).length;
+              const exCompleta = ex.series.length > 0 && hechas === ex.series.length;
+              const expandida = expandidoManual[ex.rutinaEjercicioId] ?? !exCompleta;
               // Una nota corta ("con goma azul") se queda en línea; las notas
               // largas (técnica importada del Excel) se pliegan en el
               // desplegable para no llenar la pantalla de texto.
@@ -578,21 +691,62 @@ export default function SesionEnCurso({
               const notaInline = notas.length > 0 && notas.length <= 60 ? notas : "";
               const notasPlegadas =
                 notas.length > 60 && notas !== (ex.tecnica ?? "").trim() ? notas : "";
+
+              const contenedorClases = esSuperserie
+                ? `px-4 pb-3 ${posicion > 0 ? "pt-3 border-t border-acento/20" : "pt-1"}`
+                : "";
+
+              /* Ejercicio ya completado y sin reabrir manualmente: fila
+               * resumen compacta, fuera del camino del ejercicio activo. */
+              if (!expandida) {
+                return (
+                  <button
+                    key={ex.rutinaEjercicioId}
+                    type="button"
+                    className={`w-full flex items-center gap-2.5 py-2.5 text-left anim-pulsable ${contenedorClases}`}
+                    onClick={() =>
+                      setExpandidoManual((prev) => ({
+                        ...prev,
+                        [ex.rutinaEjercicioId]: true,
+                      }))
+                    }
+                  >
+                    <span className="w-7 h-7 rounded-full bg-acento/15 border border-acento/40 flex items-center justify-center shrink-0">
+                      <Check size={14} strokeWidth={3} className="text-acento" />
+                    </span>
+                    <span className="flex-1 min-w-0 text-[14px] font-semibold text-texto-2 truncate">
+                      {ex.nombre}
+                    </span>
+                    <span className="texto-secundario shrink-0">
+                      {hechas}/{ex.series.length}
+                    </span>
+                  </button>
+                );
+              }
+
               return (
-                <div
-                  key={ex.rutinaEjercicioId}
-                  className={
-                    esSuperserie
-                      ? `px-4 pb-3 ${posicion > 0 ? "pt-3 border-t border-borde" : "pt-1"}`
-                      : ""
-                  }
-                >
+                <div key={ex.rutinaEjercicioId} className={contenedorClases}>
                   <div className="flex justify-between items-start mb-0.5 gap-2">
                     <div className="flex items-start gap-2.5 min-w-0">
                       <AvatarEjercicio videoUrl={ex.videoUrl} tamano={36} />
                       <div className="font-bold text-[16px] leading-tight">{ex.nombre}</div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 pt-1">
+                      {exCompleta && (
+                        <button
+                          className="text-atenuado cursor-pointer hover:text-acento transition-colors"
+                          onClick={() =>
+                            setExpandidoManual((prev) => ({
+                              ...prev,
+                              [ex.rutinaEjercicioId]: false,
+                            }))
+                          }
+                          title="Colapsar"
+                          aria-label="Colapsar ejercicio"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                      )}
                       <button
                         className="text-atenuado cursor-pointer hover:text-acento transition-colors"
                         onClick={() => setCalculadoraPara(ei)}
@@ -601,7 +755,7 @@ export default function SesionEnCurso({
                       >
                         <Scale size={17} />
                       </button>
-                      <span className="text-atenuado text-[12px]">
+                      <span className="text-atenuado text-[12px] tabular-nums">
                         {hechas}/{ex.series.length}
                       </span>
                     </div>
@@ -672,64 +826,109 @@ export default function SesionEnCurso({
                     </details>
                   )}
 
-                  <div className="grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pb-1">
-                    <span>Serie</span>
-                    <span>Kg</span>
-                    <span>Reps</span>
-                    <span>RIR</span>
-                    <span></span>
+                  <div className="flex items-center gap-2 text-[10px] tracking-wider uppercase text-atenuado pb-1.5 pt-0.5">
+                    <span className="w-[46px] shrink-0">Serie</span>
+                    <span className="flex-1 text-center">Kg</span>
+                    <span className="flex-1 text-center">Reps</span>
+                    <span className="w-[42px] shrink-0 text-center">RIR</span>
+                    <span className="w-12 shrink-0" />
                   </div>
-                  {ex.series.map((s, si) => (
-                    <div
-                      className={`grid grid-cols-[64px_1fr_1fr_1fr_44px] gap-2 items-center py-1.5 px-1.5 -mx-1.5 rounded-lg ${
-                        s.completada ? "bg-acento/10" : ""
-                      }`}
-                      key={si}
-                    >
-                      <span
-                        className="text-[11px] font-bold text-center py-2 rounded-lg bg-campo border"
-                        style={{
-                          color: INFO_TIPO_SERIE[s.tipo].color,
-                          borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
-                        }}
-                      >
-                        {INFO_TIPO_SERIE[s.tipo].etiqueta}
-                      </span>
-                      <input
-                        className="campo-serie placeholder:text-atenuado/45"
-                        placeholder={s.kgPrescrito || "kg"}
-                        inputMode="decimal"
-                        value={s.kg}
-                        onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                        aria-label="Carga"
-                      />
-                      <input
-                        className="campo-serie placeholder:text-atenuado/45"
-                        placeholder={s.repsPrescrito || "reps"}
-                        value={s.reps}
-                        onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                        aria-label="Repeticiones (admite 8+3)"
-                      />
-                      <input
-                        className="campo-serie placeholder:text-atenuado/45"
-                        placeholder={s.rirPrescrito || "—"}
-                        value={s.rir}
-                        onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                        aria-label="RIR o técnica"
-                      />
-                      <button
-                        onClick={() => alternarCompletada(ei, si)}
-                        aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
-                        className={`h-[38px] rounded-[10px] cursor-pointer border flex items-center justify-center transition-colors ${
-                          s.completada
-                            ? "bg-acento text-fondo border-acento anim-pop"
-                            : "bg-campo text-acento border-acento/40"
+                  {ex.series.map((s, si) => {
+                    const referenciaRir = (s.rir || s.rirPrescrito).trim();
+                    const esTecnica = referenciaRir !== "" && !/^\d+$/.test(referenciaRir);
+                    return (
+                      <div
+                        key={si}
+                        className={`fila-serie flex items-center gap-2 py-2 px-2 -mx-2 rounded-[12px] mb-1.5 border-l-[3px] ${
+                          s.completada ? "bg-acento/15 border-acento" : "border-transparent"
                         }`}
                       >
-                        <Check size={18} strokeWidth={3} />
-                      </button>
-                    </div>
-                  ))}
+                        <span
+                          className="w-[46px] shrink-0 text-[10.5px] font-bold text-center py-2 rounded-lg bg-campo border"
+                          style={{
+                            color: INFO_TIPO_SERIE[s.tipo].color,
+                            borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
+                          }}
+                        >
+                          {INFO_TIPO_SERIE[s.tipo].etiqueta}
+                        </span>
+                        <div className="flex-1">
+                          {/* La decisión de qué componente mostrar se basa en lo
+                           * PRESCRITO (estable), nunca en el valor que se está
+                           * escribiendo — si mirara el valor en vivo, un estado
+                           * intermedio como "92." (antes de completar "92.5")
+                           * dejaría de encajar con el patrón numérico a mitad
+                           * de tecleo y el campo perdería el foco. */}
+                          {esSteppeable(s.kgPrescrito) ? (
+                            <StepperNumero
+                              valor={s.kg}
+                              placeholder={s.kgPrescrito}
+                              onChange={(v) => parchearSerie(ei, si, { kg: v })}
+                              paso={2.5}
+                              etiqueta="Peso en kilos"
+                            />
+                          ) : (
+                            <input
+                              className="campo-serie placeholder:text-atenuado/45"
+                              placeholder={s.kgPrescrito || "kg"}
+                              inputMode="decimal"
+                              value={s.kg}
+                              onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
+                              aria-label="Carga"
+                            />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          {esSteppeable(s.repsPrescrito) ? (
+                            <StepperNumero
+                              valor={s.reps}
+                              placeholder={s.repsPrescrito}
+                              onChange={(v) => parchearSerie(ei, si, { reps: v })}
+                              paso={1}
+                              etiqueta="Repeticiones"
+                            />
+                          ) : (
+                            <input
+                              className="campo-serie placeholder:text-atenuado/45"
+                              placeholder={s.repsPrescrito || "reps"}
+                              value={s.reps}
+                              onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
+                              aria-label="Repeticiones (admite 8+3)"
+                            />
+                          )}
+                        </div>
+                        <div className="w-[42px] shrink-0">
+                          <input
+                            className={`campo-serie !px-1 !text-[12px] placeholder:text-atenuado/45 ${
+                              esTecnica ? "!text-acento" : ""
+                            }`}
+                            placeholder={s.rirPrescrito || "—"}
+                            value={s.rir}
+                            onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
+                            aria-label={esTecnica ? "Técnica" : "RIR"}
+                          />
+                        </div>
+                        <button
+                          onClick={() => alternarCompletada(ei, si)}
+                          aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
+                          className={`w-12 h-12 shrink-0 rounded-[12px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
+                            s.completada
+                              ? "bg-acento text-fondo border-acento anim-pop"
+                              : "bg-campo text-acento border-acento/40"
+                          }`}
+                        >
+                          <Check size={20} strokeWidth={3} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="w-full text-left text-atenuado hover:text-acento transition-colors text-[13px] py-2 flex items-center gap-1.5 anim-pulsable"
+                    onClick={() => agregarSerie(ei)}
+                  >
+                    <Plus size={14} /> Añadir serie
+                  </button>
                 </div>
               );
             })}
@@ -751,10 +950,30 @@ export default function SesionEnCurso({
         />
       )}
 
-      {ejercicios.length > 0 && (
-        <button className="cta" onClick={() => setFase("final")}>
-          Terminar sesión
-        </button>
+      {ejercicios.length > 0 &&
+        (todoCompleto ? (
+          <button className="cta anim-pop anim-pulsable" onClick={() => setFase("final")}>
+            Terminar sesión ✓
+          </button>
+        ) : (
+          <button className="ghost w-full" onClick={() => setFase("final")}>
+            Terminar antes de tiempo
+          </button>
+        ))}
+
+      {/* Aviso de récord — se retira solo */}
+      {prToast && (
+        <div
+          className="fixed left-1/2 -translate-x-1/2 top-[76px] md:top-4 z-40 anim-caer px-3"
+          style={{ width: "100%", maxWidth: 480 }}
+        >
+          <div className="tarjeta tarjeta-dorado anim-destello !mb-0 !py-2.5 flex items-center gap-2.5">
+            <Trophy size={18} className="text-dorado shrink-0" />
+            <div className="flex-1 min-w-0 text-[13px]">
+              <b>¡Nuevo récord!</b> {prToast.nombre} · {prToast.kg} kg
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Temporizador de descanso — barra fija sobre la navegación */}
@@ -763,18 +982,31 @@ export default function SesionEnCurso({
           className="fixed left-1/2 -translate-x-1/2 w-full max-w-[480px] z-30 px-3 anim-subir-barra"
           style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
         >
-          <div className="tarjeta !mb-2 !py-3 flex items-center gap-3 !border-acento/50 bg-[#0E1215]">
-            <Timer size={15} className="text-atenuado shrink-0" />
+          <div className="tarjeta !mb-2 !py-3 flex items-center gap-2.5 !border-acento/50 bg-[#0E1215]">
+            <button
+              className="stepper-boton"
+              onClick={() => ajustarDescanso(-15)}
+              aria-label="Restar 15 segundos al descanso"
+            >
+              <span className="text-[11px] font-bold">−15</span>
+            </button>
             <div className="flex-1 h-1.5 rounded bg-borde-2 overflow-hidden">
               <div
                 className="h-full bg-acento transition-[width] duration-300 ease-linear"
                 style={{ width: `${(restante / descanso.total) * 100}%` }}
               />
             </div>
-            <span className="num-grande !text-[20px] text-acento min-w-[52px] text-right">
+            <span className="num-grande !text-[20px] text-acento min-w-[52px] text-right tabular-nums">
               {fmt(restante)}
             </span>
-            <button className="ghost" onClick={() => setDescanso(null)}>
+            <button
+              className="stepper-boton"
+              onClick={() => ajustarDescanso(15)}
+              aria-label="Sumar 15 segundos al descanso"
+            >
+              <span className="text-[11px] font-bold">+15</span>
+            </button>
+            <button className="ghost shrink-0" onClick={() => setDescanso(null)}>
               Saltar
             </button>
           </div>
