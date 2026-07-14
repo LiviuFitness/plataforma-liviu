@@ -21,6 +21,7 @@ import {
   type Alternativa,
   type ComidaEstructurada,
 } from "@/lib/dietas";
+import { INFO_MACRO } from "@/lib/tipos";
 import { IconoTarjeta } from "@/componentes/ui";
 
 /** Icono + color según el nombre de la comida (Desayuno → café azul,
@@ -37,10 +38,13 @@ function infoComida(nombre: string): { Icono: LucideIcon; color: string } {
   return { Icono: Utensils, color: "var(--color-atenuado)" };
 }
 
+// Mismos colores que el resto de la app (objetivo diario, tarjeta de
+// dieta en Inicio…) — antes este resumen usaba blanco/azul/gris propios,
+// desincronizados del sistema de color de macros real.
 const MACROS_LEYENDA = [
-  { etiqueta: "P", color: "#FFFFFF" },
-  { etiqueta: "C", color: "#29ABE2" },
-  { etiqueta: "G", color: "#8A949C" },
+  { etiqueta: "P", color: INFO_MACRO.proteina.color },
+  { etiqueta: "C", color: INFO_MACRO.carbohidratos.color },
+  { etiqueta: "G", color: INFO_MACRO.grasas.color },
 ] as const;
 
 /**
@@ -71,7 +75,7 @@ export default function MiDietaComida({
     <section className="tarjeta !p-0 overflow-hidden">
       {/* Cabecera: icono + nombre + kcal de la comida, pulsable para plegar */}
       <button
-        className="flex items-center gap-3 px-4 pt-3.5 pb-2.5 w-full text-left"
+        className="flex items-center gap-3 px-4 pt-3.5 pb-2.5 w-full text-left anim-pulsable"
         onClick={() => setExpandida((v) => !v)}
         aria-expanded={expandida}
       >
@@ -116,50 +120,82 @@ export default function MiDietaComida({
                 const g = Number(it.gramos);
                 const factor = g / 100; // los gramos de la equivalencia son por 100 g base
                 const estaAbierto = abierto === it.id;
+                const tieneAlternativas = alt.length > 0;
+                const nombre = it.alimentos!.nombre;
+
+                // El nombre es lo que el cliente identifica primero — pasa a
+                // ser el elemento dominante; los gramos son la referencia
+                // secundaria (antes era al revés: el chip de gramos iba en
+                // negrita con borde y el nombre en texto plano).
+                const contenidoFila = (
+                  <>
+                    <span className="shrink-0 min-w-[48px] text-center text-[11px] font-semibold text-atenuado bg-campo/70 rounded-lg py-1.5 px-1.5">
+                      {r(g)} g
+                    </span>
+                    <span className="flex-1 min-w-0 text-[14.5px] font-semibold leading-tight truncate">
+                      {nombre}
+                    </span>
+                    {tieneAlternativas && (
+                      <span
+                        className={`mini shrink-0 pointer-events-none ${
+                          estaAbierto ? "!border-acento !text-acento" : ""
+                        }`}
+                      >
+                        <ArrowLeftRight
+                          size={13}
+                          className={`transition-transform duration-200 ${estaAbierto ? "rotate-90" : ""}`}
+                        />
+                      </span>
+                    )}
+                  </>
+                );
+
                 return (
-                  <div key={it.id} className="py-2 border-b border-borde last:border-0">
-                    <div className="flex items-center gap-2.5">
-                      <span className="shrink-0 min-w-[56px] text-center text-[12.5px] font-bold bg-campo border border-borde-2 rounded-lg py-1.5 px-1.5">
-                        {r(g)} g
-                      </span>
-                      <span className="flex-1 min-w-0 text-[14px] leading-tight">
-                        {it.alimentos!.nombre}
-                      </span>
-                      {alt.length > 0 && (
-                        <button
-                          className={`mini shrink-0 ${estaAbierto ? "!border-acento !text-acento" : ""}`}
-                          onClick={() => setAbierto(estaAbierto ? null : it.id)}
-                          title="Ver equivalencias con los mismos macros"
-                          aria-label={
-                            estaAbierto ? "Ocultar equivalencias" : "Ver equivalencias"
-                          }
-                        >
-                          <ArrowLeftRight
-                            size={13}
-                            className={`transition-transform duration-200 ${estaAbierto ? "rotate-90" : ""}`}
-                          />
-                        </button>
-                      )}
-                    </div>
-                    {alt.length > 0 && (
+                  <div key={it.id} className="border-b border-borde/50 last:border-0">
+                    {/* Toda la fila es el objetivo táctil cuando hay
+                     * equivalencias — antes solo el icono de 36px lo era,
+                     * mucho más fácil de fallar con el pulgar cansado. */}
+                    {tieneAlternativas ? (
+                      <button
+                        type="button"
+                        className="w-full flex items-center gap-2.5 py-2.5 -mx-1 px-1 rounded-[12px] text-left transition-colors hover:bg-campo/50 anim-pulsable"
+                        onClick={() => setAbierto(estaAbierto ? null : it.id)}
+                        aria-expanded={estaAbierto}
+                        aria-label={
+                          estaAbierto
+                            ? `Ocultar equivalencias de ${nombre}`
+                            : `Ver equivalencias de ${nombre}`
+                        }
+                      >
+                        {contenidoFila}
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-2.5 py-2.5">{contenidoFila}</div>
+                    )}
+
+                    {tieneAlternativas && (
                       <div className={`acordeon ${estaAbierto ? "acordeon-abierto" : ""}`}>
                         <div>
-                          <div className="mt-2 bg-campo border border-borde-2 rounded-[10px] p-2.5">
-                            <div className="text-atenuado text-[11.5px] mb-1.5 flex items-center gap-1">
-                              <ArrowLeftRight size={11} /> En su lugar puedes tomar (mismos
-                              macros):
+                          {/* Tarjeta secundaria: chips en vez de lista vertical
+                           * con bordes — se escanean de un vistazo en vez de
+                           * tener que leer fila a fila. */}
+                          <div className="mt-1 mb-2 rounded-[14px] p-3 bg-campo/60 border border-borde-2">
+                            <div className="text-atenuado text-[10.5px] font-semibold uppercase tracking-wide mb-2 flex items-center gap-1.5">
+                              <ArrowLeftRight size={11} /> Mismos macros, en su lugar
                             </div>
-                            {alt.map((a) => (
-                              <div
-                                key={a.nombre}
-                                className="flex justify-between gap-2 text-[13px] py-1 border-b border-borde last:border-0"
-                              >
-                                <span className="min-w-0">{a.nombre}</span>
-                                <span className="text-acento font-bold shrink-0">
-                                  {r(a.gramos * factor)} g
+                            <div className="flex flex-wrap gap-1.5">
+                              {alt.map((a) => (
+                                <span
+                                  key={a.nombre}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-fondo/50 border border-borde-2 px-3 py-1.5 text-[12.5px]"
+                                >
+                                  <span className="text-texto-2">{a.nombre}</span>
+                                  <span className="text-acento font-bold">
+                                    {r(a.gramos * factor)} g
+                                  </span>
                                 </span>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -169,18 +205,25 @@ export default function MiDietaComida({
               })}
             </div>
 
-            {/* Macros de la comida, con la misma leyenda de colores del objetivo */}
+            {/* Macros de la comida: tiles con tinte de color en vez de tres
+             * textos alineados con un punto — mismos colores que el resto
+             * de la app (objetivo diario, tarjeta de dieta en Inicio). */}
             {items.length > 0 && (
-              <div className="flex items-center justify-around px-4 py-2.5 border-t border-borde bg-campo/50 text-[12.5px]">
+              <div className="flex items-center gap-1.5 px-4 py-2.5 border-t border-borde/60">
                 {MACROS_LEYENDA.map((m, i) => (
-                  <span key={m.etiqueta} className="flex items-center gap-1.5">
-                    <span
-                      className="inline-block w-2 h-2 rounded-full"
-                      style={{ background: m.color }}
-                    />
-                    <span className="text-atenuado">{m.etiqueta}</span>
-                    <b>{r1(valores[i])} g</b>
-                  </span>
+                  <div
+                    key={m.etiqueta}
+                    className="flex-1 text-center rounded-[10px] py-1.5"
+                    style={{ background: `color-mix(in srgb, ${m.color} 10%, transparent)` }}
+                  >
+                    <div
+                      className="text-[9.5px] font-bold uppercase tracking-wide"
+                      style={{ color: m.color }}
+                    >
+                      {m.etiqueta}
+                    </div>
+                    <div className="text-[13px] font-bold mt-0.5">{r1(valores[i])} g</div>
+                  </div>
                 ))}
               </div>
             )}

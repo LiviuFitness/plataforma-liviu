@@ -160,8 +160,8 @@ export default function VistaDietas({
       ))}
 
       <p className="text-atenuado text-[12.5px]">
-        Toca ⇄ en un alimento para ver equivalencias con los mismos macros.
-        ¿Dudas? Escríbeselo a tu entrenador.
+        Toca un alimento con ⇄ para ver sus equivalencias con los mismos
+        macros. ¿Dudas? Escríbeselo a tu entrenador.
       </p>
     </>
   );
