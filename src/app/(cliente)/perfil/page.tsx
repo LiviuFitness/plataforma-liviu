@@ -13,7 +13,8 @@ export default async function PaginaPerfil() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const hace60dias = new Date(Date.now() - 60 * 86400000).toISOString();
+  const hace60dias = new Date();
+  hace60dias.setDate(hace60dias.getDate() - 60);
 
   const [
     { data: perfil },
@@ -36,7 +37,7 @@ export default async function PaginaPerfil() {
       .from("sesiones")
       .select("fecha_inicio")
       .eq("cliente_id", user.id)
-      .gte("fecha_inicio", hace60dias),
+      .gte("fecha_inicio", hace60dias.toISOString()),
     supabase.from("sesiones").select("id", { count: "exact", head: true }).eq("cliente_id", user.id),
     supabase
       .from("medidas")

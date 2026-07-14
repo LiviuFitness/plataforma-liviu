@@ -41,8 +41,10 @@ export default function HiloChat({
 
   // En cuanto llegan mensajes frescos del servidor, los optimistas ya
   // están confirmados (se insertan antes de llamar a refresh) — se limpian
-  // para no duplicar.
+  // para no duplicar. Sincroniza estado local con un prop que cambia por
+  // fuera (igual que el autoguardado de SesionEnCurso.tsx).
   useEffect(() => {
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
     setPendientes([]);
   }, [mensajesIniciales]);
 
