@@ -2,11 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Send } from "lucide-react";
+import { MessageCircle, Send } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import EstadoVacio from "@/componentes/EstadoVacio";
 import type { Mensaje } from "@/lib/tipos";
 
 const INTERVALO_SONDEO_MS = 8000;
+/** Mensajes consecutivos del mismo remitente en menos de esto se agrupan
+ * visualmente (menos separación), como en iMessage/WhatsApp. */
+const VENTANA_AGRUPADO_MS = 2 * 60 * 1000;
 
 /** Hilo de chat entrenador-cliente. Un mismo componente para las dos
  * vistas: cambia qué mensajes se pintan a la derecha (`remitentePropio`).
@@ -30,11 +34,23 @@ export default function HiloChat({
   const router = useRouter();
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
+  // Mensajes propios optimistas: aparecen al instante al enviar, antes de
+  // que vuelva la confirmación del servidor (sondeo de 8s o refresh manual).
+  const [pendientes, setPendientes] = useState<Mensaje[]>([]);
   const finRef = useRef<HTMLDivElement>(null);
+
+  // En cuanto llegan mensajes frescos del servidor, los optimistas ya
+  // están confirmados (se insertan antes de llamar a refresh) — se limpian
+  // para no duplicar.
+  useEffect(() => {
+    setPendientes([]);
+  }, [mensajesIniciales]);
+
+  const mensajes = [...mensajesIniciales, ...pendientes];
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ block: "end" });
-  }, [mensajesIniciales.length]);
+  }, [mensajes.length]);
 
   useEffect(() => {
     const intervalo = setInterval(() => router.refresh(), INTERVALO_SONDEO_MS);
@@ -52,6 +68,14 @@ export default function HiloChat({
   async function enviar() {
     const valor = texto.trim();
     if (!valor) return;
+    const temporal: Mensaje = {
+      id: `tmp-${Date.now()}`,
+      cliente_id: clienteId,
+      remitente: remitentePropio,
+      texto: valor,
+      creado_en: new Date().toISOString(),
+    };
+    setPendientes((prev) => [...prev, temporal]);
     setEnviando(true);
     setTexto("");
     const supabase = crearClienteNavegador();
@@ -60,6 +84,7 @@ export default function HiloChat({
       .insert({ cliente_id: clienteId, remitente: remitentePropio, texto: valor });
     setEnviando(false);
     if (error) {
+      setPendientes((prev) => prev.filter((m) => m.id !== temporal.id));
       setTexto(valor);
       return;
     }
@@ -70,18 +95,31 @@ export default function HiloChat({
     <>
       {/* Espacio para que el último mensaje no quede tapado por la
        * barra de escritura fija */}
-      <div className="flex flex-col gap-2 pb-20">
-        {mensajesIniciales.length === 0 && (
-          <div className="text-atenuado text-[13.5px] text-center py-8">
-            Todavía no hay mensajes con {nombreOtro}. Escribe el primero.
-          </div>
+      <div className="flex flex-col pb-20">
+        {mensajes.length === 0 && (
+          <EstadoVacio
+            Icono={MessageCircle}
+            color="var(--color-acento)"
+            titulo={`Escríbele a ${nombreOtro}`}
+            descripcion={`Aquí puedes escribir a ${nombreOtro} cuando quieras — dudas sobre tu rutina, tu dieta o cómo te sientes.`}
+          />
         )}
-        {mensajesIniciales.map((m) => {
+        {mensajes.map((m, i) => {
           const esPropio = m.remitente === remitentePropio;
+          const anterior = mensajes[i - 1];
+          const agrupado =
+            !!anterior &&
+            anterior.remitente === m.remitente &&
+            new Date(m.creado_en).getTime() - new Date(anterior.creado_en).getTime() <
+              VENTANA_AGRUPADO_MS;
+          const esOptimista = m.id.startsWith("tmp-");
+          const esUltimo = i === mensajes.length - 1;
           return (
             <div
               key={m.id}
-              className={`max-w-[80%] rounded-[14px] px-3.5 py-2 text-[14px] whitespace-pre-line ${
+              className={`max-w-[80%] rounded-[16px] px-3.5 py-2 text-[14px] whitespace-pre-line ${
+                agrupado ? "mt-1" : "mt-3"
+              } ${esUltimo ? "anim-aparecer" : ""} ${esOptimista ? "opacity-60" : ""} ${
                 esPropio
                   ? "self-end bg-acento text-fondo"
                   : "self-start bg-campo border border-borde-2 text-texto-2"
@@ -110,7 +148,7 @@ export default function HiloChat({
       >
         <div className="flex gap-2 items-end bg-fondo/95 backdrop-blur-md pt-2">
           <textarea
-            className="w-full bg-campo border border-borde-2 rounded-[10px] text-white p-2.5 px-3 text-[14px] resize-none font-cuerpo"
+            className="w-full bg-campo border border-borde-2 rounded-2xl text-white p-2.5 px-3.5 text-[14px] resize-none font-cuerpo transition-colors focus:outline-none focus:border-acento"
             rows={1}
             placeholder="Escribe un mensaje…"
             value={texto}
@@ -123,7 +161,7 @@ export default function HiloChat({
             }}
           />
           <button
-            className="cta cta-mini !mb-0 !w-11 !px-0 flex items-center justify-center shrink-0"
+            className="cta cta-mini anim-pulsable !mb-0 !w-11 !px-0 flex items-center justify-center shrink-0"
             onClick={enviar}
             disabled={enviando || texto.trim() === ""}
             aria-label="Enviar mensaje"
