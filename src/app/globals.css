@@ -498,6 +498,38 @@ body {
     box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-dorado) 35%, transparent);
   }
 }
+@keyframes fondo-aparece {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fondo-desaparece {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@keyframes hoja-sube {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes hoja-baja {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(100%);
+  }
+}
 
 @layer components {
   .anim-pop {
@@ -514,6 +546,20 @@ body {
   }
   .anim-destello {
     animation: destello 0.5s ease;
+  }
+  /* Bottom sheet: fondo con fade, hoja con la curva de easing típica de
+     las hojas de iOS (arranca rápido, frena con suavidad al asentar). */
+  .anim-fondo-aparece {
+    animation: fondo-aparece 0.2s ease both;
+  }
+  .anim-fondo-desaparece {
+    animation: fondo-desaparece 0.2s ease both;
+  }
+  .anim-hoja-sube {
+    animation: hoja-sube 0.3s cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+  .anim-hoja-baja {
+    animation: hoja-baja 0.22s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
   /* Entrada en cascada de las tarjetas de Inicio */
   .anim-entrada-1 {
