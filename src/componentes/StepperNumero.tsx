@@ -28,9 +28,10 @@ function formatear(n: number): string {
 }
 
 /**
- * Control de +/- para un número simple (kg, reps): pensado para
- * ajustarse sin abrir el teclado del sistema, con los dedos sudados y
- * una sola mano libre. Tocar el número en sí abre edición de texto para
+ * Control de +/- para un número simple (kg, reps). Vive dentro de un
+ * bottom sheet dedicado (no en la fila de la serie: ahí solo hay texto
+ * plano tocable) — así puede ser grande y satisfactorio sin pelear por
+ * espacio horizontal. Tocar el número en sí abre edición de texto para
  * cuando hace falta precisión decimal exacta.
  */
 export default function StepperNumero({
@@ -40,7 +41,6 @@ export default function StepperNumero({
   paso,
   disabled,
   etiqueta,
-  grande,
 }: {
   valor: string;
   placeholder: string;
@@ -49,8 +49,6 @@ export default function StepperNumero({
   disabled?: boolean;
   /** aria-label del campo (ej. "Peso en kg") */
   etiqueta: string;
-  /** El peso es el protagonista de la fila activa: número más grande. */
-  grande?: boolean;
 }) {
   const [editando, setEditando] = useState(false);
 
@@ -62,7 +60,7 @@ export default function StepperNumero({
   if (editando) {
     return (
       <input
-        className="campo-serie placeholder:text-atenuado/45"
+        className="campo-serie !text-[28px] !py-4 placeholder:text-atenuado/45"
         placeholder={placeholder || "—"}
         inputMode="decimal"
         autoFocus
@@ -79,19 +77,19 @@ export default function StepperNumero({
   }
 
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-3">
       <button
         type="button"
-        className="stepper-boton"
+        className="stepper-boton-grande"
         onClick={() => incrementar(-paso)}
         disabled={disabled}
         aria-label={`Restar ${paso} a ${etiqueta.toLowerCase()}`}
       >
-        <Minus size={15} strokeWidth={2.75} />
+        <Minus size={20} strokeWidth={2.75} />
       </button>
       <button
         type="button"
-        className={`stepper-numero ${grande ? "stepper-numero-grande" : ""}`}
+        className="stepper-numero-grande"
         onClick={() => setEditando(true)}
         disabled={disabled}
         aria-label={`${etiqueta}: ${valor || placeholder || "sin valor"}. Toca para escribir un número exacto.`}
@@ -102,12 +100,12 @@ export default function StepperNumero({
       </button>
       <button
         type="button"
-        className="stepper-boton"
+        className="stepper-boton-grande"
         onClick={() => incrementar(paso)}
         disabled={disabled}
         aria-label={`Sumar ${paso} a ${etiqueta.toLowerCase()}`}
       >
-        <Plus size={15} strokeWidth={2.75} />
+        <Plus size={20} strokeWidth={2.75} />
       </button>
     </div>
   );

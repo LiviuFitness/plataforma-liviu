@@ -207,11 +207,42 @@ body {
   .stepper-numero:active {
     background: var(--color-campo);
   }
-  /* El peso es el protagonista de la fila activa — número más grande
-     que reps/RIR, sin tocar el tamaño de los botones +/- (para que
-     kg y reps sigan alineando su columna de botones). */
+  /* Variante grande: solo vive dentro del sheet de edición de peso/reps
+     (la fila de la serie no lleva steppers, solo texto plano tocable),
+     así que puede ser espaciosa y satisfactoria sin pelear por ancho. */
+  .stepper-boton-grande {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    border: 1px solid var(--color-borde-2);
+    background: var(--color-campo);
+    color: var(--color-texto-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.1s ease, border-color 0.15s ease;
+  }
+  .stepper-boton-grande:active:not(:disabled) {
+    transform: scale(0.9);
+    border-color: var(--color-acento);
+  }
+  .stepper-boton-grande:disabled {
+    opacity: 0.4;
+  }
   .stepper-numero-grande {
-    font-size: 21px;
+    flex: 1;
+    min-width: 90px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    font-weight: 800;
+    font-size: 32px;
+    padding: 6px 4px;
+    border-radius: 10px;
+    transition: background-color 0.15s ease;
+  }
+  .stepper-numero-grande:active {
+    background: var(--color-campo);
   }
 
   /* Fila de serie (sesión de entreno): transición suave al completarla */
