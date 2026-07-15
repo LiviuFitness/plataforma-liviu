@@ -207,6 +207,12 @@ body {
   .stepper-numero:active {
     background: var(--color-campo);
   }
+  /* El peso es el protagonista de la fila activa — número más grande
+     que reps/RIR, sin tocar el tamaño de los botones +/- (para que
+     kg y reps sigan alineando su columna de botones). */
+  .stepper-numero-grande {
+    font-size: 21px;
+  }
 
   /* Fila de serie (sesión de entreno): transición suave al completarla */
   .fila-serie {

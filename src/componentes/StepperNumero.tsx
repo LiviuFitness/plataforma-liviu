@@ -40,6 +40,7 @@ export default function StepperNumero({
   paso,
   disabled,
   etiqueta,
+  grande,
 }: {
   valor: string;
   placeholder: string;
@@ -48,6 +49,8 @@ export default function StepperNumero({
   disabled?: boolean;
   /** aria-label del campo (ej. "Peso en kg") */
   etiqueta: string;
+  /** El peso es el protagonista de la fila activa: número más grande. */
+  grande?: boolean;
 }) {
   const [editando, setEditando] = useState(false);
 
@@ -88,7 +91,7 @@ export default function StepperNumero({
       </button>
       <button
         type="button"
-        className="stepper-numero"
+        className={`stepper-numero ${grande ? "stepper-numero-grande" : ""}`}
         onClick={() => setEditando(true)}
         disabled={disabled}
         aria-label={`${etiqueta}: ${valor || placeholder || "sin valor"}. Toca para escribir un número exacto.`}

@@ -112,6 +112,189 @@ const ESTADO_PREVIO = [
 ];
 
 /**
+ * Una serie, en dos modos:
+ *
+ * - Compacta (por defecto): una sola línea de solo lectura — el peso
+ *   manda, todo lo demás es secundario. Tocar la fila la promociona a
+ *   activa; el check funciona siempre, sin promocionar antes.
+ * - Activa (la próxima serie pendiente, o la que el cliente ha tocado
+ *   para corregirla): la única con controles completos — es la única
+ *   que hace falta editar en cada momento, así que es la única que
+ *   paga el coste visual de los steppers.
+ *
+ * Así todas las series de un ejercicio forman una rejilla compacta y
+ * homogénea, y el ojo encuentra sin esfuerzo cuál toca ahora.
+ */
+function FilaSerie({
+  serie,
+  activa,
+  onPromocionar,
+  onCompletar,
+  onCambiarKg,
+  onCambiarReps,
+  onCambiarRir,
+}: {
+  serie: SerieSesion;
+  activa: boolean;
+  onPromocionar: () => void;
+  onCompletar: () => void;
+  onCambiarKg: (v: string) => void;
+  onCambiarReps: (v: string) => void;
+  onCambiarRir: (v: string) => void;
+}) {
+  const [editandoRir, setEditandoRir] = useState(false);
+  const info = INFO_TIPO_SERIE[serie.tipo];
+  const referenciaRir = (serie.rir || serie.rirPrescrito).trim();
+  const hayRir = referenciaRir !== "";
+  const esTecnica = hayRir && !/^\d+$/.test(referenciaRir);
+  // "Efectiva" es la inmensa mayoría de las series — su barra de color
+  // se atenúa mucho para no competir con nada; calentamiento/dropset/
+  // fallo son la excepción y sí necesitan destacar.
+  const colorBarra = serie.tipo === "efectiva" ? `${info.color}30` : info.color;
+
+  if (!activa) {
+    const kgMostrado = serie.kg || serie.kgPrescrito;
+    const repsMostrado = serie.reps || serie.repsPrescrito;
+    return (
+      <div
+        className="fila-serie flex items-center gap-1 rounded-[10px] border-l-[3px]"
+        style={{ borderLeftColor: colorBarra }}
+      >
+        <button
+          type="button"
+          className="flex-1 flex items-baseline gap-1.5 py-1.5 pl-2 text-left anim-pulsable min-w-0"
+          onClick={onPromocionar}
+          aria-label="Editar esta serie"
+        >
+          <span
+            className={`text-[14.5px] font-bold tabular-nums shrink-0 ${
+              serie.completada ? "text-texto-2" : ""
+            }`}
+          >
+            {kgMostrado || "—"}
+          </span>
+          <span className="text-atenuado text-[11px] shrink-0">kg ×</span>
+          <span className="text-[13.5px] font-semibold tabular-nums shrink-0">
+            {repsMostrado || "—"}
+          </span>
+          {hayRir && (
+            <span
+              className={`shrink-0 max-w-[90px] rounded-md px-1.5 py-0.5 text-[10px] font-bold truncate ${
+                esTecnica ? "text-acento bg-acento/10" : "text-atenuado bg-campo"
+              }`}
+            >
+              {esTecnica ? referenciaRir : `RIR ${referenciaRir}`}
+            </span>
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={onCompletar}
+          aria-label={serie.completada ? "Desmarcar serie" : "Serie hecha"}
+          className={`w-8 h-8 shrink-0 mr-1 rounded-[9px] border flex items-center justify-center transition-colors anim-pulsable ${
+            serie.completada
+              ? "bg-acento text-fondo border-acento"
+              : "bg-campo text-atenuado border-borde-2"
+          }`}
+        >
+          <Check size={14} strokeWidth={3} />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="fila-serie flex items-center gap-2 rounded-[12px] py-2 pl-2.5 pr-2 border-l-[3px] bg-acento/10 ring-1 ring-acento/40"
+      style={{ borderLeftColor: colorBarra }}
+    >
+      <div className="flex-1 flex items-center gap-1.5 min-w-0">
+        <div className="flex-1 min-w-0">
+          {esSteppeable(serie.kgPrescrito) ? (
+            <StepperNumero
+              valor={serie.kg}
+              placeholder={serie.kgPrescrito}
+              onChange={onCambiarKg}
+              paso={2.5}
+              etiqueta="Peso en kilos"
+              grande
+            />
+          ) : (
+            <input
+              className="campo-serie placeholder:text-atenuado/45"
+              placeholder={serie.kgPrescrito || "kg"}
+              inputMode="decimal"
+              value={serie.kg}
+              onChange={(e) => onCambiarKg(e.target.value)}
+              aria-label="Carga"
+            />
+          )}
+        </div>
+        <span className="text-atenuado text-[13px] shrink-0">×</span>
+        <div className="flex-1 min-w-0">
+          {esSteppeable(serie.repsPrescrito) ? (
+            <StepperNumero
+              valor={serie.reps}
+              placeholder={serie.repsPrescrito}
+              onChange={onCambiarReps}
+              paso={1}
+              etiqueta="Repeticiones"
+            />
+          ) : (
+            <input
+              className="campo-serie placeholder:text-atenuado/45"
+              placeholder={serie.repsPrescrito || "reps"}
+              value={serie.reps}
+              onChange={(e) => onCambiarReps(e.target.value)}
+              aria-label="Repeticiones (admite 8+3)"
+            />
+          )}
+        </div>
+      </div>
+      {hayRir &&
+        (editandoRir ? (
+          <input
+            className="campo-serie !w-[62px] !py-1.5 !text-[12px] placeholder:text-atenuado/45 shrink-0"
+            autoFocus
+            value={serie.rir}
+            placeholder={serie.rirPrescrito}
+            onChange={(e) => onCambiarRir(e.target.value)}
+            onBlur={() => setEditandoRir(false)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+            }}
+            aria-label={esTecnica ? "Técnica" : "RIR"}
+          />
+        ) : (
+          <button
+            type="button"
+            onClick={() => setEditandoRir(true)}
+            className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] font-bold anim-pulsable max-w-[76px] truncate ${
+              esTecnica
+                ? "text-acento bg-acento/15"
+                : "text-atenuado bg-campo border border-borde-2"
+            }`}
+          >
+            {esTecnica ? referenciaRir : `RIR ${referenciaRir}`}
+          </button>
+        ))}
+      <button
+        type="button"
+        onClick={onCompletar}
+        aria-label={serie.completada ? "Desmarcar serie" : "Serie hecha"}
+        className={`w-12 h-12 shrink-0 rounded-[12px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
+          serie.completada
+            ? "bg-acento text-fondo border-acento anim-pop"
+            : "bg-campo text-acento border-acento/40"
+        }`}
+      >
+        <Check size={20} strokeWidth={3} />
+      </button>
+    </div>
+  );
+}
+
+/**
  * Sesión en curso (concepto clave: prescrito vs. realizado).
  * Las series vienen precargadas con lo prescrito: solo hay que
  * confirmar con ✓ o ajustar kg/reps con los steppers (sin teclado en el
@@ -155,6 +338,7 @@ export default function SesionEnCurso({
   const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
   const [videoAbierto, setVideoAbierto] = useState<number | null>(null);
   const [expandidoManual, setExpandidoManual] = useState<Record<string, boolean>>({});
+  const [activaManual, setActivaManual] = useState<Record<string, number>>({});
   const [prToast, setPrToast] = useState<{ nombre: string; kg: number } | null>(null);
   const avisado = useRef(false);
   const hidratado = useRef(false);
@@ -271,6 +455,20 @@ export default function SesionEnCurso({
     );
   }
 
+  /** La serie "activa" (única con controles completos) es la primera
+   * pendiente, salvo que el cliente haya tocado otra fila a propósito
+   * para corregirla. */
+  function indiceActivo(ex: EjercicioSesion): number | null {
+    const manual = activaManual[ex.rutinaEjercicioId];
+    if (manual !== undefined && manual < ex.series.length) return manual;
+    const primeraIncompleta = ex.series.findIndex((s) => !s.completada);
+    return primeraIncompleta === -1 ? null : primeraIncompleta;
+  }
+
+  function promocionarSerie(exId: string, si: number) {
+    setActivaManual((prev) => ({ ...prev, [exId]: si }));
+  }
+
   function ajustarDescanso(deltaSeg: number) {
     setDescanso((d) => {
       if (!d) return d;
@@ -307,6 +505,16 @@ export default function SesionEnCurso({
           pitarRecord();
         }
       }
+      // Al completarla, si era la serie promocionada a mano, se limpia
+      // la promoción — el foco vuelve a caer solo en la siguiente
+      // pendiente (o en ninguna, si ya no queda ninguna).
+      setActivaManual((prev) => {
+        const exId = ejercicio.rutinaEjercicioId;
+        if (prev[exId] !== si) return prev;
+        const copia = { ...prev };
+        delete copia[exId];
+        return copia;
+      });
     }
 
     if (ahoraCompletada && esUltimoDeSuperserie(ei)) {
@@ -667,7 +875,7 @@ export default function SesionEnCurso({
             }}
             className={`tarjeta ${
               esSuperserie
-                ? "!p-0 overflow-hidden !border-acento/50"
+                ? "!p-0 overflow-hidden !border-acento/50 !border-l-[3px]"
                 : grupoCompleto
                   ? "!border-acento/40"
                   : ""
@@ -826,123 +1034,30 @@ export default function SesionEnCurso({
                     </details>
                   )}
 
-                  {/* Se repetía en cada ejercicio sin aportar nada nuevo tras el
-                   * primero — se explica una vez y se confía en que el patrón
-                   * (chip, número grande, número grande, check) ya se entiende. */}
-                  {gi === 0 && posicion === 0 && (
-                    <div className="flex items-center gap-2 text-[10px] tracking-wider uppercase text-atenuado pb-1.5 pt-0.5">
-                      <span className="w-[46px] shrink-0">Serie</span>
-                      <span className="flex-1 text-center">Kg</span>
-                      <span className="flex-1 text-center">Reps</span>
-                      <span className="w-12 shrink-0" />
-                    </div>
-                  )}
-                  {ex.series.map((s, si) => {
-                    const referenciaRir = (s.rir || s.rirPrescrito).trim();
-                    const esTecnica = referenciaRir !== "" && !/^\d+$/.test(referenciaRir);
-                    const mostrarRir = s.rirPrescrito.trim() !== "" || s.rir.trim() !== "";
-                    return (
-                      <div key={si} className="mb-1.5">
-                        <div
-                          className={`fila-serie flex items-center gap-2 py-2 px-2 -mx-2 rounded-[12px] border-l-[3px] ${
-                            s.completada ? "bg-acento/15 border-acento" : "border-transparent"
-                          }`}
-                        >
-                          <span
-                            className="w-[46px] shrink-0 text-[10.5px] font-bold text-center py-2 rounded-lg bg-campo border"
-                            style={{
-                              color: INFO_TIPO_SERIE[s.tipo].color,
-                              borderColor: INFO_TIPO_SERIE[s.tipo].color + "44",
-                            }}
-                          >
-                            {INFO_TIPO_SERIE[s.tipo].etiqueta}
-                          </span>
-                          <div className="flex-1">
-                            {/* La decisión de qué componente mostrar se basa en lo
-                             * PRESCRITO (estable), nunca en el valor que se está
-                             * escribiendo — si mirara el valor en vivo, un estado
-                             * intermedio como "92." (antes de completar "92.5")
-                             * dejaría de encajar con el patrón numérico a mitad
-                             * de tecleo y el campo perdería el foco. */}
-                            {esSteppeable(s.kgPrescrito) ? (
-                              <StepperNumero
-                                valor={s.kg}
-                                placeholder={s.kgPrescrito}
-                                onChange={(v) => parchearSerie(ei, si, { kg: v })}
-                                paso={2.5}
-                                etiqueta="Peso en kilos"
-                              />
-                            ) : (
-                              <input
-                                className="campo-serie placeholder:text-atenuado/45"
-                                placeholder={s.kgPrescrito || "kg"}
-                                inputMode="decimal"
-                                value={s.kg}
-                                onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
-                                aria-label="Carga"
-                              />
-                            )}
-                          </div>
-                          <div className="flex-1">
-                            {esSteppeable(s.repsPrescrito) ? (
-                              <StepperNumero
-                                valor={s.reps}
-                                placeholder={s.repsPrescrito}
-                                onChange={(v) => parchearSerie(ei, si, { reps: v })}
-                                paso={1}
-                                etiqueta="Repeticiones"
-                              />
-                            ) : (
-                              <input
-                                className="campo-serie placeholder:text-atenuado/45"
-                                placeholder={s.repsPrescrito || "reps"}
-                                value={s.reps}
-                                onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
-                                aria-label="Repeticiones (admite 8+3)"
-                              />
-                            )}
-                          </div>
-                          <button
-                            onClick={() => alternarCompletada(ei, si)}
-                            aria-label={s.completada ? "Desmarcar serie" : "Serie hecha"}
-                            className={`w-12 h-12 shrink-0 rounded-[12px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
-                              s.completada
-                                ? "bg-acento text-fondo border-acento anim-pop"
-                                : "bg-campo text-acento border-acento/40"
-                            }`}
-                          >
-                            <Check size={20} strokeWidth={3} />
-                          </button>
-                        </div>
-                        {/* RIR/técnica: solo ocupa espacio cuando el entrenador
-                         * la prescribió o el cliente ya escribió algo — la
-                         * mayoría de calentamientos no la usan. Se autoetiqueta
-                         * (RIR o Técnica) en vez de depender solo del color. */}
-                        {mostrarRir && (
-                          <div className="flex items-center gap-1.5 ml-[54px] mt-1">
-                            <span className="text-atenuado text-[9.5px] font-semibold uppercase tracking-wide shrink-0">
-                              {esTecnica ? "Técnica" : "RIR"}
-                            </span>
-                            <input
-                              className={`campo-serie !w-[76px] !py-1 !text-[12.5px] placeholder:text-atenuado/45 ${
-                                esTecnica ? "!text-acento" : ""
-                              }`}
-                              placeholder={s.rirPrescrito || "—"}
-                              value={s.rir}
-                              onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
-                              aria-label={esTecnica ? "Técnica" : "RIR"}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                  {/* Solo la serie activa (la próxima pendiente, o la que se
+                   * haya tocado a mano) lleva controles completos; el resto
+                   * son una línea compacta de solo lectura — la rejilla
+                   * entera se lee de un vistazo sin mover apenas los ojos. */}
+                  <div className="flex flex-col gap-1">
+                    {ex.series.map((s, si) => (
+                      <FilaSerie
+                        key={si}
+                        serie={s}
+                        activa={indiceActivo(ex) === si}
+                        onPromocionar={() => promocionarSerie(ex.rutinaEjercicioId, si)}
+                        onCompletar={() => alternarCompletada(ei, si)}
+                        onCambiarKg={(v) => parchearSerie(ei, si, { kg: v })}
+                        onCambiarReps={(v) => parchearSerie(ei, si, { reps: v })}
+                        onCambiarRir={(v) => parchearSerie(ei, si, { rir: v })}
+                      />
+                    ))}
+                  </div>
                   <button
                     type="button"
-                    className="w-full text-left text-atenuado hover:text-acento transition-colors text-[13px] py-2 flex items-center gap-1.5 anim-pulsable"
+                    className="w-full text-left text-atenuado hover:text-acento transition-colors text-[12.5px] py-1.5 mt-1 flex items-center gap-1.5 anim-pulsable"
                     onClick={() => agregarSerie(ei)}
                   >
-                    <Plus size={14} /> Añadir serie
+                    <Plus size={13} /> Añadir serie
                   </button>
                 </div>
               );
