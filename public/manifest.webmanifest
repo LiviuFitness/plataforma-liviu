@@ -35,5 +35,25 @@
       "type": "image/svg+xml",
       "purpose": "any"
     }
+  ],
+  "shortcuts": [
+    {
+      "name": "Empezar entreno",
+      "short_name": "Entreno",
+      "url": "/inicio",
+      "icons": [{ "src": "/icono-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mi progreso",
+      "short_name": "Progreso",
+      "url": "/mi-progreso",
+      "icons": [{ "src": "/icono-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Chat con tu entrenador",
+      "short_name": "Chat",
+      "url": "/chat",
+      "icons": [{ "src": "/icono-192.png", "sizes": "192x192" }]
+    }
   ]
 }

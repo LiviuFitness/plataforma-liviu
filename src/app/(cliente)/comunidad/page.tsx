@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Trophy, Users } from "lucide-react";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { CATALOGO_LOGROS } from "@/lib/logros";
 import { AnilloAdherencia } from "@/componentes/ui";
+import EstadoVacio from "@/componentes/EstadoVacio";
+import GridLogros from "@/componentes/GridLogros";
 
 export const dynamic = "force-dynamic";
 
@@ -47,26 +50,7 @@ export default async function PaginaComunidad() {
         </div>
       )}
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">TUS LOGROS — {misClaves.size} de {CATALOGO_LOGROS.length}</div>
-        <div className="grid grid-cols-3 gap-2.5">
-          {CATALOGO_LOGROS.map((l) => {
-            const conseguido = misClaves.has(l.clave);
-            return (
-              <div
-                key={l.clave}
-                className={`flex flex-col items-center text-center gap-1.5 p-2.5 rounded-[12px] border ${
-                  conseguido ? "border-acento/40 bg-acento/10" : "border-borde-2 opacity-50"
-                }`}
-                title={l.descripcion}
-              >
-                <l.Icono size={22} className={conseguido ? "text-acento" : "text-atenuado"} />
-                <span className="text-[11.5px] font-semibold leading-tight">{l.etiqueta}</span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
+      <GridLogros desbloqueados={[...misClaves]} />
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">RANKING DE CONSTANCIA — 4 semanas</div>
@@ -74,7 +58,9 @@ export default async function PaginaComunidad() {
           <div className="flex flex-col gap-2.5">
             {ranking.map((r, i) => (
               <div key={r.cliente_id} className="flex items-center gap-3">
-                <span className="text-atenuado text-[13px] w-4 shrink-0">{i + 1}</span>
+                <span className="text-atenuado text-[13px] w-4 shrink-0 tabular-nums">
+                  {i + 1}
+                </span>
                 <span className="flex-1 text-[14px] font-semibold truncate">
                   {r.cliente_id === user.id ? "Tú" : r.nombre}
                 </span>
@@ -83,7 +69,11 @@ export default async function PaginaComunidad() {
             ))}
           </div>
         ) : (
-          <div className="text-atenuado text-[13.5px]">Todavía no hay datos suficientes.</div>
+          <EstadoVacio
+            Icono={Users}
+            titulo="Todavía no hay datos suficientes"
+            descripcion="En cuanto varios clientes lleven unas semanas registrando entrenos, aquí aparecerá el ranking de constancia."
+          />
         )}
       </section>
 
@@ -98,7 +88,9 @@ export default async function PaginaComunidad() {
                   key={f.id}
                   className="flex items-center gap-2.5 py-2 border-b border-borde last:border-0"
                 >
-                  {info && <info.Icono size={17} className="text-acento shrink-0" />}
+                  {info && (
+                    <info.Icono size={17} strokeWidth={1.75} className="text-dorado shrink-0" />
+                  )}
                   <div className="flex-1 min-w-0 text-[13.5px]">
                     <b>{f.nombre}</b> consiguió: {info?.etiqueta ?? f.clave}
                   </div>
@@ -110,9 +102,12 @@ export default async function PaginaComunidad() {
             })}
           </div>
         ) : (
-          <div className="text-atenuado text-[13.5px]">
-            Todavía no hay logros compartidos en la comunidad.
-          </div>
+          <EstadoVacio
+            Icono={Trophy}
+            color="var(--color-dorado)"
+            titulo="Todavía no hay logros compartidos"
+            descripcion="Cuando algún cliente de la comunidad desbloquee un logro, aparecerá aquí."
+          />
         )}
       </section>
     </>

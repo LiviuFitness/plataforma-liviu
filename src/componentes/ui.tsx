@@ -91,7 +91,7 @@ export function AnilloAdherencia({
           fill: "#fff",
           fontSize: 11,
           fontWeight: 700,
-          fontFamily: "Barlow, sans-serif",
+          fontFamily: "var(--font-display)",
         }}
       >
         {valor}

@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { Logo } from "@/componentes/ui";
+import { IconoTarjeta, Logo } from "@/componentes/ui";
 
 type Sexo = "hombre" | "mujer" | "otro";
 
@@ -25,24 +25,30 @@ const PASOS = [
   "tour-chat",
 ] as const;
 
-const TOUR: Record<string, { Icono: LucideIcon; titulo: string; texto: string }> = {
+// Mismo color por dominio que el resto de la app (Inicio, Mi Progreso…):
+// entreno = acento, dieta = verde, progreso/racha = dorado.
+const TOUR: Record<string, { Icono: LucideIcon; color: string; titulo: string; texto: string }> = {
   "tour-rutina": {
     Icono: Dumbbell,
+    color: "var(--color-acento)",
     titulo: "Tu rutina",
     texto: "Tu entrenador te asigna la rutina semana a semana. En Inicio siempre verás tu próximo entreno listo para empezar.",
   },
   "tour-dieta": {
     Icono: UtensilsCrossed,
+    color: "var(--color-verde)",
     titulo: "Tu dieta",
     texto: "Comidas con gramos exactos de cada alimento, con equivalencias intercambiables y un plan distinto para tus días de entreno y de descanso.",
   },
   "tour-progreso": {
     Icono: Flame,
+    color: "var(--color-dorado)",
     titulo: "Progreso y hábitos",
     texto: "Registra tu peso y mira tu evolución, y marca a diario tus hábitos (pasos, agua, sueño…) desde la tarjeta de Inicio.",
   },
   "tour-chat": {
     Icono: MessageCircle,
+    color: "var(--color-acento)",
     titulo: "Habla con tu entrenador",
     texto: "Desde la pestaña Chat puedes escribirle directamente cuando lo necesites: dudas, molestias o lo que quieras contarle.",
   },
@@ -105,11 +111,22 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
 
   return (
     <div className="max-w-[480px] w-full mx-auto px-[18px] py-8 min-h-screen flex flex-col">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex justify-between items-center mb-4">
         <Logo tamano={30} />
-        <span className="text-atenuado text-[12.5px]">
-          Paso {paso + 1} de {PASOS.length}
+        <span className="text-atenuado text-[12.5px] tabular-nums">
+          {paso + 1}/{PASOS.length}
         </span>
+      </div>
+      <div className="barra-capsula mb-8">
+        <div
+          className="barra-capsula-relleno"
+          style={
+            {
+              "--tc": "var(--color-acento)",
+              width: `${((paso + 1) / PASOS.length) * 100}%`,
+            } as React.CSSProperties
+          }
+        />
       </div>
 
       <div className="flex-1">
@@ -130,7 +147,7 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
               ).map(([valor, etiqueta]) => (
                 <button
                   key={valor}
-                  className={`text-left px-4 py-4 rounded-[12px] border font-semibold text-[15px] cursor-pointer ${
+                  className={`text-left px-4 py-4 rounded-[12px] border font-semibold text-[15px] cursor-pointer anim-pulsable transition-colors ${
                     sexo === valor
                       ? "border-acento bg-acento/10 text-acento"
                       : "border-borde-2 bg-panel text-white"
@@ -199,13 +216,13 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
         )}
 
         {clave in TOUR && (
-          <div className="flex flex-col items-center text-center pt-10">
+          <div className="flex flex-col items-center text-center pt-10 anim-aparecer">
             {(() => {
-              const { Icono, titulo, texto } = TOUR[clave];
+              const { Icono, color, titulo, texto } = TOUR[clave];
               return (
                 <>
-                  <div className="w-16 h-16 rounded-full bg-acento/10 flex items-center justify-center mb-5">
-                    <Icono size={30} className="text-acento" />
+                  <div className="mb-5">
+                    <IconoTarjeta Icono={Icono} color={color} tamano={64} />
                   </div>
                   <h2 className="h1 !text-[22px] mb-2.5">{titulo}</h2>
                   <p className="text-atenuado text-[14.5px] leading-relaxed max-w-[320px]">
