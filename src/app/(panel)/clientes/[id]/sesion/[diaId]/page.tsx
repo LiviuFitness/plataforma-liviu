@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { componerCarga, componerReps, componerRir } from "@/lib/rutinas";
-import SesionEnCurso, { type EjercicioSesion } from "@/componentes/SesionEnCurso";
+import SesionEnCurso, {
+  type EjercicioSesion,
+  type SesionAnterior,
+} from "@/componentes/SesionEnCurso";
 import type { TipoSerie } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +49,8 @@ interface FilaSerieRealizada {
 
 interface FilaSesionPrevia {
   fecha_inicio: string;
+  fecha_fin: string | null;
+  rutina_dias: { nombre: string; rutina_id: string } | null;
   series_realizadas: FilaSerieRealizada[];
 }
 
@@ -65,7 +70,7 @@ export default async function PaginaSesionPresencial({
     supabase
       .from("rutina_dias")
       .select(
-        `id, nombre,
+        `id, nombre, rutina_id,
          rutina_ejercicios (
            id, orden, descanso_seg, notas, ejercicio_id, grupo_superserie,
            ejercicios ( nombre, grupo_muscular, instrucciones, video_url ),
@@ -77,7 +82,7 @@ export default async function PaginaSesionPresencial({
     supabase
       .from("sesiones")
       .select(
-        `fecha_inicio,
+        `fecha_inicio, fecha_fin, rutina_dias ( nombre, rutina_id ),
          series_realizadas ( orden, kg, carga_texto, reps, reps_extra, completada, tipo,
            rutina_ejercicios ( ejercicio_id ) )`
       )
@@ -127,6 +132,41 @@ export default async function PaginaSesionPresencial({
     }
   }
 
+  // Sesión anterior de este MISMO día de rutina (para la comparación del
+  // resumen final: volumen/series/reps/duración). No se puede filtrar
+  // por dia_id directo: al duplicar una semana, el entrenador crea un
+  // rutina_dias nuevo (id distinto) aunque sea "el mismo día" del
+  // mesociclo — por eso se correlaciona por nombre + rutina, igual que
+  // el resto de este archivo evita depender del id exacto del día.
+  const filaAnterior = ((previas ?? []) as unknown as FilaSesionPrevia[]).find(
+    (s) => s.rutina_dias?.nombre === dia.nombre && s.rutina_dias?.rutina_id === dia.rutina_id
+  );
+  let sesionAnterior: SesionAnterior | null = null;
+  if (filaAnterior) {
+    let volumen = 0;
+    let series = 0;
+    let reps = 0;
+    for (const s of filaAnterior.series_realizadas ?? []) {
+      if (!s.completada) continue;
+      series++;
+      const r = (s.reps ?? 0) + (s.reps_extra ?? 0);
+      reps += r;
+      if (s.kg !== null) volumen += Number(s.kg) * r;
+    }
+    sesionAnterior = {
+      volumen,
+      series,
+      reps,
+      duracionSeg: filaAnterior.fecha_fin
+        ? Math.round(
+            (new Date(filaAnterior.fecha_fin).getTime() -
+              new Date(filaAnterior.fecha_inicio).getTime()) /
+              1000
+          )
+        : null,
+    };
+  }
+
   const ejercicios: EjercicioSesion[] = (
     (dia.rutina_ejercicios ?? []) as unknown as FilaEjercicio[]
   )
@@ -166,6 +206,8 @@ export default async function PaginaSesionPresencial({
       ejerciciosIniciales={ejercicios}
       volverA={`/clientes/${id}`}
       nombreCliente={perfil.nombre}
+      sesionAnterior={sesionAnterior}
+      analisisHref={`/clientes/${id}`}
     />
   );
 }

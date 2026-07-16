@@ -12,17 +12,20 @@ import {
 } from "@/lib/rutinas";
 import { desbloquear, pitarDescansoTerminado, pitarRecord } from "@/lib/sonido";
 import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
+import { IconoTarjeta } from "@/componentes/ui";
+import { useCountUp } from "@/lib/useCountUp";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
+  ArrowLeft,
   Check,
   ChevronUp,
-  Dumbbell,
   FileText,
   Link2,
   Plus,
   Scale,
+  Sparkles,
   Timer,
   Trophy,
   Video,
@@ -60,6 +63,17 @@ interface EjercicioConIndice extends EjercicioSesion {
   indiceGlobal: number;
 }
 
+/** Agregado de la última vez que el cliente hizo este MISMO día de
+ * rutina (correlacionado por nombre + rutina, no por dia_id exacto —
+ * ver comentario en las páginas que renderizan este componente), para
+ * la comparación del resumen final. */
+export interface SesionAnterior {
+  volumen: number;
+  series: number;
+  reps: number;
+  duracionSeg: number | null;
+}
+
 /* --- Autoguardado local: si el cliente cierra la app sin querer a
    mitad de entreno, al volver a abrir esta misma sesión se recupera
    todo lo marcado (no se pierde por un cierre accidental). Se borra
@@ -72,6 +86,7 @@ interface AutosaveSesion {
   sensacion: number | null;
   nota: string;
   ejercicios: EjercicioSesion[];
+  descansoAcumuladoSeg?: number;
 }
 
 function claveAutosave(clienteId: string, diaId: string) {
@@ -273,6 +288,8 @@ export default function SesionEnCurso({
   ejerciciosIniciales,
   volverA = "/inicio",
   nombreCliente,
+  sesionAnterior = null,
+  analisisHref = "/mi-progreso",
 }: {
   clienteId: string;
   diaId: string;
@@ -283,6 +300,12 @@ export default function SesionEnCurso({
   volverA?: string;
   /** Si se pasa, se muestra "Sesión de <nombre>" (uso del entrenador). */
   nombreCliente?: string;
+  /** Agregado de la última vez que se hizo este día de rutina, para la
+   * comparación del resumen final. null si es la primera vez. */
+  sesionAnterior?: SesionAnterior | null;
+  /** A dónde lleva "Ver análisis completo" — Mi Progreso del cliente por
+   * defecto; el entrenador en modo presencial lo lleva a la ficha. */
+  analisisHref?: string;
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
@@ -290,11 +313,12 @@ export default function SesionEnCurso({
   const [transcurrido, setTranscurrido] = useState(0);
   const [descanso, setDescanso] = useState<{ total: number; fin: number } | null>(null);
   const [restante, setRestante] = useState(0);
+  const [descansoAcumuladoSeg, setDescansoAcumuladoSeg] = useState(0);
   const [fase, setFase] = useState<"previo" | "entrenando" | "final">("previo");
   const [prsPre, setPrsPre] = useState<number | null>(null);
   const [sensacion, setSensacion] = useState<number | null>(null);
   const [nota, setNota] = useState("");
-  const [guardando, setGuardando] = useState(false);
+  const [accionGuardando, setAccionGuardando] = useState<"inicio" | "analisis" | null>(null);
   const [error, setError] = useState("");
   const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
   const [videoAbierto, setVideoAbierto] = useState<number | null>(null);
@@ -329,6 +353,7 @@ export default function SesionEnCurso({
       setPrsPre(guardado.prsPre);
       setSensacion(guardado.sensacion);
       setNota(guardado.nota);
+      setDescansoAcumuladoSeg(guardado.descansoAcumuladoSeg ?? 0);
       /* eslint-enable react-hooks/set-state-in-effect */
     }
     hidratado.current = true;
@@ -342,9 +367,9 @@ export default function SesionEnCurso({
     if (!hidratado.current || fase === "previo") return;
     localStorage.setItem(
       claveAutosave(clienteId, diaId),
-      JSON.stringify({ fase, inicio, prsPre, sensacion, nota, ejercicios })
+      JSON.stringify({ fase, inicio, prsPre, sensacion, nota, ejercicios, descansoAcumuladoSeg })
     );
-  }, [clienteId, diaId, fase, inicio, prsPre, sensacion, nota, ejercicios]);
+  }, [clienteId, diaId, fase, inicio, prsPre, sensacion, nota, ejercicios, descansoAcumuladoSeg]);
 
   /* Reloj: tiempo de sesión y cuenta atrás del descanso */
   useEffect(() => {
@@ -359,6 +384,7 @@ export default function SesionEnCurso({
           if (!avisado.current) {
             if ("vibrate" in navigator) navigator.vibrate([200, 100, 200]);
             pitarDescansoTerminado();
+            setDescansoAcumuladoSeg((prev) => prev + d.total);
           }
           avisado.current = true;
           return null; // descanso terminado
@@ -442,6 +468,15 @@ export default function SesionEnCurso({
       const segRestantes = Math.ceil((nuevoFin - Date.now()) / 1000);
       return { total: Math.max(d.total, segRestantes), fin: nuevoFin };
     });
+  }
+
+  /** Saltar cuenta como descanso "hecho" hasta ese punto (no el tiempo
+   * completo prescrito) — para el total acumulado del resumen final. */
+  function saltarDescanso() {
+    if (descanso) {
+      setDescansoAcumuladoSeg((prev) => prev + Math.max(0, descanso.total - restante));
+    }
+    setDescanso(null);
   }
 
   function alternarCompletada(ei: number, si: number) {
@@ -533,9 +568,83 @@ export default function SesionEnCurso({
       ? [{ nombre: e.nombre, kg: maxAhora, antes: e.mejorKgAnterior }]
       : [];
   });
+  const repsTotales = ejercicios.reduce(
+    (total, e) =>
+      total +
+      e.series.reduce((a, s) => {
+        if (!s.completada) return a;
+        const rr = parsearRepsRealizadas(s.reps);
+        return a + (rr.reps ?? 0) + (rr.reps_extra ?? 0);
+      }, 0),
+    0
+  );
+  // Se llaman siempre (no solo en fase "final"): las reglas de hooks no
+  // permiten hooks dentro de un `if` — el coste de tenerlos activos en
+  // las otras fases es nulo, solo se muestran en el resumen.
+  const tonelajeAnimado = useCountUp(Math.round(tonelaje));
+  const repsAnimadas = useCountUp(repsTotales);
 
-  async function guardarSesion() {
-    setGuardando(true);
+  /* Comparación con la última vez que se hizo este día de rutina — solo
+   * las diferencias que realmente dicen algo (nunca "+0%" ni "+0 reps"). */
+  interface Delta {
+    texto: string;
+    tono: "positivo" | "neutro";
+  }
+  const deltas: Delta[] = [];
+  if (sesionAnterior) {
+    if (sesionAnterior.volumen > 0) {
+      const pct = Math.round(((tonelaje - sesionAnterior.volumen) / sesionAnterior.volumen) * 100);
+      if (Math.abs(pct) >= 2) {
+        deltas.push({
+          texto: `${pct > 0 ? "+" : ""}${pct}% volumen`,
+          tono: pct > 0 ? "positivo" : "neutro",
+        });
+      }
+    }
+    const deltaSeries = completadas - sesionAnterior.series;
+    if (deltaSeries !== 0) {
+      deltas.push({
+        texto: `${deltaSeries > 0 ? "+" : ""}${deltaSeries} serie${Math.abs(deltaSeries) === 1 ? "" : "s"}`,
+        tono: deltaSeries > 0 ? "positivo" : "neutro",
+      });
+    }
+    const deltaReps = repsTotales - sesionAnterior.reps;
+    if (deltaReps !== 0) {
+      deltas.push({
+        texto: `${deltaReps > 0 ? "+" : ""}${deltaReps} rep${Math.abs(deltaReps) === 1 ? "" : "s"}`,
+        tono: deltaReps > 0 ? "positivo" : "neutro",
+      });
+    }
+    if (sesionAnterior.duracionSeg !== null) {
+      const deltaMin = Math.round((transcurrido - sesionAnterior.duracionSeg) / 60);
+      if (deltaMin !== 0) {
+        deltas.push({
+          texto: `${deltaMin > 0 ? "+" : ""}${deltaMin} min`,
+          tono: "neutro",
+        });
+      }
+    }
+  }
+
+  /* Un único insight, basado en datos reales — nunca un genérico "buen
+   * trabajo". Si hay récords, ya son el propio insight (no se repite). */
+  let insight: string | null = null;
+  if (records.length === 0) {
+    if (sesionAnterior && sesionAnterior.volumen > 0) {
+      const pct = Math.round(((tonelaje - sesionAnterior.volumen) / sesionAnterior.volumen) * 100);
+      if (Math.abs(pct) >= 5) {
+        insight = `Has movido un ${Math.abs(pct)}% ${pct > 0 ? "más" : "menos"} de volumen que tu entreno anterior de este día.`;
+      }
+    }
+    if (!insight && todoCompleto && totalSeries > 0) {
+      insight = "Has completado todas las series de hoy.";
+    }
+    if (!insight && !sesionAnterior) {
+      insight = "Primera vez que registras este entreno — la próxima vez podrás comparar tu progreso.";
+    }
+  }
+
+  async function guardarSesion(): Promise<boolean> {
     setError("");
     const supabase = crearClienteNavegador();
 
@@ -554,9 +663,8 @@ export default function SesionEnCurso({
       .single();
 
     if (e1 || !sesion) {
-      setGuardando(false);
       setError("No se pudo guardar la sesión. Comprueba la conexión e inténtalo de nuevo.");
-      return;
+      return false;
     }
 
     const filas = ejercicios.flatMap((e) =>
@@ -581,14 +689,25 @@ export default function SesionEnCurso({
     );
     const { error: e2 } = await supabase.from("series_realizadas").insert(filas);
 
-    setGuardando(false);
     if (e2) {
       setError("La sesión se creó pero fallaron las series. Inténtalo de nuevo.");
-      return;
+      return false;
     }
     borrarAutosave(clienteId, diaId);
-    router.push(volverA);
-    router.refresh();
+    return true;
+  }
+
+  /** Los dos únicos botones del resumen final guardan y navegan a la
+   * vez — no hay un "Guardar" aparte. Cada uno recuerda cuál de los dos
+   * se pulsó para mostrar "Guardando…" solo en ese botón. */
+  async function guardarYNavegar(destino: string, accion: "inicio" | "analisis") {
+    setAccionGuardando(accion);
+    const ok = await guardarSesion();
+    setAccionGuardando(null);
+    if (ok) {
+      router.push(destino);
+      router.refresh();
+    }
   }
 
   function salir() {
@@ -657,41 +776,66 @@ export default function SesionEnCurso({
   if (fase === "final") {
     return (
       <div className="anim-aparecer">
-        <div className="titulo-tarjeta !mb-2">SESIÓN COMPLETADA</div>
-        <h1 className="h1 mb-4">{nombreDia}</h1>
+        <button
+          className="mini mb-4"
+          onClick={() => setFase("entrenando")}
+          aria-label="Volver a la sesión para corregir algo"
+        >
+          <ArrowLeft size={16} />
+        </button>
 
-        {/* Resumen de la sesión (estilo Hevy) */}
-        <div className="grid grid-cols-3 gap-2.5 mb-3.5">
-          <div className="tarjeta !mb-0 text-center !p-3.5">
-            <Timer size={18} className="mx-auto mb-1.5 text-acento" />
-            <div className="num-grande !text-[20px] tabular-nums">{fmt(transcurrido)}</div>
-            <div className="text-[10.5px] text-atenuado mt-0.5">duración</div>
+        {/* Cabecera: un logro, no un simple aviso de "completado" */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <IconoTarjeta Icono={Check} color="var(--color-acento)" tamano={52} />
+          <h1 className="h1 mt-3 mb-1">¡Entreno completado!</h1>
+          <div className="sub">{nombreDia}</div>
+        </div>
+
+        {/* Hero: los dos números que más dicen de un vistazo */}
+        <div className="grid grid-cols-2 gap-3 mb-2 text-center">
+          <div>
+            <div className="num-grande !text-[32px] tabular-nums">
+              {tonelaje >= 1000 ? `${(tonelaje / 1000).toFixed(1)}t` : tonelajeAnimado}
+            </div>
+            <div className="texto-secundario mt-1">
+              {tonelaje >= 1000 ? "levantadas" : "kg movidos"}
+            </div>
           </div>
-          <div className="tarjeta !mb-0 text-center !p-3.5">
-            <Check size={18} className="mx-auto mb-1.5 text-acento" />
-            <div className="num-grande !text-[20px] tabular-nums">
-              {completadas}
-              <span className="text-atenuado text-[13px]">/{totalSeries}</span>
-            </div>
-            <div className="text-[10.5px] text-atenuado mt-0.5">series</div>
-          </div>
-          <div className="tarjeta !mb-0 text-center !p-3.5">
-            <Dumbbell size={18} className="mx-auto mb-1.5 text-acento" />
-            <div className="num-grande !text-[20px] tabular-nums">
-              {tonelaje >= 1000
-                ? `${(tonelaje / 1000).toFixed(1)}t`
-                : `${Math.round(tonelaje)}`}
-            </div>
-            <div className="text-[10.5px] text-atenuado mt-0.5">
-              {tonelaje >= 1000 ? "levantadas" : "kg levantados"}
-            </div>
+          <div>
+            <div className="num-grande !text-[32px] tabular-nums">{fmt(transcurrido)}</div>
+            <div className="texto-secundario mt-1">duración</div>
           </div>
         </div>
 
+        {/* Secundarios: una línea fina, sin tarjetas de más */}
+        <div className="text-center text-atenuado text-[13px] mb-5">
+          {ejercicios.length} {ejercicios.length === 1 ? "ejercicio" : "ejercicios"} ·{" "}
+          {completadas} {completadas === 1 ? "serie" : "series"} · {repsAnimadas}{" "}
+          {repsAnimadas === 1 ? "repetición" : "repeticiones"}
+          {descansoAcumuladoSeg > 0 && ` · ${fmt(descansoAcumuladoSeg)} de descanso`}
+        </div>
+
+        {/* Comparación con la última vez — solo lo que dice algo */}
+        {deltas.length > 0 && (
+          <div className="flex flex-wrap justify-center gap-1.5 mb-5">
+            {deltas.map((d) => (
+              <span
+                key={d.texto}
+                className={`chip !cursor-default ${
+                  d.tono === "positivo" ? "!text-acento !border-acento/40" : ""
+                }`}
+              >
+                {d.texto}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {/* Récords — el momento más especial, con su propio espacio */}
         {records.length > 0 && (
-          <section className="tarjeta tarjeta-dorado">
+          <section className="tarjeta tarjeta-dorado anim-entrada-2">
             <div className="titulo-tarjeta !text-dorado flex items-center gap-1.5">
-              <Trophy size={13} /> ¡RÉCORDS BATIDOS!
+              <Trophy size={13} className="anim-pop" /> ¡RÉCORDS BATIDOS!
             </div>
             {records.map((r) => (
               <div
@@ -706,6 +850,14 @@ export default function SesionEnCurso({
               </div>
             ))}
           </section>
+        )}
+
+        {/* Insight único, basado en datos reales — nunca un "buen trabajo" genérico */}
+        {insight && (
+          <div className="flex items-start gap-2 text-texto-2 text-[13.5px] italic mb-5 px-1">
+            <Sparkles size={15} className="text-acento shrink-0 mt-0.5" />
+            <span>{insight}</span>
+          </div>
         )}
 
         <section className="tarjeta">
@@ -741,15 +893,21 @@ export default function SesionEnCurso({
 
         {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
 
-        <button className="cta anim-pulsable" onClick={guardarSesion} disabled={guardando}>
-          {guardando ? "Guardando…" : "Guardar sesión"}
+        {/* Únicas dos acciones — cada una guarda y navega a su destino,
+         * no hay un "Guardar" aparte. */}
+        <button
+          className="cta anim-pulsable"
+          onClick={() => guardarYNavegar(volverA, "inicio")}
+          disabled={accionGuardando !== null}
+        >
+          {accionGuardando === "inicio" ? "Guardando…" : "Volver al inicio"}
         </button>
         <button
           className="ghost w-full"
-          onClick={() => setFase("entrenando")}
-          disabled={guardando}
+          onClick={() => guardarYNavegar(analisisHref, "analisis")}
+          disabled={accionGuardando !== null}
         >
-          ← Volver al entreno
+          {accionGuardando === "analisis" ? "Guardando…" : "Ver análisis completo"}
         </button>
       </div>
     );
@@ -1150,7 +1308,7 @@ export default function SesionEnCurso({
             >
               <span className="text-[11px] font-bold">+15</span>
             </button>
-            <button className="ghost shrink-0" onClick={() => setDescanso(null)}>
+            <button className="ghost shrink-0" onClick={saltarDescanso}>
               Saltar
             </button>
           </div>
