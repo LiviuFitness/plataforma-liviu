@@ -5,6 +5,7 @@ import SesionEnCurso, {
   type EjercicioSesion,
   type SesionAnterior,
 } from "@/componentes/SesionEnCurso";
+import { evaluarSerie, type UltimaSerieItem } from "@/lib/evaluacionSerie";
 import type { TipoSerie } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -42,9 +43,13 @@ interface FilaSerieRealizada {
   carga_texto: string | null;
   reps: number | null;
   reps_extra: number | null;
+  rir: number | null;
   completada: boolean;
   tipo: string;
-  rutina_ejercicios: { ejercicio_id: string } | null;
+  rutina_ejercicios: {
+    ejercicio_id: string;
+    series_prescritas: FilaSerie[];
+  } | null;
 }
 
 interface FilaSesionPrevia {
@@ -83,8 +88,9 @@ export default async function PaginaSesionPresencial({
       .from("sesiones")
       .select(
         `fecha_inicio, fecha_fin, rutina_dias ( nombre, rutina_id ),
-         series_realizadas ( orden, kg, carga_texto, reps, reps_extra, completada, tipo,
-           rutina_ejercicios ( ejercicio_id ) )`
+         series_realizadas ( orden, kg, carga_texto, reps, reps_extra, rir, completada, tipo,
+           rutina_ejercicios ( ejercicio_id,
+             series_prescritas ( orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto ) ) )`
       )
       .eq("cliente_id", id)
       .order("fecha_inicio", { ascending: false })
@@ -94,9 +100,11 @@ export default async function PaginaSesionPresencial({
   if (!dia || !perfil) notFound();
 
   // "Última vez" por ejercicio (estilo Hevy): la sesión más reciente
-  // en la que el cliente hizo ese ejercicio. También la mejor marca
-  // histórica en kg, para detectar récords al terminar la sesión.
-  const anterior = new Map<string, string>();
+  // en la que el cliente hizo ese ejercicio, serie a serie — con su
+  // propia evaluación (prescrito vs. realizado de AQUELLA sesión, no de
+  // la rutina actual, por si el entrenador la cambió desde entonces).
+  // También la mejor marca histórica en kg, para detectar récords.
+  const anterior = new Map<string, UltimaSerieItem[]>();
   const mejorHistorico = new Map<string, number>();
   for (const sesion of (previas ?? []) as unknown as FilaSesionPrevia[]) {
     const porEjercicio = new Map<string, FilaSerieRealizada[]>();
@@ -112,7 +120,7 @@ export default async function PaginaSesionPresencial({
     }
     for (const [ejercicioId, series] of porEjercicio) {
       if (anterior.has(ejercicioId)) continue;
-      const texto = series
+      const items: UltimaSerieItem[] = series
         .sort((a, b) => a.orden - b.orden)
         .map((s) => {
           const carga = componerCarga(
@@ -125,10 +133,20 @@ export default async function PaginaSesionPresencial({
               : s.reps_extra
                 ? `${s.reps}+${s.reps_extra}`
                 : String(s.reps);
-          return `${carga || "—"}×${reps}`;
-        })
-        .join(" · ");
-      if (texto) anterior.set(ejercicioId, texto);
+          const prescrita = s.rutina_ejercicios?.series_prescritas?.find(
+            (p) => p.orden === s.orden && p.tipo === s.tipo
+          );
+          const estado = prescrita
+            ? evaluarSerie({
+                repsPrescrito: { reps: prescrita.reps, reps_max: prescrita.reps_max },
+                repsRealizado: { reps: s.reps, reps_extra: s.reps_extra },
+                rirPrescrito: prescrita.rir,
+                rirRealizado: s.rir,
+              })
+            : null;
+          return { texto: `${carga || "—"}×${reps}`, estado };
+        });
+      if (items.length > 0) anterior.set(ejercicioId, items);
     }
   }
 

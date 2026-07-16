@@ -12,13 +12,16 @@ import {
 } from "@/lib/rutinas";
 import { desbloquear, pitarDescansoTerminado, pitarRecord } from "@/lib/sonido";
 import { INFO_TIPO_SERIE, type TipoSerie } from "@/lib/tipos";
+import { evaluarSerieSesion, type UltimaSerieItem } from "@/lib/evaluacionSerie";
 import { IconoTarjeta } from "@/componentes/ui";
 import { useCountUp } from "@/lib/useCountUp";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
+  ArrowDown,
   ArrowLeft,
+  ArrowUp,
   Check,
   ChevronUp,
   FileText,
@@ -53,7 +56,7 @@ export interface EjercicioSesion {
   notas: string;
   tecnica: string | null; // criterios de técnica del entrenador
   videoUrl: string | null;
-  anterior: string | null; // lo realizado la última vez ("90×8 · 90×7")
+  anterior: UltimaSerieItem[] | null; // lo realizado la última vez, serie a serie
   mejorKgAnterior: number | null; // mejor marca histórica, para detectar récords
   grupoSuperserie: string | null;
   series: SerieSesion[];
@@ -157,6 +160,7 @@ function FilaSerie({
   const referenciaRir = (serie.rir || serie.rirPrescrito).trim();
   const hayRir = referenciaRir !== "";
   const esTecnica = hayRir && !/^\d+$/.test(referenciaRir);
+  const evaluacion = evaluarSerieSesion(serie);
   // "Efectiva" es la inmensa mayoría de las series — su barra de color
   // se atenúa mucho para no competir con nada; calentamiento/dropset/
   // fallo son la excepción y sí necesitan destacar.
@@ -223,8 +227,30 @@ function FilaSerie({
       )}
 
       {/* RIR — pequeño, alineado a la derecha del hueco flexible; el
-       * check queda siempre anclado al borde derecho de la rejilla. */}
-      <div className="flex justify-end">
+       * check queda siempre anclado al borde derecho de la rejilla. Antes
+       * del RIR, un triangulito minúsculo evalúa la serie ya completada
+       * (prescrito vs. realizado): azul si se superó el objetivo (peso
+       * probablemente ligero), ámbar si se quedó corto. Sin icono cuando
+       * salió tal cual estaba previsto — no hace falta destacar lo normal. */}
+      <div className="flex items-center justify-end gap-1.5">
+        {evaluacion === "superado" && (
+          <ArrowUp
+            size={13}
+            strokeWidth={3}
+            role="img"
+            aria-label="Has superado el objetivo de esta serie"
+            className="text-acento shrink-0"
+          />
+        )}
+        {evaluacion === "no_alcanzado" && (
+          <ArrowDown
+            size={13}
+            strokeWidth={3}
+            role="img"
+            aria-label="Por debajo del objetivo de esta serie"
+            className="text-aviso shrink-0"
+          />
+        )}
         {hayRir &&
           (editandoRir ? (
             <input
@@ -1103,9 +1129,31 @@ export default function SesionEnCurso({
                       {notaInline ? ` · ${notaInline}` : ""}
                     </div>
                   )}
-                  {ex.anterior && (
-                    <div className="text-[12.5px] text-acento/90 mb-1">
-                      Última vez: {ex.anterior}
+                  {ex.anterior && ex.anterior.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[12.5px] text-acento/90 mb-1">
+                      <span>Última vez:</span>
+                      {ex.anterior.map((it, i) => (
+                        <span key={i} className="inline-flex items-center gap-0.5 tabular-nums">
+                          {it.texto}
+                          {it.estado === "superado" && (
+                            <ArrowUp
+                              size={10}
+                              strokeWidth={3}
+                              aria-hidden="true"
+                              className="text-acento"
+                            />
+                          )}
+                          {it.estado === "no_alcanzado" && (
+                            <ArrowDown
+                              size={10}
+                              strokeWidth={3}
+                              aria-hidden="true"
+                              className="text-aviso"
+                            />
+                          )}
+                          {i < ex.anterior!.length - 1 && <span>·</span>}
+                        </span>
+                      ))}
                     </div>
                   )}
 
