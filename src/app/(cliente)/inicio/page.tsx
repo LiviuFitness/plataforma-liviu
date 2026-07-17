@@ -316,7 +316,7 @@ export default async function PaginaInicio() {
 
       <AvisosActualizacion avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
 
-      <div className="tarjeta tarjeta-acento text-texto-2 text-[13.5px] italic">
+      <div className="tarjeta text-texto-2 text-[13.5px] italic">
         “{fraseDelDia()}”
       </div>
 
@@ -335,7 +335,7 @@ export default async function PaginaInicio() {
       )}
 
       {avisoMuscular && (
-        <div className="tarjeta tarjeta-acento !mb-2.5 flex items-center gap-3">
+        <div className="tarjeta !mb-2.5 flex items-center gap-3">
           <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={36} />
           <div className="text-[13.5px] text-texto-2">
             Llevas{" "}
@@ -347,21 +347,24 @@ export default async function PaginaInicio() {
         </div>
       )}
 
-      {/* Racha y semana */}
+      {/* Racha y semana — mismo sistema de tarjeta neutro que el resto;
+       * el color vive solo en el detalle pequeño (icono de la racha,
+       * puntos de la semana), no en la tarjeta entera. */}
       <div className="grid grid-cols-2 gap-2.5 my-[18px] anim-entrada-1">
-        <div className={`tarjeta !mb-0 text-center !p-4 ${racha > 0 ? "tarjeta-dorado" : ""}`}>
-          <Flame
-            size={26}
-            className={`mx-auto mb-1 ${racha > 0 ? "text-dorado" : "text-atenuado"}`}
-            strokeWidth={1.75}
+        <div className="tarjeta !mb-0 text-center !p-4">
+          <IconoTarjeta
+            Icono={Flame}
+            color={racha > 0 ? "var(--color-dorado)" : "var(--color-atenuado)"}
+            tamano={36}
+            className="mx-auto mb-1.5"
           />
           <div className="num-grande">{racha}</div>
           <div className="text-[11px] text-atenuado mt-0.5">
             {racha === 1 ? "día de racha" : "días de racha"}
           </div>
         </div>
-        <div className="tarjeta tarjeta-acento !mb-0 text-center !p-4">
-          <div className="num-grande !text-[30px] text-acento">
+        <div className="tarjeta !mb-0 text-center !p-4">
+          <div className="num-grande">
             {hechasSemana}
             <span className="text-atenuado text-[17px]">
               /{objetivoSemana || "—"}
@@ -465,11 +468,14 @@ export default async function PaginaInicio() {
         nuevos={nuevosLogros}
       />
 
-      {/* Acceso rápido a la dieta */}
+      {/* Acceso rápido a la dieta — el verde vive solo en el icono, el
+       * kcal y la barra de macros (que ya comunica proteína/hidratos/
+       * grasas por color); los chips comparten un único estilo neutro
+       * en vez de repetir esos mismos 3 colores en sus bordes. */}
       {dieta && (
         <Link
           href="/mi-dieta"
-          className="tarjeta tarjeta-verde anim-pulsable anim-entrada-5 flex items-center gap-3.5 w-full"
+          className="tarjeta anim-pulsable anim-entrada-5 flex items-center gap-3.5 w-full"
         >
           <IconoTarjeta Icono={UtensilsCrossed} color="var(--color-verde)" />
           <div className="flex-1 min-w-0">
@@ -481,27 +487,9 @@ export default async function PaginaInicio() {
               <span className="text-atenuado text-[12.5px]">kcal</span>
             </div>
             <div className="flex flex-wrap gap-1.5 mb-2">
-              <span
-                className="chip !cursor-default"
-                style={{ color: INFO_MACRO.proteina.color, borderColor: `${INFO_MACRO.proteina.color}55` }}
-              >
-                P {dieta.prot_obj}g
-              </span>
-              <span
-                className="chip !cursor-default"
-                style={{
-                  color: INFO_MACRO.carbohidratos.color,
-                  borderColor: `${INFO_MACRO.carbohidratos.color}55`,
-                }}
-              >
-                C {dieta.carb_obj}g
-              </span>
-              <span
-                className="chip !cursor-default"
-                style={{ color: INFO_MACRO.grasas.color, borderColor: `${INFO_MACRO.grasas.color}55` }}
-              >
-                G {dieta.gras_obj}g
-              </span>
+              <span className="chip !cursor-default">P {dieta.prot_obj}g</span>
+              <span className="chip !cursor-default">C {dieta.carb_obj}g</span>
+              <span className="chip !cursor-default">G {dieta.gras_obj}g</span>
             </div>
             {macroPct && (
               <div className="barra-capsula flex" style={{ maxWidth: 220 }}>

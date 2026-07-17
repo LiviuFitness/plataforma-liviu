@@ -52,7 +52,7 @@ export default function RegistroPesoRapido({
 
   if (editando) {
     return (
-      <section className="tarjeta tarjeta-turquesa">
+      <section className="tarjeta">
         <div className="titulo-tarjeta">TU PESO DE HOY</div>
         <div className="flex gap-2">
           <input
@@ -81,16 +81,16 @@ export default function RegistroPesoRapido({
 
   return (
     <button
-      className="tarjeta tarjeta-turquesa anim-pulsable anim-entrada-3 w-full text-left"
+      className="tarjeta anim-pulsable anim-entrada-3 w-full text-left"
       onClick={() => setEditando(true)}
     >
       <div className="flex items-center gap-3.5">
         <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" />
         <div className="flex-1 min-w-0">
-          <div className="titulo-tarjeta !mb-0.5">TU PESO</div>
+          <div className="titulo-tarjeta !mb-1">TU PESO</div>
           {ultimoPeso !== null ? (
             <div className="flex items-baseline gap-1.5">
-              <span className="num-grande !text-[26px]" style={{ color: "var(--color-turquesa)" }}>
+              <span className="num-grande" style={{ color: "var(--color-turquesa)" }}>
                 {pesoAnimado.toFixed(1)}
               </span>
               <span className="text-atenuado text-[13px]">kg</span>

@@ -28,7 +28,7 @@ export default function AvisosActualizacion({
   if (!avisoRutina && !avisoDieta) return null;
 
   return (
-    <div className="tarjeta tarjeta-acento anim-entrada-1 !mb-2.5">
+    <div className="tarjeta anim-entrada-1 !mb-2.5">
       {avisoRutina && (
         <div className="flex items-center gap-2.5 text-[13.5px] py-1">
           <Bell size={16} strokeWidth={1.75} className="text-acento shrink-0" />
