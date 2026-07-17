@@ -23,6 +23,7 @@ import {
   ArrowLeft,
   ArrowUp,
   Check,
+  ChevronDown,
   ChevronUp,
   FileText,
   Link2,
@@ -170,12 +171,14 @@ function FilaSerie({
 
   return (
     <div
-      className={`fila-serie grid grid-cols-[70px_54px_1fr_44px] items-center gap-1.5 rounded-[10px] py-2.5 pl-2.5 pr-2 border-l-[3px] ${
+      className={`fila-serie grid grid-cols-[80px_56px_1fr_40px] items-center gap-1.5 rounded-[10px] py-2 pl-2.5 pr-2 border-l-[3px] ${
         activa ? "bg-acento/[0.06]" : ""
       }`}
       style={{ borderLeftColor: colorBarra }}
     >
-      {/* Peso — el protagonista de la fila, texto plano tocable */}
+      {/* Peso — el protagonista de la fila: la cifra más grande, la que
+       * más se toca durante el entreno. Columna algo más ancha que el
+       * resto para que ningún valor (137.5 kg…) llegue a solaparse. */}
       {esSteppeable(serie.kgPrescrito) ? (
         <button
           type="button"
@@ -184,7 +187,7 @@ function FilaSerie({
           aria-label={`Editar peso: ${kgMostrado || "sin registrar"} kg`}
         >
           <span
-            className={`text-[18px] font-bold tabular-nums ${
+            className={`text-[19px] font-bold tabular-nums ${
               serie.completada ? "text-texto-2" : ""
             }`}
           >
@@ -194,7 +197,7 @@ function FilaSerie({
         </button>
       ) : (
         <input
-          className="campo-serie !w-[64px] placeholder:text-atenuado/45"
+          className="campo-serie !w-[74px] !text-[15px] !font-bold placeholder:text-atenuado/45"
           placeholder={serie.kgPrescrito || "kg"}
           inputMode="decimal"
           value={serie.kg}
@@ -218,7 +221,7 @@ function FilaSerie({
         </button>
       ) : (
         <input
-          className="campo-serie !w-[54px] placeholder:text-atenuado/45"
+          className="campo-serie !w-[56px] placeholder:text-atenuado/45"
           placeholder={serie.repsPrescrito || "reps"}
           value={serie.reps}
           onChange={(e) => onCambiarReps(e.target.value)}
@@ -226,12 +229,14 @@ function FilaSerie({
         />
       )}
 
-      {/* RIR — pequeño, alineado a la derecha del hueco flexible; el
-       * check queda siempre anclado al borde derecho de la rejilla. Antes
-       * del RIR, un triangulito minúsculo evalúa la serie ya completada
-       * (prescrito vs. realizado): azul si se superó el objetivo (peso
-       * probablemente ligero), ámbar si se quedó corto. Sin icono cuando
-       * salió tal cual estaba previsto — no hace falta destacar lo normal. */}
+      {/* RIR — dato secundario a propósito: cápsula mínima y siempre en
+       * gris neutro (ni la variante de técnica lleva ya acento — ese
+       * azul se reserva para el peso, el check y los iconos de
+       * evaluación, así no compite por atención). Antes del RIR, un
+       * triangulito minúsculo evalúa la serie ya completada (prescrito
+       * vs. realizado): azul si se superó el objetivo (peso probablemente
+       * ligero), ámbar si se quedó corto. Sin icono cuando salió tal cual
+       * estaba previsto — no hace falta destacar lo normal. */}
       <div className="flex items-center justify-end gap-1.5">
         {evaluacion === "superado" && (
           <ArrowUp
@@ -254,7 +259,7 @@ function FilaSerie({
         {hayRir &&
           (editandoRir ? (
             <input
-              className="campo-serie !w-[62px] !py-1.5 !text-[12px] placeholder:text-atenuado/45"
+              className="campo-serie !w-[56px] !py-1 !text-[11px] placeholder:text-atenuado/45"
               autoFocus
               value={serie.rir}
               placeholder={serie.rirPrescrito}
@@ -269,9 +274,9 @@ function FilaSerie({
             <button
               type="button"
               onClick={() => setEditandoRir(true)}
-              className={`shrink-0 rounded-md px-2 py-1.5 text-[11px] font-bold anim-pulsable max-w-[92px] truncate ${
+              className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-bold anim-pulsable max-w-[78px] truncate ${
                 esTecnica
-                  ? "text-acento bg-acento/15"
+                  ? "text-texto-2 bg-borde-2/60"
                   : "text-atenuado bg-campo border border-borde-2"
               }`}
             >
@@ -284,13 +289,13 @@ function FilaSerie({
         type="button"
         onClick={onCompletar}
         aria-label={serie.completada ? "Desmarcar serie" : "Serie hecha"}
-        className={`w-11 h-11 shrink-0 rounded-[12px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
+        className={`w-10 h-10 shrink-0 rounded-[11px] cursor-pointer border flex items-center justify-center transition-colors anim-pulsable ${
           serie.completada
             ? "bg-acento text-fondo border-acento anim-pop"
             : "bg-campo text-acento border-acento/40"
         }`}
       >
-        <Check size={19} strokeWidth={3} />
+        <Check size={17} strokeWidth={3} />
       </button>
     </div>
   );
@@ -348,6 +353,7 @@ export default function SesionEnCurso({
   const [error, setError] = useState("");
   const [calculadoraPara, setCalculadoraPara] = useState<number | null>(null);
   const [videoAbierto, setVideoAbierto] = useState<number | null>(null);
+  const [tecnicaAbierta, setTecnicaAbierta] = useState<Record<string, boolean>>({});
   const [expandidoManual, setExpandidoManual] = useState<Record<string, boolean>>({});
   const [activaManual, setActivaManual] = useState<Record<string, number>>({});
   const [prToast, setPrToast] = useState<{ nombre: string; kg: number } | null>(null);
@@ -965,7 +971,7 @@ export default function SesionEnCurso({
           </span>
         </div>
       </div>
-      <div className="barra-capsula mb-3">
+      <div className="barra-capsula !h-1 mb-3">
         <div
           className="barra-capsula-relleno"
           style={
@@ -1061,7 +1067,7 @@ export default function SesionEnCurso({
                   <button
                     key={ex.rutinaEjercicioId}
                     type="button"
-                    className={`w-full flex items-center gap-2.5 py-2.5 text-left anim-pulsable ${contenedorClases}`}
+                    className={`w-full flex items-center gap-2.5 py-2.5 text-left anim-pulsable anim-aparecer opacity-[0.82] ${contenedorClases}`}
                     onClick={() =>
                       setExpandidoManual((prev) => ({
                         ...prev,
@@ -1083,7 +1089,10 @@ export default function SesionEnCurso({
               }
 
               return (
-                <div key={ex.rutinaEjercicioId} className={contenedorClases}>
+                <div
+                  key={ex.rutinaEjercicioId}
+                  className={`transition-opacity duration-300 ${exCompleta ? "opacity-[0.85]" : ""} ${contenedorClases}`}
+                >
                   <div className="flex justify-between items-start mb-0.5 gap-2">
                     <div className="flex items-start gap-2.5 min-w-0">
                       <AvatarEjercicio videoUrl={ex.videoUrl} tamano={36} />
@@ -1130,80 +1139,108 @@ export default function SesionEnCurso({
                     </div>
                   )}
                   {ex.anterior && ex.anterior.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[12.5px] text-acento/90 mb-1">
-                      <span>Última vez:</span>
-                      {ex.anterior.map((it, i) => (
-                        <span key={i} className="inline-flex items-center gap-0.5 tabular-nums">
-                          {it.texto}
-                          {it.estado === "superado" && (
-                            <ArrowUp
-                              size={10}
-                              strokeWidth={3}
-                              aria-hidden="true"
-                              className="text-acento"
-                            />
-                          )}
-                          {it.estado === "no_alcanzado" && (
-                            <ArrowDown
-                              size={10}
-                              strokeWidth={3}
-                              aria-hidden="true"
-                              className="text-aviso"
-                            />
-                          )}
-                          {i < ex.anterior!.length - 1 && <span>·</span>}
-                        </span>
-                      ))}
+                    <div className="inline-flex items-center gap-1.5 max-w-full bg-campo/80 border border-borde-2 rounded-full pl-2.5 pr-3 py-1 mb-1.5">
+                      <span className="text-[9.5px] font-bold uppercase tracking-wide text-atenuado shrink-0">
+                        Última
+                      </span>
+                      <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] font-bold tabular-nums text-texto-2 min-w-0">
+                        {ex.anterior.map((it, i) => (
+                          <span key={i} className="inline-flex items-center gap-0.5">
+                            {it.texto}
+                            {it.estado === "superado" && (
+                              <ArrowUp
+                                size={10}
+                                strokeWidth={3}
+                                aria-hidden="true"
+                                className="text-acento"
+                              />
+                            )}
+                            {it.estado === "no_alcanzado" && (
+                              <ArrowDown
+                                size={10}
+                                strokeWidth={3}
+                                aria-hidden="true"
+                                className="text-aviso"
+                              />
+                            )}
+                            {i < ex.anterior!.length - 1 && (
+                              <span className="text-atenuado font-normal">·</span>
+                            )}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
 
-                  {/* Técnica del entrenador y vídeo, plegados para no estorbar */}
+                  {/* Técnica y vídeo: dos disparadores independientes y
+                   * minúsculos, nunca el texto entero de primeras — aquí
+                   * se viene a entrenar, no a leer. Cada uno se abre por
+                   * su cuenta, sin anidar uno dentro del otro. */}
                   {(ex.tecnica || ex.videoUrl || notasPlegadas) && (
-                    <details className="mb-2">
-                      <summary className="text-[12.5px] text-atenuado cursor-pointer select-none py-0.5 flex items-center gap-1.5">
-                        <FileText size={13} /> Técnica{ex.videoUrl ? " y vídeo" : ""}
-                      </summary>
-                      {notasPlegadas && (
-                        <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
-                          {notasPlegadas}
-                        </div>
+                    <div className="flex items-center gap-3 mb-1.5">
+                      {(ex.tecnica || notasPlegadas) && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-atenuado hover:text-texto-2 transition-colors text-[12px] font-medium anim-pulsable"
+                          onClick={() =>
+                            setTecnicaAbierta((prev) => ({
+                              ...prev,
+                              [ex.rutinaEjercicioId]: !prev[ex.rutinaEjercicioId],
+                            }))
+                          }
+                          aria-expanded={!!tecnicaAbierta[ex.rutinaEjercicioId]}
+                        >
+                          <FileText size={12} /> Técnica
+                          <ChevronDown
+                            size={11}
+                            className={`icono-rotable ${
+                              tecnicaAbierta[ex.rutinaEjercicioId] ? "icono-rotable-abierto" : ""
+                            }`}
+                          />
+                        </button>
                       )}
-                      {ex.tecnica && (
-                        <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mt-1.5">
-                          {ex.tecnica}
-                        </div>
+                      {ex.videoUrl && (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 text-atenuado hover:text-acento transition-colors text-[12px] font-medium anim-pulsable"
+                          onClick={() => setVideoAbierto(videoAbierto === ei ? null : ei)}
+                        >
+                          <Video size={12} /> Ver vídeo
+                        </button>
                       )}
-                      {ex.videoUrl &&
-                        (embedYoutube(ex.videoUrl) ? (
-                          videoAbierto === ei ? (
-                            <div className="mt-2 rounded-[10px] overflow-hidden aspect-video border border-borde-2">
-                              <iframe
-                                src={`${embedYoutube(ex.videoUrl)}?rel=0`}
-                                className="w-full h-full"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                title={`Vídeo: ${ex.nombre}`}
-                              />
-                            </div>
-                          ) : (
-                            <button
-                              className="inline-flex items-center gap-1.5 text-acento text-[13px] underline underline-offset-2 mt-1.5 cursor-pointer"
-                              onClick={() => setVideoAbierto(ei)}
-                            >
-                              <Video size={14} /> Ver vídeo del ejercicio
-                            </button>
-                          )
-                        ) : (
-                          <a
-                            href={ex.videoUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-acento text-[13px] underline underline-offset-2 mt-1.5"
-                          >
-                            <Video size={14} /> Ver vídeo del ejercicio
-                          </a>
-                        ))}
-                    </details>
+                    </div>
+                  )}
+
+                  {(ex.tecnica || notasPlegadas) && tecnicaAbierta[ex.rutinaEjercicioId] && (
+                    <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mb-1.5 anim-aparecer">
+                      {notasPlegadas && <p className="mb-1.5 last:mb-0">{notasPlegadas}</p>}
+                      {ex.tecnica && <p className="last:mb-0">{ex.tecnica}</p>}
+                    </div>
+                  )}
+
+                  {ex.videoUrl && videoAbierto === ei && (
+                    <div className="mb-1.5">
+                      {embedYoutube(ex.videoUrl) ? (
+                        <div className="rounded-[10px] overflow-hidden aspect-video border border-borde-2 anim-aparecer">
+                          <iframe
+                            src={`${embedYoutube(ex.videoUrl)}?rel=0`}
+                            className="w-full h-full"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            title={`Vídeo: ${ex.nombre}`}
+                          />
+                        </div>
+                      ) : (
+                        <a
+                          href={ex.videoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-acento text-[13px] underline underline-offset-2"
+                        >
+                          <Video size={14} /> Abrir vídeo del ejercicio
+                        </a>
+                      )}
+                    </div>
                   )}
 
                   {/* Solo la serie activa (la próxima pendiente, o la que se
@@ -1226,12 +1263,17 @@ export default function SesionEnCurso({
                       />
                     ))}
                   </div>
+                  {/* Fila "+" — discretísima, extensión natural de la lista de
+                   * series en vez de un botón de texto que reclama espacio
+                   * propio. Al tocarla, la nueva serie ya sale editable
+                   * (se convierte en la fila activa automáticamente). */}
                   <button
                     type="button"
-                    className="w-full text-left text-atenuado hover:text-acento transition-colors text-[12.5px] py-1.5 mt-1 flex items-center gap-1.5 anim-pulsable"
+                    className="w-full flex items-center justify-center py-1.5 mt-0.5 text-atenuado/70 hover:text-acento hover:bg-campo/60 rounded-[8px] transition-colors anim-pulsable"
                     onClick={() => agregarSerie(ei)}
+                    aria-label="Añadir serie"
                   >
-                    <Plus size={13} /> Añadir serie
+                    <Plus size={14} strokeWidth={2.5} />
                   </button>
                 </div>
               );
