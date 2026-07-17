@@ -4,8 +4,9 @@
 
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
+import type { NivelEstado } from "@/lib/estadoCliente";
 
-const CIAN = "#29ABE2";
+const CIAN = "var(--color-acento)";
 
 /** Icono circular consistente (mismo grosor/tamaño en toda la app):
  * fondo tintado al 14% del color + icono del color sólido. `tamano`
@@ -32,6 +33,49 @@ export function IconoTarjeta({
       <Icono size={Math.round(tamano * 0.5)} strokeWidth={1.75} />
     </span>
   );
+}
+
+/** Círculo de iniciales — identidad neutra para listas largas (panel de
+ * entrenador), sin depender de una foto ni de un anillo de progreso. */
+export function Avatar({
+  nombre,
+  tamano = 36,
+}: {
+  nombre: string;
+  tamano?: number;
+}) {
+  const iniciales = nombre
+    .trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+  return (
+    <span
+      className="rounded-full bg-campo border border-borde-2 text-atenuado font-bold flex items-center justify-center shrink-0"
+      style={{ width: tamano, height: tamano, fontSize: tamano * 0.38 }}
+    >
+      {iniciales || "?"}
+    </span>
+  );
+}
+
+/** Punto de estado único del panel de entrenador — ver `lib/estadoCliente.ts`.
+ * Un solo lenguaje de color para "cómo va el cliente" en toda la app. */
+export function PuntoEstado({
+  nivel,
+  titulo,
+}: {
+  nivel: NivelEstado;
+  titulo?: string;
+}) {
+  const clase =
+    nivel === "riesgo"
+      ? "punto-estado-riesgo"
+      : nivel === "atencion"
+        ? "punto-estado-atencion"
+        : "punto-estado-neutro";
+  return <span className={`punto-estado ${clase}`} title={titulo} />;
 }
 
 /** Logo oficial LivFit (wordmark recortado con fondo transparente). */

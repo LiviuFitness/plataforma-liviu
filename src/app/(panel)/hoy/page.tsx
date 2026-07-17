@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { AlertTriangle, CalendarCheck, Trophy } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
-import { haceCuanto } from "@/componentes/ui";
+import { haceCuanto, PuntoEstado } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
 
 interface RecordSemana {
@@ -182,169 +181,123 @@ export default async function PaginaHoy() {
   const listosParaAvanzar = listaAlertas.filter((a) => a.tipo === "semana_completa");
   const recordsSemana = (records ?? []) as RecordSemana[];
 
+  const actividadOrdenada = listaClientes.slice().sort((a, b) => {
+    const fa = ultimaActividad.get(a.id);
+    const fb = ultimaActividad.get(b.id);
+    if (!fa && !fb) return 0;
+    if (!fa) return 1;
+    if (!fb) return -1;
+    return new Date(fb).getTime() - new Date(fa).getTime();
+  });
+
   const fecha = new Date().toLocaleDateString("es-ES", { weekday: "long" });
 
   return (
     <>
       <h1 className="h1">Hoy</h1>
-      <div className="sub serifa">{fecha} — así va tu estudio</div>
+      <div className="sub mb-6">{fecha} — así va tu estudio</div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-3 gap-2.5 my-[18px] mb-[22px]">
-        <div className="tarjeta !mb-0 text-center !p-3.5">
-          <div className="num-grande !text-[26px]">
-            {listaClientes.length}
-          </div>
-          <div className="text-[10.5px] text-atenuado mt-1">
-            clientes activos
-          </div>
+      {/* 1. Necesita atención — lo primero que se mira */}
+      <div className="mb-6">
+        <div className="titulo-seccion">
+          Necesita atención{enRiesgo.length > 0 ? ` · ${enRiesgo.length}` : ""}
         </div>
-        <div className="tarjeta !mb-0 text-center !p-3.5">
-          <div className="num-grande !text-[26px] text-acento">
-            {media}%
+        {enRiesgo.length === 0 ? (
+          <div className="text-atenuado text-[13.5px]">
+            Nadie en riesgo ahora mismo — buen trabajo.
           </div>
-          <div className="text-[10.5px] text-atenuado mt-1">
-            adherencia media
-          </div>
-        </div>
-        <div className="tarjeta !mb-0 text-center !p-3.5">
-          <div
-            className={`num-grande !text-[26px] ${
-              enRiesgo.length ? "text-peligro" : ""
-            }`}
-          >
-            {enRiesgo.length}
-          </div>
-          <div className="text-[10.5px] text-atenuado mt-1">en riesgo</div>
-        </div>
-      </div>
-
-      {/* Radar de riesgo de abandono — raíl cian, firma visual */}
-      <div className="flex gap-3.5 mb-5">
-        <div className="rail" />
-        <div className="flex-1">
-          <div className="titulo-tarjeta !mb-2.5 flex items-center gap-1.5">
-            <AlertTriangle size={12} /> RADAR DE RIESGO DE ABANDONO
-          </div>
-          {enRiesgo.length === 0 && (
-            <div className="text-atenuado text-[13.5px]">
-              Nadie en riesgo ahora mismo — buen trabajo.
-            </div>
-          )}
-          {enRiesgo.map((r) => (
-            <Link
-              key={r.clienteId}
-              href={`/clientes/${r.clienteId}`}
-              className="flex gap-3 w-full tarjeta !mb-2.5 !p-3.5 !rounded-xl"
-            >
-              <div className="rail-punto" />
+        ) : (
+          enRiesgo.map((r) => (
+            <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
+              <PuntoEstado nivel={r.score >= 5 ? "riesgo" : "atencion"} />
               <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="font-bold text-[15px] truncate">{r.nombre}</div>
-                  <span
-                    className={`shrink-0 text-[10.5px] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 ${
-                      r.score >= 5
-                        ? "bg-peligro/15 text-peligro"
-                        : "bg-aviso/15 text-aviso"
-                    }`}
-                  >
-                    {r.score >= 5 ? "riesgo alto" : "riesgo medio"}
-                  </span>
-                </div>
-                {r.motivos.map((m, i) => (
-                  <div key={i} className="text-texto-2 text-[13px] mt-0.5">
-                    — {m}
-                  </div>
-                ))}
+                <div className="font-bold text-[14.5px] truncate">{r.nombre}</div>
+                <div className="text-texto-2 text-[12.5px] truncate">{r.motivos[0]}</div>
               </div>
             </Link>
-          ))}
-        </div>
+          ))
+        )}
       </div>
 
-      {/* Récords batidos esta semana: felicítalos, dispara la retención */}
-      {recordsSemana.length > 0 && (
-        <section className="tarjeta !border-aviso/40">
-          <div className="titulo-tarjeta !text-aviso flex items-center gap-1.5">
-            <Trophy size={12} /> RÉCORDS DE LA SEMANA — ¡FELICÍTALOS!
-          </div>
-          {recordsSemana.map((rec, i) => (
-            <Link
-              key={i}
-              href={`/clientes/${rec.cliente_id}`}
-              className="flex justify-between items-center gap-2 border-b border-borde last:border-0 py-2.5 text-[13.5px]"
-            >
-              <span className="min-w-0">
-                <b>{rec.nombre}</b>
-                <span className="text-texto-2"> — {rec.ejercicio}</span>
-              </span>
-              <span className="shrink-0">
-                <span className="text-atenuado">{Number(rec.kg_previo)} kg → </span>
-                <b className="text-aviso">{Number(rec.kg_nuevo)} kg</b>
-              </span>
-            </Link>
-          ))}
-        </section>
-      )}
-
-      {/* Semanas completadas: listos para avanzar */}
-      {listosParaAvanzar.length > 0 && (
-        <section className="tarjeta !border-acento/40">
-          <div className="titulo-tarjeta !text-acento flex items-center gap-1.5">
-            <CalendarCheck size={12} /> LISTOS PARA AVANZAR DE SEMANA
-          </div>
-          {listosParaAvanzar.map((a, i) => (
-            <Link
-              key={i}
-              href={`/clientes/${a.cliente_id}`}
-              className="flex justify-between items-center gap-2 border-b border-borde last:border-0 py-2.5 text-[13.5px]"
-            >
-              <span>
-                <b>{a.nombre}</b>
-                <span className="text-texto-2"> — {a.mensaje}</span>
-              </span>
-              <span className="text-acento shrink-0">→</span>
-            </Link>
-          ))}
-        </section>
-      )}
-
-      {/* Actividad reciente */}
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">ACTIVIDAD RECIENTE</div>
+      {/* 2. Actividad reciente */}
+      <div className="mb-6">
+        <div className="titulo-seccion">Actividad reciente</div>
         {listaClientes.length === 0 && (
           <div className="text-atenuado text-[13.5px]">
             Sin clientes todavía. Crea la primera invitación desde «Clientes».
           </div>
         )}
-        {listaClientes
-          .slice()
-          .sort((a, b) => {
-            const fa = ultimaActividad.get(a.id);
-            const fb = ultimaActividad.get(b.id);
-            if (!fa && !fb) return 0;
-            if (!fa) return 1;
-            if (!fb) return -1;
-            return new Date(fb).getTime() - new Date(fa).getTime();
-          })
-          .map((c) => {
-            const cuando = haceCuanto(ultimaActividad.get(c.id) ?? null);
-            return (
-              <Link
-                key={c.id}
-                href={`/clientes/${c.id}`}
-                className="flex justify-between w-full border-b border-borde last:border-0 py-[11px] px-0.5 text-[14.5px]"
+        {actividadOrdenada.slice(0, 7).map((c) => {
+          const cuando = haceCuanto(ultimaActividad.get(c.id) ?? null);
+          return (
+            <Link key={c.id} href={`/clientes/${c.id}`} className="fila">
+              <span className="flex-1 min-w-0 truncate text-[14px]">{c.nombre}</span>
+              <span
+                className={`text-[12.5px] shrink-0 ${cuando === "Hoy" ? "text-acento" : "text-atenuado"}`}
               >
-                <span>{c.nombre}</span>
-                <span
-                  className={cuando === "Hoy" ? "text-acento" : "text-atenuado"}
-                >
-                  {cuando}
-                </span>
-              </Link>
-            );
-          })}
-      </section>
+                {cuando}
+              </span>
+            </Link>
+          );
+        })}
+        {actividadOrdenada.length > 7 && (
+          <Link href="/clientes" className="text-acento text-[13px] inline-block mt-2">
+            Ver todos →
+          </Link>
+        )}
+      </div>
+
+      {/* 3. KPIs — discretos, una línea de texto, nada de cajas grandes */}
+      <div className="flex items-center gap-2 text-[13px] text-atenuado mb-6">
+        <span>
+          <b className="text-texto-2">{listaClientes.length}</b> activos
+        </span>
+        <span>·</span>
+        <span>
+          <b className="text-texto-2">{media}%</b> adherencia
+        </span>
+        <span>·</span>
+        <span className={enRiesgo.length > 0 ? "text-peligro" : ""}>
+          <b className={enRiesgo.length > 0 ? "text-peligro" : "text-texto-2"}>
+            {enRiesgo.length}
+          </b>{" "}
+          en riesgo
+        </span>
+      </div>
+
+      {/* 4. Resto: buenas noticias, al final */}
+      {recordsSemana.length > 0 && (
+        <div className="mb-6">
+          <div className="titulo-seccion">Récords de la semana</div>
+          {recordsSemana.map((rec, i) => (
+            <Link key={i} href={`/clientes/${rec.cliente_id}`} className="fila">
+              <span className="flex-1 min-w-0 truncate text-[13.5px]">
+                <b>{rec.nombre}</b>
+                <span className="text-texto-2"> — {rec.ejercicio}</span>
+              </span>
+              <span className="shrink-0 text-[13.5px]">
+                <span className="text-atenuado">{Number(rec.kg_previo)} kg → </span>
+                <b className="text-aviso">{Number(rec.kg_nuevo)} kg</b>
+              </span>
+            </Link>
+          ))}
+        </div>
+      )}
+
+      {listosParaAvanzar.length > 0 && (
+        <div className="mb-6">
+          <div className="titulo-seccion">Listos para avanzar</div>
+          {listosParaAvanzar.map((a, i) => (
+            <Link key={i} href={`/clientes/${a.cliente_id}`} className="fila">
+              <span className="flex-1 min-w-0 truncate text-[13.5px]">
+                <b>{a.nombre}</b>
+                <span className="text-texto-2"> — {a.mensaje}</span>
+              </span>
+              <span className="text-acento shrink-0 text-[13.5px]">→</span>
+            </Link>
+          ))}
+        </div>
+      )}
     </>
   );
 }

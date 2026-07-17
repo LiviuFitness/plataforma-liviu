@@ -84,86 +84,90 @@ export default function Ajustes({ perfil, email }: { perfil: Perfil; email: stri
       <h1 className="h1">Ajustes</h1>
       <div className="sub mb-4">tu cuenta de entrenador —</div>
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">MIS DATOS</div>
-        <input
-          className="input"
-          placeholder="Tu nombre"
-          value={nombre}
-          onChange={(e) => setNombre(e.target.value)}
-        />
-        {msgNombre && (
-          <div className={`text-[13.5px] mb-3 ${msgNombre.ok ? "text-acento" : "text-peligro"}`}>
-            — {msgNombre.texto}
-          </div>
-        )}
-        <button
-          className="cta !mb-0"
-          onClick={guardarNombre}
-          disabled={guardandoNombre || !nombre.trim() || nombre.trim() === perfil.nombre}
-        >
-          {guardandoNombre ? "Guardando…" : "Guardar nombre"}
-        </button>
-      </section>
+      {/* Una sola superficie con 3 secciones internas — sin espacio
+       * muerto entre tarjetas idénticas, estilo Stripe/Vercel. */}
+      <div className="superficie">
+        <div className="fila-ajuste">
+          <div className="titulo-tarjeta">Mis datos</div>
+          <input
+            className="input !mb-2"
+            placeholder="Tu nombre"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+          />
+          {msgNombre && (
+            <div className={`text-[13.5px] mb-2 ${msgNombre.ok ? "text-acento" : "text-peligro"}`}>
+              — {msgNombre.texto}
+            </div>
+          )}
+          <button
+            className="cta !mb-0"
+            onClick={guardarNombre}
+            disabled={guardandoNombre || !nombre.trim() || nombre.trim() === perfil.nombre}
+          >
+            {guardandoNombre ? "Guardando…" : "Guardar nombre"}
+          </button>
+        </div>
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">CORREO DE ACCESO</div>
-        <input
-          className="input"
-          type="email"
-          placeholder="tu@correo.com"
-          value={nuevoEmail}
-          onChange={(e) => setNuevoEmail(e.target.value)}
-        />
-        {msgEmail && (
-          <div className={`text-[13.5px] mb-3 ${msgEmail.ok ? "text-acento" : "text-peligro"}`}>
-            — {msgEmail.texto}
-          </div>
-        )}
-        <button
-          className="cta !mb-0"
-          onClick={cambiarEmail}
-          disabled={cambiandoEmail || !nuevoEmail.trim() || nuevoEmail.trim() === email}
-        >
-          {cambiandoEmail ? "Enviando…" : "Cambiar correo"}
-        </button>
-        <p className="text-atenuado text-[12px] mt-2">
-          Por seguridad, Supabase te pedirá confirmar el cambio desde un enlace
-          que llegará al nuevo correo.
-        </p>
-      </section>
+        <div className="fila-ajuste">
+          <div className="titulo-tarjeta">Correo de acceso</div>
+          <input
+            className="input !mb-2"
+            type="email"
+            placeholder="tu@correo.com"
+            value={nuevoEmail}
+            onChange={(e) => setNuevoEmail(e.target.value)}
+          />
+          {msgEmail && (
+            <div className={`text-[13.5px] mb-2 ${msgEmail.ok ? "text-acento" : "text-peligro"}`}>
+              — {msgEmail.texto}
+            </div>
+          )}
+          <button
+            className="cta !mb-0"
+            onClick={cambiarEmail}
+            disabled={cambiandoEmail || !nuevoEmail.trim() || nuevoEmail.trim() === email}
+          >
+            {cambiandoEmail ? "Enviando…" : "Cambiar correo"}
+          </button>
+          <p className="text-atenuado text-[12px] mt-2">
+            Por seguridad, Supabase te pedirá confirmar el cambio desde un enlace
+            que llegará al nuevo correo.
+          </p>
+        </div>
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">CAMBIAR CONTRASEÑA</div>
-        <input
-          className="input"
-          type="password"
-          placeholder="Contraseña nueva (mínimo 8 caracteres)"
-          autoComplete="new-password"
-          value={contrasena}
-          onChange={(e) => setContrasena(e.target.value)}
-        />
-        <input
-          className="input"
-          type="password"
-          placeholder="Repite la contraseña"
-          autoComplete="new-password"
-          value={repetida}
-          onChange={(e) => setRepetida(e.target.value)}
-        />
-        {msgContrasena && (
-          <div className={`text-[13.5px] mb-3 ${msgContrasena.ok ? "text-acento" : "text-peligro"}`}>
-            — {msgContrasena.texto}
-          </div>
-        )}
-        <button
-          className="cta !mb-0"
-          onClick={cambiarContrasena}
-          disabled={cambiando || contrasena === ""}
-        >
-          {cambiando ? "Cambiando…" : "Cambiar contraseña"}
-        </button>
-      </section>
+        <div className="fila-ajuste">
+          <div className="titulo-tarjeta">Cambiar contraseña</div>
+          <input
+            className="input"
+            type="password"
+            placeholder="Contraseña nueva (mínimo 8 caracteres)"
+            autoComplete="new-password"
+            value={contrasena}
+            onChange={(e) => setContrasena(e.target.value)}
+          />
+          <input
+            className="input !mb-2"
+            type="password"
+            placeholder="Repite la contraseña"
+            autoComplete="new-password"
+            value={repetida}
+            onChange={(e) => setRepetida(e.target.value)}
+          />
+          {msgContrasena && (
+            <div className={`text-[13.5px] mb-2 ${msgContrasena.ok ? "text-acento" : "text-peligro"}`}>
+              — {msgContrasena.texto}
+            </div>
+          )}
+          <button
+            className="cta !mb-0"
+            onClick={cambiarContrasena}
+            disabled={cambiando || contrasena === ""}
+          >
+            {cambiando ? "Cambiando…" : "Cambiar contraseña"}
+          </button>
+        </div>
+      </div>
     </>
   );
 }

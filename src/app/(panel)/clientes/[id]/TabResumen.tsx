@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertTriangle, CalendarCheck } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Sparkline } from "@/componentes/ui";
 import { OBJETIVOS, type Alerta, type Estado, type Medida, type Perfil, type Plan } from "@/lib/tipos";
@@ -131,8 +132,10 @@ export default function TabResumen({
 
   return (
     <>
+      {/* Peso + adherencia agrupados en una sola superficie — dos datos
+       * relacionados de la semana, no necesitan dos cajas separadas. */}
       <section className="tarjeta">
-        <div className="titulo-tarjeta">PESO — evolución</div>
+        <div className="titulo-tarjeta">Peso — evolución</div>
         <Sparkline datos={pesos} />
         {pesos.length >= 2 && (
           <div className="flex justify-between items-center">
@@ -142,19 +145,13 @@ export default function TabResumen({
             <span className="num-grande">{pesos[pesos.length - 1]} kg</span>
           </div>
         )}
-      </section>
-
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">ADHERENCIA — esta semana</div>
+        <div className="border-t border-borde my-3.5" />
+        <div className="titulo-tarjeta">Adherencia — esta semana</div>
         <div className="flex justify-between px-1.5 py-1">
           {diasEntrenados.map((activo, i) => (
             <div key={i} className="flex flex-col items-center gap-1.5">
               <div
-                className={`w-3.5 h-3.5 rounded-full ${
-                  activo
-                    ? "bg-acento shadow-[0_0_8px_rgba(41,171,226,0.7)]"
-                    : "bg-borde-2"
-                }`}
+                className={`w-2.5 h-2.5 rounded-full ${activo ? "bg-acento" : "bg-borde-2"}`}
               />
               <span className="text-[11px] text-atenuado">{DIAS[i]}</span>
             </div>
@@ -162,16 +159,16 @@ export default function TabResumen({
         </div>
       </section>
 
+      {/* Necesita atención — banners de una línea, no una caja roja */}
       {alertas.length > 0 && (
-        <section className="tarjeta !border-peligro/35">
-          <div className="titulo-tarjeta !text-peligro">NECESITA ATENCIÓN</div>
+        <div className="flex flex-col gap-1.5 mb-3.5">
           {alertas.map((a, i) =>
             a.tipo === "semana_completa" && a.rutina_id && a.semana_destino ? (
-              <div
-                key={i}
-                className="flex justify-between items-center gap-2 text-texto-2 text-[13px] py-1"
-              >
-                <span>— {a.mensaje}</span>
+              <div key={i} className="banner banner-accion justify-between">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <CalendarCheck size={14} className="shrink-0" />
+                  <span className="truncate">{a.mensaje}</span>
+                </span>
                 <button
                   className="mini !w-auto !px-2.5 shrink-0"
                   onClick={() => avanzarSemana(a.rutina_id!, a.semana_destino!)}
@@ -183,24 +180,24 @@ export default function TabResumen({
                 </button>
               </div>
             ) : (
-              <div key={i} className="text-texto-2 text-[13px] mt-0.5">
-                — {a.mensaje}
+              <div key={i} className="banner banner-peligro">
+                <AlertTriangle size={14} className="shrink-0 mt-px" /> {a.mensaje}
               </div>
             )
           )}
-        </section>
+        </div>
       )}
 
       <section className="tarjeta">
         <div className="titulo-tarjeta flex justify-between">
-          <span>NOTAS DEL ENTRENADOR</span>
+          <span>Notas del entrenador</span>
           <span className="text-[11px] normal-case tracking-normal">
             {estadoNotas === "guardando" && "Guardando…"}
             {estadoNotas === "ok" && "Guardado ✓"}
           </span>
         </div>
         <textarea
-          className="w-full bg-campo border border-borde-2 rounded-[10px] text-white p-2.5 px-3 text-[14px] resize-y font-cuerpo"
+          className="input resize-y"
           rows={3}
           placeholder="Escribe una nota interna… (el cliente no la ve)"
           value={notas}

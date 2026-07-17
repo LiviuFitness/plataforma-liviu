@@ -68,12 +68,24 @@ export default async function PaginaClientes() {
     }
   }
 
+  // Días desde el alta — para no marcar "riesgo" a quien acaba de entrar
+  // y todavía no ha tenido tiempo de registrar su primera sesión.
+  const ahora = new Date().getTime();
+  const diasDesdeAlta = new Map<string, number>();
+  for (const c of clientes ?? []) {
+    diasDesdeAlta.set(
+      c.id,
+      Math.floor((ahora - new Date(c.fecha_alta).getTime()) / 86400000)
+    );
+  }
+
   return (
     <ListaClientes
       clientes={(clientes ?? []) as Perfil[]}
       adherencias={Object.fromEntries(mapaAdh)}
       alertas={Object.fromEntries(numAlertas)}
       diasSinEntrenar={Object.fromEntries(diasSinEntrenar)}
+      diasDesdeAlta={Object.fromEntries(diasDesdeAlta)}
       chatSinLeer={Object.fromEntries(chatSinLeer)}
       invitaciones={(invitaciones ?? []) as Invitacion[]}
     />

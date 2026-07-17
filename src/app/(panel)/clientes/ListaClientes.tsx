@@ -5,7 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MessageCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { AnilloAdherencia } from "@/componentes/ui";
+import { Avatar, PuntoEstado } from "@/componentes/ui";
+import { estadoCliente } from "@/lib/estadoCliente";
 import { OBJETIVOS, type Invitacion, type Perfil } from "@/lib/tipos";
 
 /** Listado de clientes con buscador + gestión de invitaciones. */
@@ -14,6 +15,7 @@ export default function ListaClientes({
   adherencias,
   alertas,
   diasSinEntrenar,
+  diasDesdeAlta,
   chatSinLeer,
   invitaciones,
 }: {
@@ -22,6 +24,7 @@ export default function ListaClientes({
   alertas: Record<string, number>;
   /** Días desde la última sesión; sin entrada = nunca ha entrenado */
   diasSinEntrenar: Record<string, number>;
+  diasDesdeAlta: Record<string, number>;
   /** true si el último mensaje del hilo lo mandó el cliente (pendiente de responder) */
   chatSinLeer: Record<string, boolean>;
   invitaciones: Invitacion[];
@@ -151,10 +154,8 @@ export default function ListaClientes({
         <section className="tarjeta mt-3.5">
           <div className="titulo-tarjeta">INVITACIONES PENDIENTES</div>
           {invitaciones.map((inv) => (
-            <div
-              key={inv.id}
-              className="flex items-center gap-2 border-b border-borde last:border-0 py-2.5"
-            >
+            <div key={inv.id} className="fila">
+
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-[14px]">{inv.nombre}</div>
                 <div className="text-atenuado text-[12.5px] truncate">
@@ -190,56 +191,43 @@ export default function ListaClientes({
       )}
 
       {filtrados.map((c) => {
-        // Semáforo de cumplimiento (estilo Harbiz): verde si entrenó hace
-        // <3 días, ámbar 3-6, rojo 7+ o si nunca ha registrado sesión
         const dias = diasSinEntrenar[c.id];
-        const semaforo =
-          dias === undefined || dias >= 7
-            ? "#E25529"
-            : dias >= 3
-              ? "#E2B429"
-              : "#3AC569";
-        const titulo =
-          dias === undefined
-            ? "Sin sesiones registradas"
-            : dias === 0
-              ? "Entrenó hoy"
-              : `Última sesión hace ${dias} día${dias === 1 ? "" : "s"}`;
+        const adh = adherencias[c.id];
+        const estado = estadoCliente({
+          diasSinEntrenar: dias,
+          diasDesdeAlta: diasDesdeAlta[c.id] ?? 0,
+          adherencia: adh ?? 0,
+        });
+        const actividad =
+          dias === undefined ? "Sin sesiones" : dias === 0 ? "Hoy" : dias === 1 ? "Ayer" : `Hace ${dias} días`;
+        const plan =
+          c.plan === "mensual" ? "Mensual" : c.plan === "trimestral" ? "Trimestral" : "Sin plan";
         return (
           <Link
             key={c.id}
             href={`/clientes/${c.id}`}
-            className={`flex items-center gap-3.5 tarjeta !mb-2.5 !py-[13px] ${
-              c.estado !== "activo" ? "opacity-60" : ""
-            }`}
+            className={`fila ${c.estado !== "activo" ? "opacity-60" : ""}`}
           >
-            <AnilloAdherencia valor={adherencias[c.id] ?? 0} />
+            <Avatar nombre={c.nombre} />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-[15.5px] flex items-center gap-2">
+              <div className="font-bold text-[15px] flex items-center gap-2 truncate">
                 {c.nombre}
                 {c.estado === "activo" && (
-                  <span
-                    className="inline-block w-2.5 h-2.5 rounded-full shrink-0"
-                    style={{ background: semaforo }}
-                    title={titulo}
-                  />
+                  <PuntoEstado nivel={estado.nivel} titulo={estado.motivo ?? "Al día"} />
                 )}
               </div>
               <div className="text-atenuado text-[12.5px] truncate">
-                {c.objetivo ?? "Sin objetivo"}
+                {plan} · {actividad}
+                {adh !== undefined ? ` · ${adh}% adherencia` : ""}
                 {c.estado !== "activo" ? ` · ${c.estado}` : ""}
               </div>
             </div>
             {chatSinLeer[c.id] && (
               <span title="Mensaje sin responder" className="shrink-0">
-                <MessageCircle size={18} className="text-acento" fill="currentColor" />
+                <MessageCircle size={16} className="text-acento" fill="currentColor" />
               </span>
             )}
-            {(alertas[c.id] ?? 0) > 0 && (
-              <span className="bg-peligro text-white text-[12px] font-bold rounded-full px-[9px] py-[3px]">
-                {alertas[c.id]}
-              </span>
-            )}
+            {(alertas[c.id] ?? 0) > 0 && <span className="badge">{alertas[c.id]}</span>}
           </Link>
         );
       })}

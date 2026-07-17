@@ -100,11 +100,11 @@ export default function FichaCliente({
             <AnilloAdherencia valor={adherencia} tamano={52} />
           </div>
 
-          <nav className="flex gap-1.5 my-4">
+          <nav className="tabs-texto my-4">
             {PESTANAS.map(([clave, etiqueta]) => (
               <button
                 key={clave}
-                className={pestana === clave ? "tab tab-activa" : "tab"}
+                className={pestana === clave ? "tab-texto tab-texto-activa" : "tab-texto"}
                 onClick={() => setPestana(clave)}
               >
                 {etiqueta}
@@ -131,16 +131,18 @@ export default function FichaCliente({
 
       {pestana === "dieta" && (
         <>
-          {/* Sub-pestaña: dieta de día de entreno vs. día de descanso */}
-          <div className="flex gap-1.5 mb-3.5">
+          {/* Sub-pestaña: dieta de día de entreno vs. día de descanso —
+           * mismo lenguaje de subrayado que las pestañas principales,
+           * en vez de mezclar con el estilo de chip. */}
+          <div className="tabs-texto mb-3.5">
             <button
-              className={tipoDieta === "entreno" ? "chip chip-activo" : "chip"}
+              className={tipoDieta === "entreno" ? "tab-texto tab-texto-activa" : "tab-texto"}
               onClick={() => setTipoDieta("entreno")}
             >
               Día de entreno
             </button>
             <button
-              className={tipoDieta === "descanso" ? "chip chip-activo" : "chip"}
+              className={tipoDieta === "descanso" ? "tab-texto tab-texto-activa" : "tab-texto"}
               onClick={() => setTipoDieta("descanso")}
             >
               Día de descanso
