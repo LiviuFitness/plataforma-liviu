@@ -3,9 +3,10 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
-import { Flame, Trophy, Dumbbell, UtensilsCrossed } from "lucide-react";
+import { Trophy, Dumbbell, UtensilsCrossed } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
+import RachaInline from "./RachaInline";
 import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
 import { semanaHabitosCompleta } from "@/lib/habitos";
@@ -299,15 +300,15 @@ export default async function PaginaInicio() {
     .reverse()
     .map((m) => Number(m.peso));
 
-  // Mensaje contextual: prioriza racha activa, luego semana, luego invita a empezar
+  // Mensaje contextual del saludo — la racha ya tiene su propia fila
+  // (RachaInline) justo debajo, así que aquí no se repite.
   let mensaje = "hoy es un buen día para tu primera sesión —";
-  if (racha >= 2) mensaje = `🔥 llevas ${racha} días seguidos, ¡no la rompas!`;
-  else if (racha === 1) mensaje = "empezaste tu racha ayer, ¡a por hoy!";
-  else if (hechasSemana > 0)
+  if (hechasSemana > 0)
     mensaje = `ya llevas ${hechasSemana} de ${objetivoSemana || "—"} entrenos esta semana —`;
 
   return (
     <>
+      {/* 1. Saludo */}
       <h1 className="h1">
         {saludoSegunHora()}
         {nombrePila ? `, ${nombrePila}` : ""}
@@ -316,90 +317,29 @@ export default async function PaginaInicio() {
 
       <AvisosActualizacion avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
 
-      <div className="tarjeta text-texto-2 text-[13.5px] italic">
+      {/* 2. Racha — fila ligera, sin tarjeta, no compite con el entreno */}
+      <RachaInline racha={racha} />
+
+      {/* 3. Frase motivacional — se mantiene, da personalidad a la app */}
+      <div className="tarjeta text-texto-2 text-[13.5px] italic anim-entrada-1">
         “{fraseDelDia()}”
       </div>
 
-      {prReciente && (
-        <div className="tarjeta tarjeta-dorado !mb-2.5 flex items-center gap-3">
-          <IconoTarjeta Icono={Trophy} color="var(--color-dorado)" tamano={36} />
-          <div>
-            <div className="font-bold text-[14.5px]">
-              Nuevo récord: {prReciente.ejercicio}
-            </div>
-            <div className="text-atenuado text-[12.5px]">
-              {prReciente.kg} kg — ¡sigue así!
-            </div>
-          </div>
-        </div>
-      )}
-
-      {avisoMuscular && (
-        <div className="tarjeta !mb-2.5 flex items-center gap-3">
-          <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={36} />
-          <div className="text-[13.5px] text-texto-2">
-            Llevas{" "}
-            {avisoMuscular.diasDesdeUltimoEntreno === null
-              ? "un tiempo"
-              : `${avisoMuscular.diasDesdeUltimoEntreno} días`}{" "}
-            sin trabajar <b>{avisoMuscular.grupo}</b> — está en tu rutina, ¡tócalo pronto!
-          </div>
-        </div>
-      )}
-
-      {/* Racha y semana — mismo sistema de tarjeta neutro que el resto;
-       * el color vive solo en el detalle pequeño (icono de la racha,
-       * puntos de la semana), no en la tarjeta entera. */}
-      <div className="grid grid-cols-2 gap-2.5 my-[18px] anim-entrada-1">
-        <div className="tarjeta !mb-0 text-center !p-4">
-          <IconoTarjeta
-            Icono={Flame}
-            color={racha > 0 ? "var(--color-dorado)" : "var(--color-atenuado)"}
-            tamano={36}
-            className="mx-auto mb-1.5"
-          />
-          <div className="num-grande">{racha}</div>
-          <div className="text-[11px] text-atenuado mt-0.5">
-            {racha === 1 ? "día de racha" : "días de racha"}
-          </div>
-        </div>
-        <div className="tarjeta !mb-0 text-center !p-4">
-          <div className="num-grande">
-            {hechasSemana}
-            <span className="text-atenuado text-[17px]">
-              /{objetivoSemana || "—"}
-            </span>
-          </div>
-          <div className="text-[11px] text-atenuado mt-1.5">
-            entrenos esta semana
-          </div>
-          <div className="flex justify-center gap-1.5 mt-2">
-            {diasEntrenados.map((activo, i) => (
-              <div
-                key={i}
-                title={DIAS_SEMANA[i]}
-                className={`w-2 h-2 rounded-full ${
-                  activo ? "bg-acento" : "bg-borde-2"
-                }`}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Próximo entreno — hero card, primera llamada a la acción de la pantalla */}
+      {/* 4. ENTRENAMIENTO DE HOY — la tarjeta protagonista: la más grande,
+       * la que más aire tiene, la que invita a pulsar "Empezar sesión".
+       * Todo lo anterior en esta pantalla es solo el preámbulo. */}
       {proximoDia ? (
-        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-5">
-          <div className="flex items-center gap-3.5 mb-4">
-            <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={46} />
+        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-6 !mb-3">
+          <div className="flex items-center gap-3.5 mb-5">
+            <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={48} />
             <div className="min-w-0">
               <div className="titulo-tarjeta !mb-1">
-                TU PRÓXIMO ENTRENO · SEMANA {rutina?.semana_actual ?? 1}
+                Tu próximo entreno · semana {rutina?.semana_actual ?? 1}
               </div>
-              <div className="font-bold text-[19px]">{proximoDia.nombre}</div>
+              <div className="font-bold text-[20px] leading-tight">{proximoDia.nombre}</div>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2 mb-4">
+          <div className="flex flex-wrap gap-2 mb-5">
             <span className="chip !cursor-default">
               {proximoDia.ejercicios.length} ejercicios
             </span>
@@ -417,7 +357,7 @@ export default async function PaginaInicio() {
         </section>
       ) : (
         <section className="tarjeta anim-entrada-2">
-          <div className="titulo-tarjeta">TU PRÓXIMO ENTRENO</div>
+          <div className="titulo-tarjeta">Tu próximo entreno</div>
           <div className="text-atenuado text-[14px]">
             Tu rutina está en el horno 🔥 En cuanto tu entrenador te asigne el
             plan, aparecerá aquí.
@@ -425,10 +365,21 @@ export default async function PaginaInicio() {
         </section>
       )}
 
-      {/* Otros días de la rutina */}
+      {/* Récord reciente — celebración breve pegada a la acción, no una
+       * tarjeta aparte que le reste protagonismo al entreno. */}
+      {prReciente && (
+        <div className="banner banner-dorado !mb-3">
+          <Trophy size={14} className="shrink-0 mt-px" />
+          <span>
+            Nuevo récord en <b>{prReciente.ejercicio}</b>: {prReciente.kg} kg — ¡sigue así!
+          </span>
+        </div>
+      )}
+
+      {/* Otros días de la rutina — alternativa directa a la misma decisión */}
       {rutina && rutina.dias.length > 1 && (
         <section className="tarjeta">
-          <div className="titulo-tarjeta">O ELIGE OTRO DÍA</div>
+          <div className="titulo-tarjeta">O elige otro día</div>
           {rutina.dias.map(
             (dia, i) =>
               i !== proximoIndice && (
@@ -450,6 +401,7 @@ export default async function PaginaInicio() {
         </section>
       )}
 
+      {/* 5. Peso */}
       <RegistroPesoRapido
         clienteId={user.id}
         ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
@@ -457,21 +409,17 @@ export default async function PaginaInicio() {
         historial={historialPeso}
       />
 
+      {/* 6. Hábitos */}
       <WidgetHabitos
         clienteId={user.id}
         habitos={habitos ?? []}
         registros={registrosHabitos ?? []}
       />
 
-      <WidgetLogros
-        desbloqueados={[...clavesDesbloqueadas]}
-        nuevos={nuevosLogros}
-      />
-
-      {/* Acceso rápido a la dieta — el verde vive solo en el icono, el
-       * kcal y la barra de macros (que ya comunica proteína/hidratos/
-       * grasas por color); los chips comparten un único estilo neutro
-       * en vez de repetir esos mismos 3 colores en sus bordes. */}
+      {/* 7. Dieta — el verde vive solo en el icono, el kcal y la barra de
+       * macros (que ya comunica proteína/hidratos/grasas por color); los
+       * chips comparten un único estilo neutro en vez de repetir esos
+       * mismos 3 colores en sus bordes. */}
       {dieta && (
         <Link
           href="/mi-dieta"
@@ -479,7 +427,7 @@ export default async function PaginaInicio() {
         >
           <IconoTarjeta Icono={UtensilsCrossed} color="var(--color-verde)" />
           <div className="flex-1 min-w-0">
-            <div className="titulo-tarjeta !mb-1">TU DIETA DE HOY</div>
+            <div className="titulo-tarjeta !mb-1">Tu dieta de hoy</div>
             <div className="flex items-baseline gap-1.5 mb-2">
               <span className="num-grande !text-[20px]" style={{ color: "var(--color-verde)" }}>
                 {dieta.kcal_obj}
@@ -504,6 +452,46 @@ export default async function PaginaInicio() {
           </div>
           <span className="texto-secundario shrink-0">Ver →</span>
         </Link>
+      )}
+
+      {/* 8. Logros */}
+      <WidgetLogros
+        desbloqueados={[...clavesDesbloqueadas]}
+        nuevos={nuevosLogros}
+      />
+
+      {/* 9. Otras estadísticas — la prioridad más baja de la pantalla:
+       * cuántos entrenos llevas esta semana y avisos informativos, sin
+       * pelear por atención con nada de lo anterior. */}
+      <div className="titulo-tarjeta mt-2">Esta semana</div>
+      <div className="tarjeta !p-4">
+        <div className="flex items-baseline gap-1.5">
+          <span className="num-grande !text-[20px]">{hechasSemana}</span>
+          <span className="text-atenuado text-[13px]">
+            /{objetivoSemana || "—"} entrenos
+          </span>
+        </div>
+        <div className="flex gap-1.5 mt-2.5">
+          {diasEntrenados.map((activo, i) => (
+            <div
+              key={i}
+              title={DIAS_SEMANA[i]}
+              className={`w-2 h-2 rounded-full ${activo ? "bg-acento" : "bg-borde-2"}`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {avisoMuscular && (
+        <div className="flex items-center gap-2 text-[13px] text-atenuado mt-3">
+          <Dumbbell size={13} className="shrink-0" />
+          <span>
+            {avisoMuscular.diasDesdeUltimoEntreno === null
+              ? "Llevas un tiempo"
+              : `Llevas ${avisoMuscular.diasDesdeUltimoEntreno} días`}{" "}
+            sin trabajar {avisoMuscular.grupo}, y está en tu rutina.
+          </span>
+        </div>
       )}
     </>
   );

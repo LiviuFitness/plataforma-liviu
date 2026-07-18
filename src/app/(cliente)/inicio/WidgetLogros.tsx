@@ -1,10 +1,15 @@
+"use client";
+
 import Link from "next/link";
 import { Medal } from "lucide-react";
 import { CATALOGO_LOGROS } from "@/lib/logros";
 import { IconoTarjeta } from "@/componentes/ui";
+import Confetti from "@/componentes/Confetti";
 
 /** Tarjeta de Inicio: resumen de logros desbloqueados, con acceso a
- * la comunidad (feed de logros + ranking de constancia). */
+ * la comunidad (feed de logros + ranking de constancia). Si `nuevos`
+ * trae algo, dispara un confeti breve — la única celebración animada
+ * de la Home, reservada a un momento que de verdad lo merece. */
 export default function WidgetLogros({
   desbloqueados,
   nuevos,
@@ -20,8 +25,9 @@ export default function WidgetLogros({
   return (
     <Link
       href="/comunidad"
-      className="tarjeta tarjeta-dorado anim-pulsable anim-entrada-4 flex items-center gap-3.5 w-full"
+      className="tarjeta tarjeta-dorado anim-pulsable anim-entrada-4 flex items-center gap-3.5 w-full relative"
     >
+      {nuevos.length > 0 && <Confetti />}
       <IconoTarjeta Icono={Medal} color="var(--color-dorado)" />
       <div className="flex-1 min-w-0">
         <div className="titulo-tarjeta !mb-1">TUS LOGROS</div>

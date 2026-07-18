@@ -63,6 +63,7 @@ export default function WidgetHabitos({
   }
 
   async function alternar(habitoId: string) {
+    if ("vibrate" in navigator) navigator.vibrate(10);
     setPendientes((prev) => new Set(prev).add(habitoId));
     const supabase = crearClienteNavegador();
     const hecho = marcadosHoy.has(habitoId);
