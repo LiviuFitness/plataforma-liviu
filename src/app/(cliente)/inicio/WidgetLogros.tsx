@@ -30,7 +30,6 @@ export default function WidgetLogros({
       {nuevos.length > 0 && <Confetti />}
       <IconoTarjeta Icono={Medal} color="var(--color-dorado)" />
       <div className="flex-1 min-w-0">
-        <div className="titulo-tarjeta !mb-1">TUS LOGROS</div>
         <div className="flex items-baseline gap-1.5 mb-1.5">
           <span className="num-grande !text-[20px]" style={{ color: "var(--color-dorado)" }}>
             {conseguidos.length}

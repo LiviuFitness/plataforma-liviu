@@ -325,28 +325,24 @@ export default async function PaginaInicio() {
         “{fraseDelDia()}”
       </div>
 
-      {/* 4. ENTRENAMIENTO DE HOY — la tarjeta protagonista: la más grande,
-       * la que más aire tiene, la que invita a pulsar "Empezar sesión".
-       * Todo lo anterior en esta pantalla es solo el preámbulo. */}
+      {/* 4. ENTRENAMIENTO DE HOY — la tarjeta protagonista. Sin eyebrow:
+       * el nombre del día ES el título, y semana/ejercicios/series/
+       * duración se leen en una sola línea en vez de fragmentarse en
+       * chips — todo el bloque de arriba se lee en menos de un segundo,
+       * y el botón queda como el único elemento que pide ser pulsado. */}
       {proximoDia ? (
         <section className="tarjeta tarjeta-acento anim-entrada-2 !p-6 !mb-3">
-          <div className="flex items-center gap-3.5 mb-5">
+          <div className="flex items-center gap-3.5 mb-4">
             <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={48} />
             <div className="min-w-0">
-              <div className="titulo-tarjeta !mb-1">
-                Tu próximo entreno · semana {rutina?.semana_actual ?? 1}
+              <div className="font-bold text-[21px] leading-tight truncate">
+                {proximoDia.nombre}
               </div>
-              <div className="font-bold text-[20px] leading-tight">{proximoDia.nombre}</div>
+              <div className="text-atenuado text-[13px] mt-1 truncate">
+                Semana {rutina?.semana_actual ?? 1} · {proximoDia.ejercicios.length} ejercicios ·{" "}
+                {seriesEfectivasProximo} series · {duracionMin}–{duracionMax} min
+              </div>
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2 mb-5">
-            <span className="chip !cursor-default">
-              {proximoDia.ejercicios.length} ejercicios
-            </span>
-            <span className="chip !cursor-default">{seriesEfectivasProximo} series</span>
-            <span className="chip !cursor-default">
-              {duracionMin}–{duracionMax} min aprox.
-            </span>
           </div>
           <Link
             href={`/sesion/${proximoDia.id}`}
@@ -357,7 +353,6 @@ export default async function PaginaInicio() {
         </section>
       ) : (
         <section className="tarjeta anim-entrada-2">
-          <div className="titulo-tarjeta">Tu próximo entreno</div>
           <div className="text-atenuado text-[14px]">
             Tu rutina está en el horno 🔥 En cuanto tu entrenador te asigne el
             plan, aparecerá aquí.
@@ -427,7 +422,6 @@ export default async function PaginaInicio() {
         >
           <IconoTarjeta Icono={UtensilsCrossed} color="var(--color-verde)" />
           <div className="flex-1 min-w-0">
-            <div className="titulo-tarjeta !mb-1">Tu dieta de hoy</div>
             <div className="flex items-baseline gap-1.5 mb-2">
               <span className="num-grande !text-[20px]" style={{ color: "var(--color-verde)" }}>
                 {dieta.kcal_obj}
@@ -462,13 +456,13 @@ export default async function PaginaInicio() {
 
       {/* 9. Otras estadísticas — la prioridad más baja de la pantalla:
        * cuántos entrenos llevas esta semana y avisos informativos, sin
-       * pelear por atención con nada de lo anterior. */}
-      <div className="titulo-tarjeta mt-2">Esta semana</div>
-      <div className="tarjeta !p-4">
+       * pelear por atención con nada de lo anterior. El "esta semana"
+       * vive en la propia frase, no hace falta un título aparte. */}
+      <div className="tarjeta !p-4 mt-2">
         <div className="flex items-baseline gap-1.5">
           <span className="num-grande !text-[20px]">{hechasSemana}</span>
           <span className="text-atenuado text-[13px]">
-            /{objetivoSemana || "—"} entrenos
+            /{objetivoSemana || "—"} entrenos esta semana
           </span>
         </div>
         <div className="flex gap-1.5 mt-2.5">

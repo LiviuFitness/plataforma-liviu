@@ -87,7 +87,6 @@ export default function RegistroPesoRapido({
       <div className="flex items-center gap-3.5">
         <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" />
         <div className="flex-1 min-w-0">
-          <div className="titulo-tarjeta !mb-1">TU PESO</div>
           {ultimoPeso !== null ? (
             <div className="flex items-baseline gap-1.5">
               <span className="num-grande" style={{ color: "var(--color-turquesa)" }}>
