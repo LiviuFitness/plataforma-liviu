@@ -124,6 +124,45 @@ export interface Mensaje {
   creado_en: string;
 }
 
+/** Historial de ajustes de kcal aplicados en la revisión semanal. */
+export interface RevisionKcal {
+  id: string;
+  cliente_id: string;
+  dieta_id: string | null;
+  kcal_anterior: number;
+  kcal_nuevo: number;
+  delta: number;
+  motivo: string | null;
+  creado_en: string;
+}
+
+/** Pregunta del cuestionario semanal (configurable por el entrenador). */
+export interface PreguntaRevision {
+  id: string;
+  texto: string;
+  orden: number;
+  activa: boolean;
+}
+
+/** Respuesta del cliente a una pregunta, para la semana (lunes) indicada. */
+export interface RespuestaRevision {
+  id: string;
+  cliente_id: string;
+  pregunta_id: string;
+  semana: string;
+  respuesta: string;
+  creado_en: string;
+}
+
+/** Respuesta con el texto de la pregunta embebido (vista del entrenador). */
+export interface RespuestaRevisionConPregunta {
+  id: string;
+  semana: string;
+  respuesta: string;
+  creado_en: string;
+  preguntas_revision: { texto: string } | null;
+}
+
 export interface Alerta {
   cliente_id: string;
   nombre: string;

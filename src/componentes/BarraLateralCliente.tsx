@@ -10,8 +10,10 @@ import { PESTANAS_CLIENTE } from "./navegacionCliente";
  * (md+); en móvil la sustituye BarraCliente (barra inferior). */
 export default function BarraLateralCliente({
   chatSinLeer = false,
+  revisionSinLeer = false,
 }: {
   chatSinLeer?: boolean;
+  revisionSinLeer?: boolean;
 }) {
   const ruta = usePathname();
   return (
@@ -34,7 +36,8 @@ export default function BarraLateralCliente({
             >
               <p.Icono size={19} strokeWidth={1.75} />
               {p.etiqueta}
-              {p.ruta === "/chat" && chatSinLeer && (
+              {((p.ruta === "/chat" && chatSinLeer) ||
+                (p.ruta === "/mi-progreso" && revisionSinLeer)) && (
                 <span className="absolute top-2 left-7 w-2 h-2 rounded-full bg-peligro" />
               )}
             </Link>

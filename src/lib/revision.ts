@@ -13,7 +13,7 @@ export interface SemanaRevision {
   variacionPct: number | null;
 }
 
-function lunesDe(fechaISO: string): string {
+export function lunesDe(fechaISO: string): string {
   const d = new Date(fechaISO + "T00:00:00");
   const lunes = new Date(d);
   lunes.setDate(d.getDate() - ((d.getDay() + 6) % 7));

@@ -6,7 +6,13 @@ import { PESTANAS_CLIENTE } from "./navegacionCliente";
 
 /** Navegación inferior de la app del cliente (solo móvil; en escritorio
  * la sustituye BarraLateralCliente). */
-export default function BarraCliente({ chatSinLeer = false }: { chatSinLeer?: boolean }) {
+export default function BarraCliente({
+  chatSinLeer = false,
+  revisionSinLeer = false,
+}: {
+  chatSinLeer?: boolean;
+  revisionSinLeer?: boolean;
+}) {
   const ruta = usePathname();
   return (
     <nav
@@ -27,7 +33,8 @@ export default function BarraCliente({ chatSinLeer = false }: { chatSinLeer?: bo
                 strokeWidth={1.75}
                 className={activa ? "text-acento" : "text-atenuado"}
               />
-              {p.ruta === "/chat" && chatSinLeer && (
+              {((p.ruta === "/chat" && chatSinLeer) ||
+                (p.ruta === "/mi-progreso" && revisionSinLeer)) && (
                 <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-peligro" />
               )}
             </span>

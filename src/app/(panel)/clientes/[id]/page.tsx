@@ -14,6 +14,8 @@ import type {
   Medida,
   Mensaje,
   Perfil,
+  RespuestaRevisionConPregunta,
+  RevisionKcal,
 } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +54,8 @@ export default async function PaginaFichaCliente({
     { data: habitos },
     { data: registrosHabitos },
     { data: mensajes },
+    { data: revisiones },
+    { data: respuestasCuestionario },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -114,6 +118,16 @@ export default async function PaginaFichaCliente({
       .select("*")
       .eq("cliente_id", id)
       .order("creado_en", { ascending: true }),
+    supabase
+      .from("revisiones_kcal")
+      .select("*")
+      .eq("cliente_id", id)
+      .order("creado_en", { ascending: false }),
+    supabase
+      .from("respuestas_revision")
+      .select("id, semana, respuesta, creado_en, preguntas_revision ( texto )")
+      .eq("cliente_id", id)
+      .order("semana", { ascending: false }),
   ]);
 
   if (!perfil) notFound();
@@ -149,6 +163,10 @@ export default async function PaginaFichaCliente({
       habitos={(habitos ?? []) as Habito[]}
       registrosHabitos={(registrosHabitos ?? []) as HabitoRegistro[]}
       mensajes={(mensajes ?? []) as Mensaje[]}
+      revisiones={(revisiones ?? []) as RevisionKcal[]}
+      respuestasCuestionario={
+        (respuestasCuestionario ?? []) as unknown as RespuestaRevisionConPregunta[]
+      }
     />
   );
 }

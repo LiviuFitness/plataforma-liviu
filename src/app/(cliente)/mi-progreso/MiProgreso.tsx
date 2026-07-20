@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Scale } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -11,10 +11,17 @@ import FotosProgreso from "@/componentes/FotosProgreso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import GridLogros from "@/componentes/GridLogros";
+import CuestionarioSemanal from "./CuestionarioSemanal";
 import type { SemanaRevision } from "@/lib/revision";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
 import type { VolumenMuscular } from "@/lib/musculos";
-import type { EntradaFotosProgreso, Medida } from "@/lib/tipos";
+import type {
+  EntradaFotosProgreso,
+  Medida,
+  PreguntaRevision,
+  RespuestaRevision,
+  RevisionKcal,
+} from "@/lib/tipos";
 
 /** Progreso del cliente: registra su peso, ve PRs e historial. */
 export default function MiProgreso({
@@ -27,6 +34,10 @@ export default function MiProgreso({
   entradasFotos,
   volumenMuscular,
   logrosDesbloqueados,
+  revisiones,
+  preguntas,
+  respuestasSemana,
+  semanaActualISO,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -37,6 +48,10 @@ export default function MiProgreso({
   entradasFotos: EntradaFotosProgreso[];
   volumenMuscular: VolumenMuscular[];
   logrosDesbloqueados: string[];
+  revisiones: RevisionKcal[];
+  preguntas: PreguntaRevision[];
+  respuestasSemana: RespuestaRevision[];
+  semanaActualISO: string;
 }) {
   const router = useRouter();
   const [peso, setPeso] = useState("");
@@ -45,6 +60,19 @@ export default function MiProgreso({
 
   const pesos = medidas.filter((m) => m.peso !== null).map((m) => Number(m.peso));
   const pesoAnimado = useCountUp(pesos[pesos.length - 1] ?? 0, 1);
+
+  // El cliente ve el historial de ajustes de kcal sin que Liviu tenga que
+  // avisarle a mano — al entrar a esta pantalla se marca como visto (mismo
+  // patrón que marcar_chat_visto).
+  useEffect(() => {
+    if (revisiones.length === 0) return;
+    (async () => {
+      const supabase = crearClienteNavegador();
+      await supabase.rpc("marcar_revisiones_vistas");
+    })();
+    // Solo al montar: no hace falta repetirlo si `revisiones` cambia por otra razón.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function guardarPeso() {
     const valor = aNumero(peso);
@@ -84,6 +112,13 @@ export default function MiProgreso({
       <h1 className="h1">Mi progreso</h1>
       <div className="sub mb-4">cada semana cuenta —</div>
 
+      <CuestionarioSemanal
+        clienteId={clienteId}
+        preguntas={preguntas}
+        respuestasSemana={respuestasSemana}
+        semanaActualISO={semanaActualISO}
+      />
+
       {semanaActual && semanaActual.variacionPct !== null && (
         <section
           className={`tarjeta ${semanaActual.variacionPct < 0 ? "tarjeta-turquesa" : semanaActual.variacionPct > 0 ? "tarjeta-dorado" : ""}`}
@@ -106,6 +141,27 @@ export default function MiProgreso({
               {semanaActual.variacionPct.toFixed(2)}% respecto a la semana pasada
             </span>
           </div>
+        </section>
+      )}
+
+      {revisiones.length > 0 && (
+        <section className="tarjeta">
+          <div className="titulo-tarjeta">REVISIONES</div>
+          {revisiones.map((r) => (
+            <div key={r.id} className="border-b border-borde last:border-0 py-2">
+              <div className="text-[13.5px]">
+                Ajuste de dieta: {r.kcal_anterior} → <b>{r.kcal_nuevo} kcal</b>{" "}
+                <span className={r.delta < 0 ? "text-turquesa" : "text-dorado"}>
+                  ({r.delta > 0 ? "+" : ""}
+                  {r.delta} kcal/día)
+                </span>
+              </div>
+              <div className="text-atenuado text-[12px] mt-0.5">
+                {fechaCorta(r.creado_en.slice(0, 10))}
+                {r.motivo ? ` · ${r.motivo}` : ""}
+              </div>
+            </div>
+          ))}
         </section>
       )}
 

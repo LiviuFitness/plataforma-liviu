@@ -21,6 +21,8 @@ import type {
   Medida,
   Mensaje,
   Perfil,
+  RespuestaRevisionConPregunta,
+  RevisionKcal,
   RutinaUI,
 } from "@/lib/tipos";
 
@@ -54,6 +56,8 @@ export default function FichaCliente({
   habitos,
   registrosHabitos,
   mensajes,
+  revisiones,
+  respuestasCuestionario,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -72,6 +76,8 @@ export default function FichaCliente({
   habitos: Habito[];
   registrosHabitos: HabitoRegistro[];
   mensajes: Mensaje[];
+  revisiones: RevisionKcal[];
+  respuestasCuestionario: RespuestaRevisionConPregunta[];
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
@@ -183,6 +189,8 @@ export default function FichaCliente({
           dietaKcal={dieta?.kcal_obj ?? null}
           entradasFotos={entradasFotos}
           progresoEntreno={progresoEntreno}
+          revisiones={revisiones}
+          respuestasCuestionario={respuestasCuestionario}
         />
       )}
 

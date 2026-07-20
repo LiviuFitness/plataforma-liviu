@@ -14,7 +14,13 @@ import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
-import type { EntradaFotosProgreso, Medida, Perfil } from "@/lib/tipos";
+import type {
+  EntradaFotosProgreso,
+  Medida,
+  Perfil,
+  RespuestaRevisionConPregunta,
+  RevisionKcal,
+} from "@/lib/tipos";
 
 /** Pestaña Progreso: revisión semanal, PRs e historial de entreno, fotos,
  * medidas y añadir medida nueva. */
@@ -26,6 +32,8 @@ export default function TabProgreso({
   dietaKcal,
   entradasFotos,
   progresoEntreno,
+  revisiones,
+  respuestasCuestionario,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -34,6 +42,8 @@ export default function TabProgreso({
   dietaKcal: number | null;
   entradasFotos: EntradaFotosProgreso[];
   progresoEntreno: ProgresoEntreno;
+  revisiones: RevisionKcal[];
+  respuestasCuestionario: RespuestaRevisionConPregunta[];
 }) {
   const router = useRouter();
   const [f, setF] = useState({ peso: "", cintura: "", pecho: "", brazo: "", pierna: "" });
@@ -56,6 +66,16 @@ export default function TabProgreso({
   const sugerencia = ultima
     ? sugerenciaAjusteKcal(ultima.variacionPct, ritmo)
     : null;
+
+  const cuestionarioPorSemana = useMemo(() => {
+    const mapa = new Map<string, RespuestaRevisionConPregunta[]>();
+    for (const r of respuestasCuestionario) {
+      const lista = mapa.get(r.semana) ?? [];
+      lista.push(r);
+      mapa.set(r.semana, lista);
+    }
+    return [...mapa.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6);
+  }, [respuestasCuestionario]);
 
   const set =
     (clave: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -108,11 +128,24 @@ export default function TabProgreso({
   async function aplicarAjuste() {
     if (!dietaId || !sugerencia || dietaKcal === null) return;
     setAplicando(true);
+    const kcalNuevo = Math.max(800, dietaKcal + sugerencia.deltaKcal);
     const supabase = crearClienteNavegador();
     const { error } = await supabase
       .from("dietas")
-      .update({ kcal_obj: Math.max(800, dietaKcal + sugerencia.deltaKcal) })
+      .update({ kcal_obj: kcalNuevo })
       .eq("id", dietaId);
+    if (!error) {
+      // Deja rastro visible para el cliente en Mi Progreso — así no hace
+      // falta que Liviu se lo diga a mano cada vez.
+      await supabase.from("revisiones_kcal").insert({
+        cliente_id: clienteId,
+        dieta_id: dietaId,
+        kcal_anterior: dietaKcal,
+        kcal_nuevo: kcalNuevo,
+        delta: sugerencia.deltaKcal,
+        motivo: sugerencia.texto,
+      });
+    }
     setAplicando(false);
     if (!error) {
       setAjusteAplicado(true);
@@ -210,7 +243,53 @@ export default function TabProgreso({
             )}
           </div>
         )}
+
+        {revisiones.length > 0 && (
+          <div className="mt-3.5 pt-3 border-t border-borde">
+            <div className="text-[12px] text-atenuado uppercase tracking-wider mb-1.5">
+              Historial de ajustes
+            </div>
+            {revisiones.map((r) => (
+              <div
+                key={r.id}
+                className="flex items-center justify-between text-[13px] border-b border-borde last:border-0 py-1.5"
+              >
+                <span className="text-atenuado">
+                  {fechaCorta(r.creado_en.slice(0, 10))}
+                </span>
+                <span>
+                  {r.kcal_anterior} → <b>{r.kcal_nuevo} kcal</b>{" "}
+                  <span className={r.delta < 0 ? "text-acento" : "text-aviso"}>
+                    ({r.delta > 0 ? "+" : ""}
+                    {r.delta})
+                  </span>
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
+
+      {cuestionarioPorSemana.length > 0 && (
+        <section className="tarjeta">
+          <div className="titulo-tarjeta">CUESTIONARIO SEMANAL</div>
+          {cuestionarioPorSemana.map(([semana, respuestas]) => (
+            <div key={semana} className="border-b border-borde last:border-0 py-2">
+              <div className="text-atenuado text-[11.5px] uppercase tracking-wider mb-1">
+                {fechaCorta(semana)}
+              </div>
+              {respuestas.map((r) => (
+                <div key={r.id} className="mb-1.5 last:mb-0">
+                  <div className="text-atenuado text-[12.5px]">
+                    {r.preguntas_revision?.texto ?? "Pregunta borrada"}
+                  </div>
+                  <div className="text-[13.5px]">{r.respuesta}</div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </section>
+      )}
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">FOTOS DE PROGRESO</div>
