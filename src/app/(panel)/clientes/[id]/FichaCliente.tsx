@@ -21,6 +21,7 @@ import type {
   Medida,
   Mensaje,
   Perfil,
+  RespuestaAltaConPregunta,
   RespuestaRevisionConPregunta,
   RevisionKcal,
   RutinaUI,
@@ -58,6 +59,7 @@ export default function FichaCliente({
   mensajes,
   revisiones,
   respuestasCuestionario,
+  respuestasAlta,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -78,6 +80,7 @@ export default function FichaCliente({
   mensajes: Mensaje[];
   revisiones: RevisionKcal[];
   respuestasCuestionario: RespuestaRevisionConPregunta[];
+  respuestasAlta: RespuestaAltaConPregunta[];
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
@@ -121,7 +124,13 @@ export default function FichaCliente({
       )}
 
       {pestana === "resumen" && (
-        <TabResumen perfil={perfil} medidas={medidas} alertas={alertas} diasEntrenados={diasEntrenados} />
+        <TabResumen
+          perfil={perfil}
+          medidas={medidas}
+          alertas={alertas}
+          diasEntrenados={diasEntrenados}
+          respuestasAlta={respuestasAlta}
+        />
       )}
 
       {pestana === "entreno" && (

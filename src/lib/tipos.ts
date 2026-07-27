@@ -163,6 +163,31 @@ export interface RespuestaRevisionConPregunta {
   preguntas_revision: { texto: string } | null;
 }
 
+/** Pregunta del cuestionario de alta (una sola vez, en el onboarding). */
+export interface PreguntaAlta {
+  id: string;
+  texto: string;
+  orden: number;
+  activa: boolean;
+}
+
+/** Respuesta del cliente a una pregunta de alta. */
+export interface RespuestaAlta {
+  id: string;
+  cliente_id: string;
+  pregunta_id: string;
+  respuesta: string;
+  creado_en: string;
+}
+
+/** Respuesta de alta con el texto de la pregunta embebido (vista del entrenador). */
+export interface RespuestaAltaConPregunta {
+  id: string;
+  respuesta: string;
+  creado_en: string;
+  preguntas_alta: { texto: string } | null;
+}
+
 export interface Alerta {
   cliente_id: string;
   nombre: string;

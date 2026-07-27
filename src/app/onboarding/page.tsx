@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import OnboardingCliente from "./OnboardingCliente";
+import type { PreguntaAlta } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +15,18 @@ export default async function PaginaOnboarding() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const { data: perfil } = await supabase
-    .from("profiles")
-    .select("rol, nombre, fecha_nacimiento, altura_cm, sexo")
-    .eq("id", user.id)
-    .maybeSingle();
+  const [{ data: perfil }, { data: preguntasAlta }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("rol, nombre, fecha_nacimiento, altura_cm, sexo")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("preguntas_alta")
+      .select("id, texto, orden, activa")
+      .eq("activa", true)
+      .order("orden"),
+  ]);
 
   if (!perfil) redirect("/login");
   if (perfil.rol === "entrenador") redirect("/hoy");
@@ -27,5 +35,10 @@ export default async function PaginaOnboarding() {
     redirect("/inicio");
   }
 
-  return <OnboardingCliente nombre={perfil.nombre} />;
+  return (
+    <OnboardingCliente
+      nombre={perfil.nombre}
+      preguntasAlta={(preguntasAlta ?? []) as PreguntaAlta[]}
+    />
+  );
 }

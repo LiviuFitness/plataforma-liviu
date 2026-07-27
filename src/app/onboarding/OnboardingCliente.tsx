@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dumbbell,
@@ -11,19 +11,13 @@ import {
 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta, Logo } from "@/componentes/ui";
+import type { PreguntaAlta } from "@/lib/tipos";
 
 type Sexo = "hombre" | "mujer" | "otro";
 
-const PASOS = [
-  "sexo",
-  "nacimiento",
-  "altura",
-  "peso",
-  "tour-rutina",
-  "tour-dieta",
-  "tour-progreso",
-  "tour-chat",
-] as const;
+const PASOS_FIJOS = ["sexo", "nacimiento", "altura", "peso"] as const;
+const PASOS_TOUR = ["tour-rutina", "tour-dieta", "tour-progreso", "tour-chat"] as const;
+const PREFIJO_ALTA = "alta:";
 
 // Mismo color por dominio que el resto de la app (Inicio, Mi Progreso…):
 // entreno = acento, dieta = verde, progreso/racha = dorado.
@@ -61,24 +55,46 @@ const TOUR: Record<string, { Icono: LucideIcon; color: string; titulo: string; t
  * un tour de bienvenida (rutina/dieta/progreso-hábitos/chat) antes
  * de entrar a la app.
  */
-export default function OnboardingCliente({ nombre }: { nombre: string }) {
+export default function OnboardingCliente({
+  nombre,
+  preguntasAlta,
+}: {
+  nombre: string;
+  preguntasAlta: PreguntaAlta[];
+}) {
   const router = useRouter();
   const [paso, setPaso] = useState(0);
   const [sexo, setSexo] = useState<Sexo | "">("");
   const [nacimiento, setNacimiento] = useState("");
   const [altura, setAltura] = useState("");
   const [peso, setPeso] = useState("");
+  const [respuestasAlta, setRespuestasAlta] = useState<Record<string, string>>({});
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
-  const clave = PASOS[paso];
-  const esUltimo = paso === PASOS.length - 1;
+  // Pasos fijos + una pantalla por cada pregunta de alta activa + el tour.
+  const pasos = useMemo(
+    () => [
+      ...PASOS_FIJOS,
+      ...preguntasAlta.map((p) => `${PREFIJO_ALTA}${p.id}`),
+      ...PASOS_TOUR,
+    ],
+    [preguntasAlta]
+  );
+
+  const clave = pasos[paso];
+  const esUltimo = paso === pasos.length - 1;
+  const esAlta = clave.startsWith(PREFIJO_ALTA);
+  const preguntaAltaActual = esAlta
+    ? preguntasAlta.find((p) => p.id === clave.slice(PREFIJO_ALTA.length))
+    : undefined;
 
   const puedeContinuar =
     (clave === "sexo" && sexo !== "") ||
     (clave === "nacimiento" && nacimiento !== "") ||
     (clave === "altura" && Number(altura.replace(",", ".")) > 0) ||
     (clave === "peso" && Number(peso.replace(",", ".")) > 0) ||
+    esAlta || // opcional: se puede dejar sin responder
     clave in TOUR;
 
   async function continuar() {
@@ -89,6 +105,9 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
     setGuardando(true);
     setError("");
     const supabase = crearClienteNavegador();
+    const {
+      data: { user: usuarioAuth },
+    } = await supabase.auth.getUser();
     const { error } = await supabase.rpc("completar_datos_fisicos", {
       p_fecha_nacimiento: nacimiento,
       p_altura_cm: Number(altura.replace(",", ".")),
@@ -99,6 +118,16 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
     if (error) {
       setError("No se pudo guardar. Inténtalo de nuevo.");
       return;
+    }
+    // Cuestionario de alta: opcional, no bloquea el onboarding si falla.
+    const clienteId = usuarioAuth?.id;
+    const respuestas = Object.entries(respuestasAlta)
+      .map(([pregunta_id, respuesta]) => ({ pregunta_id, respuesta: respuesta.trim() }))
+      .filter((r) => r.respuesta !== "");
+    if (clienteId && respuestas.length > 0) {
+      await supabase.from("respuestas_alta").insert(
+        respuestas.map((r) => ({ cliente_id: clienteId, ...r }))
+      );
     }
     router.push("/inicio");
     router.refresh();
@@ -114,7 +143,7 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
       <div className="flex justify-between items-center mb-4">
         <Logo tamano={30} />
         <span className="text-atenuado text-[12.5px] tabular-nums">
-          {paso + 1}/{PASOS.length}
+          {paso + 1}/{pasos.length}
         </span>
       </div>
       <div className="barra-capsula mb-8">
@@ -123,7 +152,7 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
           style={
             {
               "--tc": "var(--color-acento)",
-              width: `${((paso + 1) / PASOS.length) * 100}%`,
+              width: `${((paso + 1) / pasos.length) * 100}%`,
             } as React.CSSProperties
           }
         />
@@ -215,6 +244,22 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
           </>
         )}
 
+        {esAlta && preguntaAltaActual && (
+          <>
+            <h2 className="h1 !text-[22px] mb-5">{preguntaAltaActual.texto}</h2>
+            <textarea
+              className="input !text-[15.5px]"
+              rows={4}
+              placeholder="Tu respuesta (opcional)…"
+              value={respuestasAlta[preguntaAltaActual.id] ?? ""}
+              onChange={(e) =>
+                setRespuestasAlta({ ...respuestasAlta, [preguntaAltaActual.id]: e.target.value })
+              }
+              autoFocus
+            />
+          </>
+        )}
+
         {clave in TOUR && (
           <div className="flex flex-col items-center text-center pt-10 anim-aparecer">
             {(() => {
@@ -239,10 +284,16 @@ export default function OnboardingCliente({ nombre }: { nombre: string }) {
         )}
       </div>
 
-      {!(clave in TOUR) && (
+      {!(clave in TOUR) && !esAlta && (
         <p className="text-atenuado text-[12px] text-center mb-3">
           Tus datos son privados y sirven para calcular tus objetivos de
           nutrición. Tu entrenador puede corregirlos si algo cambia.
+        </p>
+      )}
+      {esAlta && (
+        <p className="text-atenuado text-[12px] text-center mb-3">
+          Esto le sirve a tu entrenador para conocerte mejor. Puedes dejarlo en
+          blanco y contárselo más adelante.
         </p>
       )}
 

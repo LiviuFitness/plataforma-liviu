@@ -5,7 +5,15 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarCheck } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Sparkline } from "@/componentes/ui";
-import { OBJETIVOS, type Alerta, type Estado, type Medida, type Perfil, type Plan } from "@/lib/tipos";
+import {
+  OBJETIVOS,
+  type Alerta,
+  type Estado,
+  type Medida,
+  type Perfil,
+  type Plan,
+  type RespuestaAltaConPregunta,
+} from "@/lib/tipos";
 import { FACTORES_ACTIVIDAD } from "@/lib/macros";
 
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
@@ -16,11 +24,13 @@ export default function TabResumen({
   medidas,
   alertas,
   diasEntrenados,
+  respuestasAlta,
 }: {
   perfil: Perfil;
   medidas: Medida[];
   alertas: Alerta[];
   diasEntrenados: boolean[];
+  respuestasAlta: RespuestaAltaConPregunta[];
 }) {
   const router = useRouter();
   const pesos = medidas
@@ -186,6 +196,20 @@ export default function TabResumen({
             )
           )}
         </div>
+      )}
+
+      {respuestasAlta.length > 0 && (
+        <section className="tarjeta">
+          <div className="titulo-tarjeta">CUESTIONARIO DE ALTA</div>
+          {respuestasAlta.map((r) => (
+            <div key={r.id} className="mb-2.5 last:mb-0">
+              <div className="text-atenuado text-[12.5px]">
+                {r.preguntas_alta?.texto ?? "Pregunta borrada"}
+              </div>
+              <div className="text-[13.5px]">{r.respuesta}</div>
+            </div>
+          ))}
+        </section>
       )}
 
       <section className="tarjeta">

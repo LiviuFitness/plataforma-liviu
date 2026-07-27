@@ -14,6 +14,7 @@ import type {
   Medida,
   Mensaje,
   Perfil,
+  RespuestaAltaConPregunta,
   RespuestaRevisionConPregunta,
   RevisionKcal,
 } from "@/lib/tipos";
@@ -56,6 +57,7 @@ export default async function PaginaFichaCliente({
     { data: mensajes },
     { data: revisiones },
     { data: respuestasCuestionario },
+    { data: respuestasAlta },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -128,6 +130,11 @@ export default async function PaginaFichaCliente({
       .select("id, semana, respuesta, creado_en, preguntas_revision ( texto )")
       .eq("cliente_id", id)
       .order("semana", { ascending: false }),
+    supabase
+      .from("respuestas_alta")
+      .select("id, respuesta, creado_en, preguntas_alta ( texto )")
+      .eq("cliente_id", id)
+      .order("creado_en"),
   ]);
 
   if (!perfil) notFound();
@@ -167,6 +174,7 @@ export default async function PaginaFichaCliente({
       respuestasCuestionario={
         (respuestasCuestionario ?? []) as unknown as RespuestaRevisionConPregunta[]
       }
+      respuestasAlta={(respuestasAlta ?? []) as unknown as RespuestaAltaConPregunta[]}
     />
   );
 }
