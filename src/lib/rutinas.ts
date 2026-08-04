@@ -155,6 +155,12 @@ export function aRutinaUI(fila: FilaRutina): RutinaUI {
   };
 }
 
+/** true si el enlace del ejercicio es un gif propio (Supabase Storage) en vez
+ * de un vídeo de YouTube — se muestra como imagen animada, no como iframe. */
+export function esGif(url: string | null): boolean {
+  return !!url && /\.gif(\?|$)/i.test(url);
+}
+
 /** Miniatura automática de YouTube a partir del enlace del ejercicio (sin API, gratis). */
 export function miniaturaYoutube(url: string | null): string | null {
   if (!url) return null;

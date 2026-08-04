@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       // Miniaturas de vídeos de ejercicios (YouTube las genera solas, gratis)
       { protocol: "https", hostname: "img.youtube.com" },
+      // Gifs de ejercicios subidos a Supabase Storage
+      { protocol: "https", hostname: "yjovajswdynpqkdtbyzb.supabase.co" },
     ],
   },
   experimental: {

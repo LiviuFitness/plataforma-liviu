@@ -2,10 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
   agruparPorSuperserie,
   embedYoutube,
+  esGif,
   parsearCarga,
   parsearRepsRealizadas,
   parsearRir,
@@ -1205,7 +1207,7 @@ export default function SesionEnCurso({
                           className="inline-flex items-center gap-1 text-atenuado hover:text-acento transition-colors text-[12px] font-medium anim-pulsable"
                           onClick={() => setVideoAbierto(videoAbierto === ei ? null : ei)}
                         >
-                          <Video size={12} /> Ver vídeo
+                          <Video size={12} /> {esGif(ex.videoUrl) ? "Ver gif" : "Ver vídeo"}
                         </button>
                       )}
                     </div>
@@ -1220,7 +1222,17 @@ export default function SesionEnCurso({
 
                   {ex.videoUrl && videoAbierto === ei && (
                     <div className="mb-1.5">
-                      {embedYoutube(ex.videoUrl) ? (
+                      {esGif(ex.videoUrl) ? (
+                        <div className="relative rounded-[10px] overflow-hidden aspect-video border border-borde-2 anim-aparecer bg-campo">
+                          <Image
+                            src={ex.videoUrl}
+                            alt={`Gif: ${ex.nombre}`}
+                            fill
+                            unoptimized
+                            className="object-contain"
+                          />
+                        </div>
+                      ) : embedYoutube(ex.videoUrl) ? (
                         <div className="rounded-[10px] overflow-hidden aspect-video border border-borde-2 anim-aparecer">
                           <iframe
                             src={`${embedYoutube(ex.videoUrl)}?rel=0`}

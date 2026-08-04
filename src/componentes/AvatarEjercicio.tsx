@@ -1,6 +1,6 @@
 import Image from "next/image";
 import { Play } from "lucide-react";
-import { miniaturaYoutube } from "@/lib/rutinas";
+import { esGif, miniaturaYoutube } from "@/lib/rutinas";
 
 /** Icono circular del ejercicio: miniatura real de su vídeo si tiene, si no un genérico.
  * Con vídeo lleva un icono de play superpuesto — a este tamaño tan pequeño,
@@ -12,6 +12,21 @@ export default function AvatarEjercicio({
   videoUrl: string | null;
   tamano?: number;
 }) {
+  if (esGif(videoUrl)) {
+    // El gif ya es la animación en sí — no lleva icono de play superpuesto.
+    return (
+      <Image
+        src={videoUrl!}
+        alt=""
+        width={tamano}
+        height={tamano}
+        unoptimized
+        className="rounded-full object-cover bg-campo shrink-0"
+        style={{ width: tamano, height: tamano }}
+      />
+    );
+  }
+
   const miniatura = miniaturaYoutube(videoUrl);
 
   if (miniatura) {
