@@ -1,170 +1,78 @@
 import { cargaMuscular, type VolumenMuscular } from "@/lib/musculos";
+import { CABEZA, MITAD_CUERPO, REFLEJO } from "@/lib/siluetaCuerpo";
 
-/** Formas simples (rectángulos redondeados y elipses) en vez de trazados
- * anatómicos: mismo lenguaje visual que la silueta de medidas y mucho
- * más fácil de retocar si algún grupo se ve raro. */
-type Forma =
-  | { k: "rect"; x: number; y: number; w: number; h: number; r: number }
-  | { k: "ellipse"; cx: number; cy: number; rx: number; ry: number }
-  | { k: "path"; d: string };
+/** Zonas musculares dibujadas a brocha gorda y recortadas contra el
+ * contorno del cuerpo: no hace falta que las formas sean anatómicas
+ * porque el `clipPath` se encarga de que nada se salga de la silueta. */
+type Zona =
+  | { k: "rect"; x: number; y: number; w: number; h: number; r?: number }
+  | { k: "ellipse"; cx: number; cy: number; rx: number; ry: number };
 
 interface PiezaMuscular {
   grupo: string;
-  formas: Forma[];
+  zonas: Zona[];
 }
 
-/** Piezas neutras que no son grupos entrenables (cabeza, manos, pies):
- * dan forma de cuerpo pero nunca se colorean. */
-const BASE: Forma[] = [
-  { k: "ellipse", cx: 60, cy: 17, rx: 10.5, ry: 13.5 },
-  { k: "rect", x: 55.5, y: 28, w: 9, h: 8, r: 3.5 },
-  { k: "rect", x: 27, y: 118, w: 10, h: 12, r: 4 },
-  { k: "rect", x: 83, y: 118, w: 10, h: 12, r: 4 },
-  { k: "rect", x: 46, y: 106, w: 28, h: 18, r: 8 },
-  { k: "rect", x: 47, y: 228, w: 12, h: 9, r: 3 },
-  { k: "rect", x: 61, y: 228, w: 12, h: 9, r: 3 },
-];
+/** Espejo horizontal de una zona, para no repetir cada músculo dos veces. */
+function espejo(z: Zona): Zona {
+  return z.k === "rect"
+    ? { ...z, x: 200 - z.x - z.w }
+    : { ...z, cx: 200 - z.cx };
+}
+
+function par(z: Zona): Zona[] {
+  return [z, espejo(z)];
+}
 
 const FRONTAL: PiezaMuscular[] = [
-  {
-    grupo: "Trapecio",
-    formas: [{ k: "path", d: "M45 39 Q60 31 75 39 L77 45 Q60 38 43 45 Z" }],
-  },
+  { grupo: "Trapecio", zonas: [{ k: "rect", x: 62, y: 44, w: 76, h: 20, r: 8 }] },
   {
     grupo: "Deltoides Lateral",
-    formas: [
-      { k: "ellipse", cx: 37, cy: 51, rx: 7.5, ry: 10 },
-      { k: "ellipse", cx: 83, cy: 51, rx: 7.5, ry: 10 },
-    ],
+    zonas: par({ k: "ellipse", cx: 56, cy: 74, rx: 14, ry: 19 }),
   },
   {
     grupo: "Deltoides Anterior",
-    formas: [
-      { k: "ellipse", cx: 46, cy: 48, rx: 6, ry: 7.5 },
-      { k: "ellipse", cx: 74, cy: 48, rx: 6, ry: 7.5 },
-    ],
+    zonas: par({ k: "ellipse", cx: 71, cy: 70, rx: 11, ry: 14 }),
   },
   {
     grupo: "Pectoral",
-    formas: [
-      { k: "rect", x: 44, y: 46, w: 15, h: 22, r: 7 },
-      { k: "rect", x: 61, y: 46, w: 15, h: 22, r: 7 },
-    ],
+    zonas: par({ k: "rect", x: 66, y: 64, w: 33, h: 36, r: 12 }),
   },
-  {
-    grupo: "Bíceps",
-    formas: [
-      { k: "rect", x: 31, y: 61, w: 11, h: 26, r: 5.5 },
-      { k: "rect", x: 78, y: 61, w: 11, h: 26, r: 5.5 },
-    ],
-  },
-  {
-    grupo: "Antebrazo",
-    formas: [
-      { k: "rect", x: 28, y: 89, w: 10, h: 28, r: 5 },
-      { k: "rect", x: 82, y: 89, w: 10, h: 28, r: 5 },
-    ],
-  },
-  {
-    grupo: "Abdomen",
-    formas: [{ k: "rect", x: 49, y: 70, w: 22, h: 34, r: 8 }],
-  },
+  { grupo: "Bíceps", zonas: par({ k: "rect", x: 42, y: 88, w: 28, h: 44, r: 12 }) },
+  { grupo: "Antebrazo", zonas: par({ k: "rect", x: 40, y: 132, w: 28, h: 52, r: 12 }) },
+  { grupo: "Abdomen", zonas: [{ k: "rect", x: 72, y: 100, w: 56, h: 62, r: 14 }] },
   {
     grupo: "Cuádriceps",
-    formas: [
-      { k: "rect", x: 45, y: 126, w: 14, h: 52, r: 7 },
-      { k: "rect", x: 61, y: 126, w: 14, h: 52, r: 7 },
-    ],
+    zonas: par({ k: "rect", x: 58, y: 198, w: 42, h: 58, r: 14 }),
   },
-  {
-    grupo: "Aductores",
-    formas: [{ k: "rect", x: 55, y: 128, w: 10, h: 38, r: 5 }],
-  },
-  {
-    grupo: "Gemelos",
-    formas: [
-      { k: "rect", x: 47, y: 182, w: 12, h: 44, r: 6 },
-      { k: "rect", x: 61, y: 182, w: 12, h: 44, r: 6 },
-    ],
-  },
+  { grupo: "Aductores", zonas: [{ k: "rect", x: 84, y: 194, w: 32, h: 48, r: 12 }] },
+  { grupo: "Gemelos", zonas: par({ k: "rect", x: 62, y: 258, w: 38, h: 62, r: 14 }) },
 ];
 
 const POSTERIOR: PiezaMuscular[] = [
-  {
-    grupo: "Trapecio",
-    formas: [{ k: "path", d: "M44 38 Q60 30 76 38 L71 63 Q60 57 49 63 Z" }],
-  },
+  { grupo: "Trapecio", zonas: [{ k: "rect", x: 68, y: 44, w: 64, h: 46, r: 14 }] },
   {
     grupo: "Deltoides Posterior",
-    formas: [
-      { k: "ellipse", cx: 37, cy: 51, rx: 7.5, ry: 10 },
-      { k: "ellipse", cx: 83, cy: 51, rx: 7.5, ry: 10 },
-    ],
+    zonas: par({ k: "ellipse", cx: 56, cy: 74, rx: 14, ry: 19 }),
   },
-  {
-    grupo: "Dorsales",
-    formas: [{ k: "path", d: "M43 58 L77 58 L71 90 Q60 95 49 90 Z" }],
-  },
-  {
-    grupo: "Lumbares",
-    formas: [{ k: "rect", x: 50, y: 90, w: 20, h: 16, r: 6 }],
-  },
-  {
-    grupo: "Tríceps",
-    formas: [
-      { k: "rect", x: 31, y: 61, w: 11, h: 26, r: 5.5 },
-      { k: "rect", x: 78, y: 61, w: 11, h: 26, r: 5.5 },
-    ],
-  },
-  {
-    grupo: "Antebrazo",
-    formas: [
-      { k: "rect", x: 28, y: 89, w: 10, h: 28, r: 5 },
-      { k: "rect", x: 82, y: 89, w: 10, h: 28, r: 5 },
-    ],
-  },
-  {
-    grupo: "Glúteos",
-    formas: [
-      { k: "rect", x: 46, y: 108, w: 14, h: 20, r: 8 },
-      { k: "rect", x: 60, y: 108, w: 14, h: 20, r: 8 },
-    ],
-  },
+  { grupo: "Dorsales", zonas: [{ k: "rect", x: 64, y: 88, w: 72, h: 46, r: 14 }] },
+  { grupo: "Lumbares", zonas: [{ k: "rect", x: 76, y: 132, w: 48, h: 30, r: 12 }] },
+  { grupo: "Tríceps", zonas: par({ k: "rect", x: 42, y: 88, w: 28, h: 44, r: 12 }) },
+  { grupo: "Antebrazo", zonas: par({ k: "rect", x: 40, y: 132, w: 28, h: 52, r: 12 }) },
+  { grupo: "Glúteos", zonas: [{ k: "rect", x: 62, y: 160, w: 76, h: 44, r: 16 }] },
   {
     grupo: "Isquiosurales",
-    formas: [
-      { k: "rect", x: 45, y: 130, w: 14, h: 48, r: 7 },
-      { k: "rect", x: 61, y: 130, w: 14, h: 48, r: 7 },
-    ],
+    zonas: par({ k: "rect", x: 58, y: 202, w: 42, h: 54, r: 14 }),
   },
-  {
-    grupo: "Gemelos",
-    formas: [
-      { k: "rect", x: 47, y: 182, w: 12, h: 44, r: 6 },
-      { k: "rect", x: 61, y: 182, w: 12, h: 44, r: 6 },
-    ],
-  },
+  { grupo: "Gemelos", zonas: par({ k: "rect", x: 62, y: 258, w: 38, h: 62, r: 14 }) },
 ];
 
-function dibujar(forma: Forma, key: string, fill: string) {
-  const comun = { fill, stroke: "var(--color-fondo)", strokeWidth: 1 };
-  if (forma.k === "rect")
-    return (
-      <rect
-        key={key}
-        x={forma.x}
-        y={forma.y}
-        width={forma.w}
-        height={forma.h}
-        rx={forma.r}
-        {...comun}
-      />
-    );
-  if (forma.k === "ellipse")
-    return (
-      <ellipse key={key} cx={forma.cx} cy={forma.cy} rx={forma.rx} ry={forma.ry} {...comun} />
-    );
-  return <path key={key} d={forma.d} {...comun} />;
+function dibujar(z: Zona, key: string, fill: string) {
+  return z.k === "rect" ? (
+    <rect key={key} x={z.x} y={z.y} width={z.w} height={z.h} rx={z.r} fill={fill} />
+  ) : (
+    <ellipse key={key} cx={z.cx} cy={z.cy} rx={z.rx} ry={z.ry} fill={fill} />
+  );
 }
 
 function etiquetaDias(dias: number | null): string {
@@ -174,44 +82,64 @@ function etiquetaDias(dias: number | null): string {
   return `hace ${dias} días`;
 }
 
-/** Una de las dos vistas del cuerpo, coloreada por fatiga acumulada. */
 function Vista({
   piezas,
   titulo,
+  id,
   porGrupo,
 }: {
   piezas: PiezaMuscular[];
   titulo: string;
+  id: string;
   porGrupo: Map<string, VolumenMuscular>;
 }) {
+  const recorte = `recorte-cuerpo-${id}`;
+  const contorno = `contorno-cuerpo-${id}`;
+
   return (
     <div className="flex-1 min-w-0">
       <svg
-        viewBox="0 0 120 240"
-        className="block w-full h-auto max-h-[230px] mx-auto"
+        viewBox="0 0 200 400"
+        className="block w-full h-auto max-h-[240px] mx-auto"
         role="img"
         aria-label={`Vista ${titulo.toLowerCase()} del cuerpo con los músculos coloreados según su recuperación`}
       >
-        {BASE.map((f, i) => dibujar(f, `base-${i}`, "var(--color-borde-2)"))}
-        {piezas.map((pieza) => {
-          const v = porGrupo.get(pieza.grupo);
-          const carga = cargaMuscular(v?.diasDesdeUltimoEntreno ?? null);
-          // Del gris de reposo al rojo de fatiga, sin pasos intermedios
-          // hardcodeados: la mezcla la calcula el propio navegador.
-          const fill =
-            carga === 0
-              ? "var(--color-borde-2)"
-              : `color-mix(in srgb, var(--color-peligro) ${Math.round(carga * 100)}%, var(--color-borde-2))`;
-          return (
-            <g key={pieza.grupo}>
-              <title>
-                {pieza.grupo} · {etiquetaDias(v?.diasDesdeUltimoEntreno ?? null)} ·{" "}
-                {v?.seriesUltimos7Dias ?? 0} series esta semana
-              </title>
-              {pieza.formas.map((f, i) => dibujar(f, `${pieza.grupo}-${i}`, fill))}
-            </g>
-          );
-        })}
+        <defs>
+          <path id={contorno} d={MITAD_CUERPO} />
+          <clipPath id={recorte}>
+            <use href={`#${contorno}`} />
+            <use href={`#${contorno}`} transform={REFLEJO} />
+            <ellipse {...CABEZA} />
+          </clipPath>
+        </defs>
+
+        {/* Cuerpo en reposo: lo que no tenga fatiga se queda así. */}
+        <g fill="var(--color-borde-2)">
+          <use href={`#${contorno}`} />
+          <use href={`#${contorno}`} transform={REFLEJO} />
+          <ellipse {...CABEZA} />
+        </g>
+
+        {/* Zonas cargadas, recortadas contra el contorno. */}
+        <g clipPath={`url(#${recorte})`}>
+          {piezas.map((pieza) => {
+            const v = porGrupo.get(pieza.grupo);
+            const carga = cargaMuscular(v?.diasDesdeUltimoEntreno ?? null);
+            if (carga === 0) return null;
+            const fill = `color-mix(in srgb, var(--color-peligro) ${Math.round(
+              carga * 100
+            )}%, var(--color-borde-2))`;
+            return (
+              <g key={pieza.grupo}>
+                <title>
+                  {pieza.grupo} · {etiquetaDias(v?.diasDesdeUltimoEntreno ?? null)} ·{" "}
+                  {v?.seriesUltimos7Dias ?? 0} series esta semana
+                </title>
+                {pieza.zonas.map((z, i) => dibujar(z, `${pieza.grupo}-${i}`, fill))}
+              </g>
+            );
+          })}
+        </g>
       </svg>
       <div className="text-center text-atenuado text-[10.5px] uppercase tracking-[1px] font-semibold mt-1">
         {titulo}
@@ -229,9 +157,9 @@ export default function SiluetaMuscular({ volumen }: { volumen: VolumenMuscular[
 
   return (
     <div>
-      <div className="flex gap-2 items-start">
-        <Vista piezas={FRONTAL} titulo="Frente" porGrupo={porGrupo} />
-        <Vista piezas={POSTERIOR} titulo="Espalda" porGrupo={porGrupo} />
+      <div className="flex gap-3 items-start">
+        <Vista piezas={FRONTAL} titulo="Frente" id="frente" porGrupo={porGrupo} />
+        <Vista piezas={POSTERIOR} titulo="Espalda" id="espalda" porGrupo={porGrupo} />
       </div>
       <div className="flex flex-wrap gap-x-4 gap-y-1.5 justify-center mt-3">
         <Leyenda color="var(--color-peligro)" texto="Cargado" />
@@ -248,10 +176,7 @@ export default function SiluetaMuscular({ volumen }: { volumen: VolumenMuscular[
 function Leyenda({ color, texto }: { color: string; texto: string }) {
   return (
     <div className="flex items-center gap-1.5 text-[11.5px] text-texto-2">
-      <span
-        className="w-2.5 h-2.5 rounded-[3px] shrink-0"
-        style={{ background: color }}
-      />
+      <span className="w-2.5 h-2.5 rounded-[3px] shrink-0" style={{ background: color }} />
       {texto}
     </div>
   );

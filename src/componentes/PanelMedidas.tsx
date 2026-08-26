@@ -15,6 +15,7 @@ import {
   ultimasMedidas,
   type ClaveMedida,
 } from "@/lib/medidas";
+import { CABEZA, MITAD_CUERPO, REFLEJO } from "@/lib/siluetaCuerpo";
 import type { Medida } from "@/lib/tipos";
 
 /** Silueta con los perímetros del cuerpo: enseña dónde va la cinta al
@@ -92,7 +93,7 @@ export default function PanelMedidas({
       {/* Tope de ancho: en la ficha del entrenador la tarjeta es mucho más
        * ancha que en la app del cliente, y sin esto los chips acabarían
        * pegados a los bordes, lejísimos de la parte del cuerpo que nombran. */}
-      <div className="relative max-w-[380px] mx-auto">
+      <div className="relative max-w-[320px] mx-auto">
         <svg
           viewBox="0 0 200 400"
           className="mx-auto block"
@@ -107,21 +108,11 @@ export default function PanelMedidas({
             </linearGradient>
           </defs>
 
-          <g fill="url(#piel-medidas)" stroke="var(--color-borde-2)" strokeWidth="1">
-            <ellipse cx="100" cy="26" rx="16" ry="20" />
-            <rect x="93" y="42" width="14" height="13" rx="6" />
-            <path d="M70 62 Q100 50 130 62 L134 76 Q100 68 66 76 Z" />
-            <rect x="67" y="66" width="66" height="52" rx="21" />
-            <rect x="74" y="112" width="52" height="54" rx="18" />
-            <rect x="70" y="160" width="60" height="34" rx="15" />
-            <rect x="45" y="70" width="19" height="62" rx="9.5" />
-            <rect x="136" y="70" width="19" height="62" rx="9.5" />
-            <rect x="42" y="128" width="17" height="56" rx="8.5" />
-            <rect x="141" y="128" width="17" height="56" rx="8.5" />
-            <rect x="72" y="190" width="26" height="86" rx="13" />
-            <rect x="102" y="190" width="26" height="86" rx="13" />
-            <rect x="75" y="272" width="21" height="76" rx="10.5" />
-            <rect x="104" y="272" width="21" height="76" rx="10.5" />
+          {/* Contorno continuo, no piezas sueltas (ver lib/siluetaCuerpo.ts). */}
+          <g fill="url(#piel-medidas)">
+            <ellipse {...CABEZA} />
+            <path id="livfit-silueta-mitad" d={MITAD_CUERPO} />
+            <use href="#livfit-silueta-mitad" transform={REFLEJO} />
           </g>
 
           {/* Trazos de la cinta: apagados salvo el que se está tomando.
@@ -132,16 +123,29 @@ export default function PanelMedidas({
            * activa no llegaba a encenderse nunca. */}
           {MEDIDAS.map((m) => {
             const encendido = activa === m.clave;
+            const color = encendido ? "var(--color-acento)" : "var(--color-atenuado)";
+            // La guía sale del cuerpo y muere en el borde, a la altura del
+            // dato: sin ella, con ocho medidas y solo dos columnas, no se
+            // sabría a qué parte corresponde cada una.
+            const xBorde = m.chip.lado === "izquierda" ? 3 : 197;
+            const yChip = (m.chip.top / 100) * 400;
             return (
-              <path
-                key={m.clave}
-                d={m.trazo}
-                fill="none"
-                stroke={encendido ? "var(--color-acento)" : "var(--color-atenuado)"}
-                strokeWidth={encendido ? 1.8 : 1.2}
-                strokeDasharray={encendido ? "4 3.5" : "3 4"}
-                opacity={encendido ? 1 : 0.45}
-              />
+              <g key={m.clave} opacity={encendido ? 1 : 0.4}>
+                <path
+                  d={`M${m.ancla.x} ${m.ancla.y} L${xBorde} ${yChip}`}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={encendido ? 1 : 0.7}
+                />
+                <path
+                  d={m.trazo}
+                  fill="none"
+                  stroke={color}
+                  strokeWidth={encendido ? 2 : 1.2}
+                  strokeDasharray={encendido ? "4 3.5" : "3 4"}
+                />
+                <circle cx={m.ancla.x} cy={m.ancla.y} r={encendido ? 2.8 : 1.8} fill={color} />
+              </g>
             );
           })}
         </svg>
