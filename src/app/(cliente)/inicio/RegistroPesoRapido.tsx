@@ -35,9 +35,12 @@ export default function RegistroPesoRapido({
     setGuardando(true);
     setError("");
     const supabase = crearClienteNavegador();
-    const { error } = await supabase
-      .from("medidas")
-      .insert({ cliente_id: clienteId, peso: valor });
+    // Misma RPC que Mi Progreso: una sola fila por día aunque se pese
+    // varias veces (ver comentario en la migración 32).
+    const { error } = await supabase.rpc("guardar_medidas", {
+      p_cliente_id: clienteId,
+      p_peso: valor,
+    });
     setGuardando(false);
     if (error) {
       setError("No se pudo guardar.");

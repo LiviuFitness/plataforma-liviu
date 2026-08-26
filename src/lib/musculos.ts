@@ -37,6 +37,17 @@ export function calcularVolumenMuscular(series: SerieConGrupo[]): VolumenMuscula
   });
 }
 
+/** Cuánto le queda por recuperarse a un grupo, de 1 (entrenado hoy, a
+ * tope de fatiga) a 0 (listo para volver a cargarlo). La ventana de 72 h
+ * es la referencia habitual de recuperación para un grupo entrenado con
+ * volumen normal; no pretende ser fisiología exacta, sino contarle al
+ * cliente qué puede hacer hoy de un vistazo. */
+export function cargaMuscular(diasDesdeUltimoEntreno: number | null): number {
+  if (diasDesdeUltimoEntreno === null) return 0;
+  const escala = [1, 0.7, 0.4, 0.15];
+  return escala[diasDesdeUltimoEntreno] ?? 0;
+}
+
 /** El grupo muscular más descuidado entre los que SÍ forman parte de la
  * rutina activa del cliente (no tiene sentido avisar de un grupo que su
  * plan ni siquiera trabaja). `null` si ninguno supera el umbral. */

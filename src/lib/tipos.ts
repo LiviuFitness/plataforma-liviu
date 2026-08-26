@@ -59,10 +59,14 @@ export interface Medida {
   cliente_id: string;
   fecha: string;
   peso: number | null;
-  cintura: number | null;
+  cuello: number | null;
+  hombros: number | null;
   pecho: number | null;
   brazo: number | null;
+  cintura: number | null;
+  cadera: number | null;
   pierna: number | null;
+  gemelo: number | null;
   foto_frontal_url: string | null;
   foto_lateral_url: string | null;
   foto_espalda_url: string | null;

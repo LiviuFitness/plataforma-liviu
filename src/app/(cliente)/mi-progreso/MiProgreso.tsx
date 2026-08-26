@@ -8,6 +8,7 @@ import { fechaCorta, IconoTarjeta, Sparkline } from "@/componentes/ui";
 import { aNumero } from "@/lib/rutinas";
 import { useCountUp } from "@/lib/useCountUp";
 import FotosProgreso from "@/componentes/FotosProgreso";
+import PanelMedidas from "@/componentes/PanelMedidas";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import GridLogros from "@/componentes/GridLogros";
@@ -83,9 +84,13 @@ export default function MiProgreso({
     setGuardando(true);
     setError("");
     const supabase = crearClienteNavegador();
-    const { error } = await supabase
-      .from("medidas")
-      .insert({ cliente_id: clienteId, peso: valor });
+    // Vía RPC en vez de insert directo: así pesarse dos veces el mismo
+    // día actualiza la fila de hoy en lugar de crear otra (que duplicaba
+    // el día en la media semanal de `lib/revision.ts`).
+    const { error } = await supabase.rpc("guardar_medidas", {
+      p_cliente_id: clienteId,
+      p_peso: valor,
+    });
     setGuardando(false);
     if (error) {
       setError("No se pudo guardar. Inténtalo de nuevo.");
@@ -215,6 +220,8 @@ export default function MiProgreso({
         </p>
       </section>
 
+      <PanelMedidas clienteId={clienteId} medidas={medidas} />
+
       <FotosProgreso clienteId={clienteId} entradasIniciales={entradasFotos} />
 
       <MapaMuscular volumen={volumenMuscular} />
@@ -228,35 +235,6 @@ export default function MiProgreso({
         onBorrarSesion={borrarSesion}
       />
 
-      {medidas.length > 0 && (
-        <section className="tarjeta">
-          <div className="titulo-tarjeta">MEDIDAS</div>
-          <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] text-[10.5px] text-atenuado font-semibold uppercase tracking-[0.6px] border-b border-borde-2 py-2">
-            <span>Fecha</span>
-            <span>Peso</span>
-            <span>Cintura</span>
-            <span>Pecho</span>
-            <span>Brazo</span>
-          </div>
-          {medidas
-            .slice()
-            .reverse()
-            .map((m) => (
-              <div
-                key={m.id}
-                className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr] text-[13px] border-b border-borde last:border-0 py-2.5"
-              >
-                <span className="text-texto-2">{fechaCorta(m.fecha)}</span>
-                <span className="font-bold" style={{ color: "var(--color-turquesa)" }}>
-                  {m.peso ?? "—"}
-                </span>
-                <span>{m.cintura ?? "—"}</span>
-                <span>{m.pecho ?? "—"}</span>
-                <span>{m.brazo ?? "—"}</span>
-              </div>
-            ))}
-        </section>
-      )}
     </>
   );
 }

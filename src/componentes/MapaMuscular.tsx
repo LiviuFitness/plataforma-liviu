@@ -1,6 +1,7 @@
-import { Dumbbell } from "lucide-react";
+import { ChevronDown, Dumbbell } from "lucide-react";
 import type { VolumenMuscular } from "@/lib/musculos";
 import EstadoVacio from "./EstadoVacio";
+import SiluetaMuscular from "./SiluetaMuscular";
 
 /** Intensidad del color según series efectivas en los últimos 7 días. */
 function opacidadPorSeries(n: number): number {
@@ -54,11 +55,11 @@ export default function MapaMuscular({ volumen }: { volumen: VolumenMuscular[] }
   if (!hayDatos) {
     return (
       <section className="tarjeta">
-        <div className="titulo-tarjeta">MAPA MUSCULAR</div>
+        <div className="titulo-tarjeta">RECUPERACIÓN MUSCULAR</div>
         <EstadoVacio
           Icono={Dumbbell}
-          titulo="Empieza a entrenar para descubrir tu mapa muscular"
-          descripcion="En cuanto registres sesiones, aquí verás qué grupos musculares has trabajado más y cuáles llevan tiempo sin tocarse."
+          titulo="Entrena para ver tu recuperación"
+          descripcion="En cuanto registres sesiones, aquí verás sobre el cuerpo qué músculos llevas cargados y cuáles están listos para volver a trabajarse."
         />
       </section>
     );
@@ -66,47 +67,66 @@ export default function MapaMuscular({ volumen }: { volumen: VolumenMuscular[] }
 
   return (
     <section className="tarjeta">
-      <div className="titulo-tarjeta">MAPA MUSCULAR — últimos 7 días</div>
-      <div className="flex flex-col gap-4">
-        {ZONAS.map((zona) => (
-          <div key={zona.nombre}>
-            <div className="text-atenuado text-[10.5px] font-semibold tracking-[1px] uppercase mb-2">
-              {zona.nombre}
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {zona.grupos.map((nombre) => {
-                const v = porGrupo.get(nombre);
-                const series = v?.seriesUltimos7Dias ?? 0;
-                const opacidad = opacidadPorSeries(series);
-                const i = indice++;
-                return (
-                  <div
-                    key={nombre}
-                    title={`${nombre} · ${series} series · ${etiquetaDias(v?.diasDesdeUltimoEntreno ?? null)}`}
-                    className="anim-aparecer rounded-[14px] px-1.5 py-3 text-center border border-borde-2"
-                    style={{
-                      animationDelay: `${i * 25}ms`,
-                      background: `linear-gradient(135deg, color-mix(in srgb, var(--color-acento) ${
-                        opacidad * 100
-                      }%, transparent), color-mix(in srgb, var(--color-acento) ${
-                        opacidad * 55
-                      }%, transparent))`,
-                    }}
-                  >
+      <div className="titulo-tarjeta">RECUPERACIÓN MUSCULAR</div>
+
+      <SiluetaMuscular volumen={volumen} />
+
+      {/* El volumen de la semana sigue estando, debajo y en pequeño: la
+       * silueta responde "qué puedo entrenar hoy" y esto responde "cuánto
+       * llevo", que es una pregunta distinta y menos urgente. */}
+      <details className="mt-4 group">
+        <summary className="titulo-tarjeta !mb-0 cursor-pointer list-none flex items-center gap-1.5">
+          <ChevronDown size={12} className="icono-rotable group-open:icono-rotable-abierto" />
+          VOLUMEN DE LOS ÚLTIMOS 7 DÍAS
+        </summary>
+        <div className="flex flex-col gap-4 mt-3">
+          {ZONAS.map((zona) => (
+            <div key={zona.nombre}>
+              <div className="text-atenuado text-[10.5px] font-semibold tracking-[1px] uppercase mb-2">
+                {zona.nombre}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {zona.grupos.map((nombre) => {
+                  const v = porGrupo.get(nombre);
+                  const series = v?.seriesUltimos7Dias ?? 0;
+                  const opacidad = opacidadPorSeries(series);
+                  const i = indice++;
+                  return (
                     <div
-                      className={`text-[10.5px] font-semibold leading-tight ${
-                        series > 4 ? "text-fondo" : "text-texto-2"
-                      }`}
+                      key={nombre}
+                      title={`${nombre} · ${series} series · ${etiquetaDias(v?.diasDesdeUltimoEntreno ?? null)}`}
+                      className="anim-aparecer rounded-[14px] px-1.5 py-2.5 text-center border border-borde-2"
+                      style={{
+                        animationDelay: `${i * 25}ms`,
+                        background: `linear-gradient(135deg, color-mix(in srgb, var(--color-acento) ${
+                          opacidad * 100
+                        }%, transparent), color-mix(in srgb, var(--color-acento) ${
+                          opacidad * 55
+                        }%, transparent))`,
+                      }}
                     >
-                      {nombre}
+                      <div
+                        className={`text-[10.5px] font-semibold leading-tight ${
+                          series > 4 ? "text-fondo" : "text-texto-2"
+                        }`}
+                      >
+                        {nombre}
+                      </div>
+                      <div
+                        className={`text-[10px] tabular-nums ${
+                          series > 4 ? "text-fondo/70" : "text-atenuado"
+                        }`}
+                      >
+                        {series}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </details>
     </section>
   );
 }

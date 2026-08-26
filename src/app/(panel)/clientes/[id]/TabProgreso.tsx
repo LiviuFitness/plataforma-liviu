@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { fechaCorta } from "@/componentes/ui";
-import { aNumero } from "@/lib/rutinas";
 import {
   calcularRevisionSemanal,
   ritmoPorDefecto,
@@ -13,6 +12,8 @@ import {
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
+import PanelMedidas from "@/componentes/PanelMedidas";
+import { MEDIDAS } from "@/lib/medidas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type {
   EntradaFotosProgreso,
@@ -46,9 +47,6 @@ export default function TabProgreso({
   respuestasCuestionario: RespuestaRevisionConPregunta[];
 }) {
   const router = useRouter();
-  const [f, setF] = useState({ peso: "", cintura: "", pecho: "", brazo: "", pierna: "" });
-  const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState("");
   const [ritmo, setRitmo] = useState(
     perfil.objetivo_ritmo_semanal_pct ?? ritmoPorDefecto(perfil.objetivo)
   );
@@ -76,31 +74,6 @@ export default function TabProgreso({
     }
     return [...mapa.entries()].sort((a, b) => b[0].localeCompare(a[0])).slice(0, 6);
   }, [respuestasCuestionario]);
-
-  const set =
-    (clave: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setF({ ...f, [clave]: e.target.value });
-
-  async function guardar() {
-    setError("");
-    setGuardando(true);
-    const supabase = crearClienteNavegador();
-    const { error } = await supabase.from("medidas").insert({
-      cliente_id: clienteId,
-      peso: aNumero(f.peso),
-      cintura: aNumero(f.cintura),
-      pecho: aNumero(f.pecho),
-      brazo: aNumero(f.brazo),
-      pierna: aNumero(f.pierna),
-    });
-    setGuardando(false);
-    if (error) {
-      setError("No se pudo guardar la medida. Inténtalo de nuevo.");
-      return;
-    }
-    setF({ peso: "", cintura: "", pecho: "", brazo: "", pierna: "" });
-    router.refresh();
-  }
 
   async function borrar(id: string) {
     const supabase = crearClienteNavegador();
@@ -305,62 +278,58 @@ export default function TabProgreso({
         onBorrarSesion={borrarSesion}
       />
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">MEDIDAS</div>
-        <div className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_28px] text-[11px] text-atenuado uppercase tracking-wider border-b border-borde-2 py-[7px]">
-          <span>Fecha</span>
-          <span>Peso</span>
-          <span>Cintura</span>
-          <span>Pecho</span>
-          <span>Brazo</span>
-          <span></span>
-        </div>
-        {listaOrdenada.map((m) => (
-          <div
-            key={m.id}
-            className="grid grid-cols-[1.2fr_1fr_1fr_1fr_1fr_28px] items-center text-[13px] border-b border-borde last:border-0 py-[7px]"
-          >
-            <span>{fechaCorta(m.fecha)}</span>
-            <span className="font-bold text-acento">{fmt(m.peso)}</span>
-            <span>{fmt(m.cintura)}</span>
-            <span>{fmt(m.pecho)}</span>
-            <span>{fmt(m.brazo)}</span>
-            <button
-              className="mini mini-peligro"
-              onClick={() => borrar(m.id)}
-              aria-label="Borrar medida"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
-        {medidas.length === 0 && (
-          <div className="text-atenuado text-[13.5px] pt-2">
-            Sin registros todavía. Añade la primera medida abajo.
-          </div>
-        )}
-      </section>
+      <PanelMedidas clienteId={clienteId} medidas={medidas} />
 
       <section className="tarjeta">
-        <div className="titulo-tarjeta">AÑADIR MEDIDA</div>
-        <div className="grid grid-cols-2 gap-2 mb-2.5">
-          <input className="input !mb-0" placeholder="Peso (kg)" inputMode="decimal" value={f.peso} onChange={set("peso")} />
-          <input className="input !mb-0" placeholder="Cintura (cm)" inputMode="decimal" value={f.cintura} onChange={set("cintura")} />
-          <input className="input !mb-0" placeholder="Pecho (cm)" inputMode="decimal" value={f.pecho} onChange={set("pecho")} />
-          <input className="input !mb-0" placeholder="Brazo (cm)" inputMode="decimal" value={f.brazo} onChange={set("brazo")} />
-          <input className="input !mb-0" placeholder="Pierna (cm)" inputMode="decimal" value={f.pierna} onChange={set("pierna")} />
-        </div>
-        {error && (
-          <div className="text-peligro text-[13.5px] mb-3">— {error}</div>
+        <div className="titulo-tarjeta">HISTÓRICO DE MEDIDAS</div>
+        {medidas.length === 0 ? (
+          <div className="text-atenuado text-[13.5px]">
+            Sin registros todavía. Toma la primera medida en la silueta de arriba.
+          </div>
+        ) : (
+          // Las columnas salen del catálogo de `lib/medidas.ts` para que
+          // no vuelvan a quedarse por detrás de la tabla como pasaba antes
+          // (solo enseñaba 4 de las medidas guardadas).
+          <div className="overflow-x-auto -mx-1 px-1">
+            <div className="min-w-[620px]">
+              <div
+                className="grid text-[11px] text-atenuado uppercase tracking-wider border-b border-borde-2 py-[7px]"
+                style={{ gridTemplateColumns: COLUMNAS_HISTORICO }}
+              >
+                <span>Fecha</span>
+                <span>Peso</span>
+                {MEDIDAS.map((m) => (
+                  <span key={m.clave}>{m.etiqueta}</span>
+                ))}
+                <span></span>
+              </div>
+              {listaOrdenada.map((m) => (
+                <div
+                  key={m.id}
+                  className="grid items-center text-[13px] border-b border-borde last:border-0 py-[7px] tabular-nums"
+                  style={{ gridTemplateColumns: COLUMNAS_HISTORICO }}
+                >
+                  <span>{fechaCorta(m.fecha)}</span>
+                  <span className="font-bold text-acento">{fmt(m.peso)}</span>
+                  {MEDIDAS.map((d) => (
+                    <span key={d.clave}>{fmt(m[d.clave])}</span>
+                  ))}
+                  <button
+                    className="mini mini-peligro"
+                    onClick={() => borrar(m.id)}
+                    aria-label={`Borrar medidas del ${fechaCorta(m.fecha)}`}
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
         )}
-        <button
-          className="cta"
-          disabled={f.peso.trim() === "" || guardando}
-          onClick={guardar}
-        >
-          {guardando ? "Guardando…" : "Guardar medida"}
-        </button>
       </section>
     </>
   );
 }
+
+/** Fecha + peso + una columna por medida del catálogo + botón de borrar. */
+const COLUMNAS_HISTORICO = `1.3fr 1fr repeat(${MEDIDAS.length}, 1fr) 28px`;

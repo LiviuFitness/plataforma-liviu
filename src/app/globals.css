@@ -27,13 +27,26 @@
   --font-cuerpo: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
 }
 
+/* Resplandor ambiental de la marca. Antes era un solo foco al 10% por
+   debajo del pliegue, que en la práctica no se veía: el contenido
+   flotaba sobre negro plano. Ahora entra también por arriba, donde
+   está la cabecera, para dar la misma profundidad que tienen las apps
+   de referencia sin tocar el azul de marca. Va fijo al viewport para
+   que no se desplace ni se repita al hacer scroll en páginas largas. */
 body {
   background-color: var(--color-fondo);
-  background-image: radial-gradient(
-    ellipse at 50% 120%,
-    rgba(41, 171, 226, 0.1),
-    transparent 55%
-  );
+  background-image:
+    radial-gradient(
+      ellipse 90% 45% at 50% -5%,
+      rgba(41, 171, 226, 0.2),
+      transparent 62%
+    ),
+    radial-gradient(
+      ellipse 70% 40% at 50% 108%,
+      rgba(41, 171, 226, 0.14),
+      transparent 60%
+    );
+  background-attachment: fixed;
   color: #fff;
   font-family: var(--font-cuerpo);
   min-height: 100vh;
