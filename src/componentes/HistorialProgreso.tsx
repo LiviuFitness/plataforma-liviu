@@ -42,13 +42,17 @@ export default function HistorialProgreso({
           return (
             <div key={pr.ejercicio} className="border-b border-borde last:border-0">
               <button
-                className="flex justify-between items-center py-2.5 w-full text-left cursor-pointer"
+                className="flex justify-between items-start gap-2 py-2.5 w-full text-left cursor-pointer"
                 onClick={() =>
                   setExpandido(abierto ? null : puntos.length >= 2 ? pr.ejercicio : null)
                 }
               >
-                <span className="text-[14px]">{pr.ejercicio}</span>
-                <span className="text-right">
+                {/* El nombre se lleva el espacio sobrante y parte en varias
+                 * líneas si hace falta; la marca nunca se parte. Sin esto,
+                 * un nombre largo comprimía la columna de la derecha y
+                 * dejaba "120 / kg × 6 / ~1RM 144 kg" en tres líneas. */}
+                <span className="text-[14px] flex-1 min-w-0 pr-3">{pr.ejercicio}</span>
+                <span className="text-right shrink-0 whitespace-nowrap">
                   <span className="text-[14px] block">
                     <b className="text-acento">{pr.kg} kg</b>
                     <span className="text-atenuado"> × {pr.reps}</span>
