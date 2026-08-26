@@ -85,7 +85,11 @@ export async function resolverProgresoEntreno(
     for (const serie of sesion.series_realizadas ?? []) {
       const nombre = serie.rutina_ejercicios?.ejercicios?.nombre;
       if (!nombre || !serie.completada || serie.tipo === "calentamiento") continue;
-      if (serie.kg === null) continue;
+      // Hace falta peso Y repeticiones: una serie marcada como hecha pero
+      // sin repeticiones no dice si se levantó una vez o ninguna, y salía
+      // en la lista como "340 kg × 0", sin 1RM estimado y por delante de
+      // récords de verdad (se ordena por kg).
+      if (serie.kg === null || !serie.reps || Number(serie.reps) < 1) continue;
       const actual = mejores.get(nombre);
       if (!actual || Number(serie.kg) > actual.kg) {
         mejores.set(nombre, {
@@ -109,7 +113,16 @@ export async function resolverProgresoEntreno(
     const mejorEnSesion = new Map<string, number>();
     for (const serie of sesion.series_realizadas ?? []) {
       const nombre = serie.rutina_ejercicios?.ejercicios?.nombre;
-      if (!nombre || !serie.completada || serie.tipo === "calentamiento" || serie.kg === null)
+      // Mismo criterio que los récords de arriba, para que la gráfica de
+      // progresión no dibuje picos de series sin repeticiones.
+      if (
+        !nombre ||
+        !serie.completada ||
+        serie.tipo === "calentamiento" ||
+        serie.kg === null ||
+        !serie.reps ||
+        Number(serie.reps) < 1
+      )
         continue;
       const actual = mejorEnSesion.get(nombre) ?? 0;
       if (Number(serie.kg) > actual) mejorEnSesion.set(nombre, Number(serie.kg));

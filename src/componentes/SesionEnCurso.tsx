@@ -25,7 +25,6 @@ import {
   ArrowLeft,
   ArrowUp,
   Check,
-  ChevronDown,
   ChevronUp,
   FileText,
   Link2,
@@ -173,7 +172,10 @@ function FilaSerie({
 
   return (
     <div
-      className={`fila-serie grid grid-cols-[80px_56px_1fr_40px] items-center gap-1.5 rounded-[10px] py-2 pl-2.5 pr-2 border-l-[3px] ${
+      // El espacio sobrante se lo quedan las repeticiones, no el RIR:
+      // antes la columna del RIR era `1fr` y dejaba un vacío raro entre
+      // las reps y la cápsula, que quedaba desterrada contra el check.
+      className={`fila-serie grid grid-cols-[78px_1fr_auto_40px] items-center gap-1.5 rounded-[10px] py-2 pl-2.5 pr-2 border-l-[3px] ${
         activa ? "bg-acento/[0.06]" : ""
       }`}
       style={{ borderLeftColor: colorBarra }}
@@ -223,7 +225,10 @@ function FilaSerie({
         </button>
       ) : (
         <input
-          className="campo-serie !w-[56px] placeholder:text-atenuado/45"
+          // Ocupa la columna en vez de quedarse en 56 px fijos: así el
+          // hueco muerto entre las reps y el RIR desaparece y de paso hay
+          // más sitio donde pinchar con los dedos sudados.
+          className="campo-serie !w-full !max-w-[112px] placeholder:text-atenuado/45"
           placeholder={serie.repsPrescrito || "reps"}
           value={serie.reps}
           onChange={(e) => onCambiarReps(e.target.value)}
@@ -958,22 +963,30 @@ export default function SesionEnCurso({
 
   return (
     <>
-      <div className="flex justify-between items-center mb-2">
-        <button
-          className="mini shrink-0"
-          onClick={salir}
-          aria-label="Salir del entreno"
-        >
+      {/* Cabecera en una sola fila: salir, qué se entrena y cómo va. El
+       * nombre del día iba antes en un `h1` aparte, pero una vez estás
+       * dentro ya sabes lo que haces — no necesita 28 px ni una línea
+       * para él solo. */}
+      <div className="flex items-center gap-2.5 mb-2">
+        <button className="mini shrink-0" onClick={salir} aria-label="Salir del entreno">
           <X size={16} />
         </button>
-        <div className="text-atenuado text-[13px] flex items-center gap-1 tabular-nums">
+        <div className="min-w-0 flex-1">
+          <div className="font-bold text-[17px] leading-tight truncate">{nombreDia}</div>
+          {nombreCliente && (
+            <div className="text-atenuado text-[12px] truncate">
+              Sesión presencial de {nombreCliente}
+            </div>
+          )}
+        </div>
+        <div className="text-atenuado text-[13px] flex items-center gap-1 tabular-nums shrink-0">
           <Timer size={13} /> {fmt(transcurrido)} ·{" "}
           <span className={todoCompleto ? "text-acento font-semibold" : ""}>
-            {completadas}/{totalSeries} series
+            {completadas}/{totalSeries}
           </span>
         </div>
       </div>
-      <div className="barra-capsula !h-1 mb-3">
+      <div className="barra-capsula !h-1 mb-3.5">
         <div
           className="barra-capsula-relleno"
           style={
@@ -984,13 +997,6 @@ export default function SesionEnCurso({
           }
         />
       </div>
-
-      {nombreCliente && (
-        <div className="text-atenuado text-[12.5px] mb-1">
-          Sesión presencial de <b className="text-texto-2">{nombreCliente}</b>
-        </div>
-      )}
-      <h1 className="h1 mb-3">{nombreDia}</h1>
 
       {gruposCalculados.length > 1 && (
         <div className="flex gap-2 overflow-x-auto scroll-sin-barra pb-1 mb-3.5">
@@ -1116,74 +1122,75 @@ export default function SesionEnCurso({
                           <ChevronUp size={16} />
                         </button>
                       )}
-                      <button
-                        className="text-atenuado cursor-pointer hover:text-acento transition-colors anim-pulsable"
-                        onClick={() => setCalculadoraPara(ei)}
-                        title="Calculadora de discos"
-                        aria-label="Calculadora de discos"
-                      >
-                        <Scale size={17} />
-                      </button>
-                      <span className="text-atenuado text-[12px] tabular-nums">
+                      <span className="text-atenuado text-[12.5px] tabular-nums font-semibold">
                         {hechas}/{ex.series.length}
                       </span>
                     </div>
                   </div>
-                  {esSuperserie && !esUltimoDelGrupo ? (
-                    <div className="text-acento/80 text-[12.5px] mb-1">
-                      ↓ sin descanso, sigue directo con el siguiente
-                    </div>
-                  ) : (
-                    <div className="text-atenuado text-[12.5px] mb-1">
-                      Descanso {fmt(ex.descansoSeg)}
-                      {esSuperserie ? " al terminar la ronda" : ""}
-                      {notaInline ? ` · ${notaInline}` : ""}
-                    </div>
-                  )}
-                  {ex.anterior && ex.anterior.length > 0 && (
-                    <div className="inline-flex items-center gap-1.5 max-w-full bg-campo/80 border border-borde-2 rounded-full pl-2.5 pr-3 py-1 mb-1.5">
-                      <span className="text-[9.5px] font-bold uppercase tracking-wide text-atenuado shrink-0">
-                        Última
-                      </span>
-                      <div className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-[13px] font-bold tabular-nums text-texto-2 min-w-0">
-                        {ex.anterior.map((it, i) => (
-                          <span key={i} className="inline-flex items-center gap-0.5">
-                            {it.texto}
-                            {it.estado === "superado" && (
-                              <ArrowUp
-                                size={10}
-                                strokeWidth={3}
-                                aria-hidden="true"
-                                className="text-acento"
-                              />
-                            )}
-                            {it.estado === "no_alcanzado" && (
-                              <ArrowDown
-                                size={10}
-                                strokeWidth={3}
-                                aria-hidden="true"
-                                className="text-aviso"
-                              />
-                            )}
-                            {i < ex.anterior!.length - 1 && (
-                              <span className="text-atenuado font-normal">·</span>
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Técnica y vídeo: dos disparadores independientes y
-                   * minúsculos, nunca el texto entero de primeras — aquí
-                   * se viene a entrenar, no a leer. Cada uno se abre por
-                   * su cuenta, sin anidar uno dentro del otro. */}
-                  {(ex.tecnica || ex.videoUrl || notasPlegadas) && (
-                    <div className="flex items-center gap-3 mb-1.5">
+                  {/* Todo lo secundario en UNA fila: antes eran cuatro
+                   * líneas apiladas (descanso, «última vez», técnica y
+                   * vídeo) con el mismo peso visual, y había que pasar por
+                   * encima de todas ellas para llegar a lo único que se
+                   * toca de verdad, que son las series. Las herramientas
+                   * pasan a ser iconos sin texto, alineados a la derecha. */}
+                  <div className="flex items-center gap-x-2 gap-y-1 flex-wrap mb-2 text-[12.5px] text-atenuado">
+                    {esSuperserie && !esUltimoDelGrupo ? (
+                      <span className="text-acento/80">↓ sigue sin descanso</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 tabular-nums shrink-0">
+                        <Timer size={12} /> {fmt(ex.descansoSeg)}
+                      </span>
+                    )}
+
+                    {ex.anterior && ex.anterior.length > 0 && (
+                      <>
+                        <span className="text-borde-2">|</span>
+                        <span className="inline-flex flex-wrap items-center gap-x-1 min-w-0">
+                          <span className="shrink-0">Última</span>
+                          {ex.anterior.map((it, i) => (
+                            <span
+                              key={i}
+                              className="inline-flex items-center gap-0.5 font-bold tabular-nums text-texto-2"
+                            >
+                              {it.texto}
+                              {it.estado === "superado" && (
+                                <ArrowUp
+                                  size={10}
+                                  strokeWidth={3}
+                                  aria-hidden="true"
+                                  className="text-acento"
+                                />
+                              )}
+                              {it.estado === "no_alcanzado" && (
+                                <ArrowDown
+                                  size={10}
+                                  strokeWidth={3}
+                                  aria-hidden="true"
+                                  className="text-aviso"
+                                />
+                              )}
+                              {i < ex.anterior!.length - 1 && (
+                                <span className="text-atenuado font-normal">·</span>
+                              )}
+                            </span>
+                          ))}
+                        </span>
+                      </>
+                    )}
+
+                    {notaInline && (
+                      <>
+                        <span className="text-borde-2">|</span>
+                        <span className="min-w-0 truncate">{notaInline}</span>
+                      </>
+                    )}
+
+                    <div className="flex items-center gap-3 ml-auto shrink-0">
                       {(ex.tecnica || notasPlegadas) && (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 text-atenuado hover:text-texto-2 transition-colors text-[12px] font-medium anim-pulsable"
+                          className="hover:text-texto-2 transition-colors anim-pulsable"
                           onClick={() =>
                             setTecnicaAbierta((prev) => ({
                               ...prev,
@@ -1191,27 +1198,37 @@ export default function SesionEnCurso({
                             }))
                           }
                           aria-expanded={!!tecnicaAbierta[ex.rutinaEjercicioId]}
+                          title="Técnica"
+                          aria-label="Ver la técnica del ejercicio"
                         >
-                          <FileText size={12} /> Técnica
-                          <ChevronDown
-                            size={11}
-                            className={`icono-rotable ${
-                              tecnicaAbierta[ex.rutinaEjercicioId] ? "icono-rotable-abierto" : ""
-                            }`}
-                          />
+                          <FileText size={15} />
                         </button>
                       )}
                       {ex.videoUrl && (
                         <button
                           type="button"
-                          className="inline-flex items-center gap-1 text-atenuado hover:text-acento transition-colors text-[12px] font-medium anim-pulsable"
+                          className="hover:text-acento transition-colors anim-pulsable"
                           onClick={() => setVideoAbierto(videoAbierto === ei ? null : ei)}
+                          title={esGif(ex.videoUrl) ? "Ver gif" : "Ver vídeo"}
+                          aria-label={
+                            esGif(ex.videoUrl)
+                              ? "Ver el gif del ejercicio"
+                              : "Ver el vídeo del ejercicio"
+                          }
                         >
-                          <Video size={12} /> {esGif(ex.videoUrl) ? "Ver gif" : "Ver vídeo"}
+                          <Video size={15} />
                         </button>
                       )}
+                      <button
+                        className="hover:text-acento transition-colors anim-pulsable"
+                        onClick={() => setCalculadoraPara(ei)}
+                        title="Calculadora de discos"
+                        aria-label="Calculadora de discos"
+                      >
+                        <Scale size={15} />
+                      </button>
                     </div>
-                  )}
+                  </div>
 
                   {(ex.tecnica || notasPlegadas) && tecnicaAbierta[ex.rutinaEjercicioId] && (
                     <div className="text-[12.5px] text-texto-2 whitespace-pre-line bg-campo border border-borde-2 rounded-[10px] p-2.5 mb-1.5 anim-aparecer">
