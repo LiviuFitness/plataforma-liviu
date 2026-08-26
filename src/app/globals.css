@@ -37,14 +37,14 @@ body {
   background-color: var(--color-fondo);
   background-image:
     radial-gradient(
-      ellipse 90% 45% at 50% -5%,
-      rgba(41, 171, 226, 0.2),
-      transparent 62%
+      ellipse 110% 55% at 50% 0%,
+      rgba(41, 171, 226, 0.3),
+      transparent 70%
     ),
     radial-gradient(
-      ellipse 70% 40% at 50% 108%,
-      rgba(41, 171, 226, 0.14),
-      transparent 60%
+      ellipse 85% 45% at 50% 100%,
+      rgba(41, 171, 226, 0.17),
+      transparent 68%
     );
   background-attachment: fixed;
   color: #fff;
