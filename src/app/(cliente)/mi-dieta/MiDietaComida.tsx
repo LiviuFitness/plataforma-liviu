@@ -197,25 +197,21 @@ export default function MiDietaComida({
                 })}
               </div>
 
-              {/* Macros de la comida: tiles con tinte de color en vez de tres
-               * textos alineados con un punto — mismos colores que el resto
-               * de la app (objetivo diario, tarjeta de dieta en Inicio). */}
+              {/* Macros de la comida en una línea. Eran tres cajas con
+               * fondo tintado y dos alturas de texto cada una; con cinco o
+               * seis comidas al día eso son casi veinte recuadros de
+               * colores en la misma pantalla, compitiendo con los propios
+               * alimentos, que es lo que se viene a leer. El color se queda
+               * solo en la letra del macro, que es donde hace falta. */}
               {items.length > 0 && (
-                <div className="flex items-center gap-1.5 px-4 py-2.5 border-t border-borde/60">
+                <div className="flex items-center gap-3 px-4 py-2 border-t border-borde/60 text-[12.5px] tabular-nums">
                   {MACROS_LEYENDA.map((m, i) => (
-                    <div
-                      key={m.etiqueta}
-                      className="flex-1 text-center rounded-[10px] py-1.5"
-                      style={{ background: `color-mix(in srgb, ${m.color} 10%, transparent)` }}
-                    >
-                      <div
-                        className="text-[9.5px] font-bold uppercase tracking-wide"
-                        style={{ color: m.color }}
-                      >
+                    <span key={m.etiqueta} className="inline-flex items-baseline gap-1">
+                      <span className="font-bold" style={{ color: m.color }}>
                         {m.etiqueta}
-                      </div>
-                      <div className="text-[13px] font-bold mt-0.5">{r1(valores[i])} g</div>
-                    </div>
+                      </span>
+                      <span className="text-texto-2">{r1(valores[i])} g</span>
+                    </span>
                   ))}
                 </div>
               )}

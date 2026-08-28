@@ -63,7 +63,7 @@ export default async function LayoutCliente({
       <BarraLateralCliente chatSinLeer={hayChatSinLeer} revisionSinLeer={hayRevisionSinLeer} />
 
       <div className="max-w-[480px] md:max-w-[640px] w-full mx-auto md:flex-1 relative min-h-screen">
-        <header className="md:hidden flex justify-between items-center px-[18px] pt-4 pb-2.5 sticky top-0 z-10 bg-fondo/90 backdrop-blur-md border-b border-borde">
+        <header className="md:hidden flex justify-between items-center px-[18px] pt-4 pb-2.5 sticky top-0 z-10 cabecera-solida border-b border-borde">
           <Logo tamano={38} />
           <BotonSalir />
         </header>

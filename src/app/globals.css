@@ -52,6 +52,28 @@ body {
   min-height: 100vh;
 }
 
+/* Cabecera fija totalmente opaca. Antes era `bg-fondo/90` con desenfoque
+   y el contenido se veía transparentado por debajo al hacer scroll, que
+   es lo que ensuciaba la pantalla de la dieta. No se puede tapar con un
+   color plano porque el fondo lleva degradado: se repite aquí el MISMO
+   `background-image` fijo al viewport que el `body`, así la cabecera
+   queda opaca y a la vez continúa el degradado sin que se note el corte. */
+.cabecera-solida {
+  background-color: var(--color-fondo);
+  background-image:
+    radial-gradient(
+      ellipse 110% 55% at 50% 0%,
+      rgba(41, 171, 226, 0.3),
+      transparent 70%
+    ),
+    radial-gradient(
+      ellipse 85% 45% at 50% 100%,
+      rgba(41, 171, 226, 0.17),
+      transparent 68%
+    );
+  background-attachment: fixed;
+}
+
 /* Foco de teclado consistente en toda la app (solo navegación por
    teclado, no al pulsar con el ratón/dedo — :focus-visible). */
 :focus-visible {

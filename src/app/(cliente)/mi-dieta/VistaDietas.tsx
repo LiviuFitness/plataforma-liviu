@@ -75,18 +75,17 @@ export default function VistaDietas({
         <div className="titulo-tarjeta">
           OBJETIVO DIARIO{hayAmbas ? ` · ${tipo === "entreno" ? "ENTRENO" : "DESCANSO"}` : ""}
         </div>
-        <div className="flex items-baseline justify-between mb-2">
-          <div>
-            <span className="num-grande !text-[34px]" style={{ color: "var(--color-verde)" }}>
-              {kcalAnimado}
-            </span>
-            <span className="text-atenuado text-[14px]"> kcal</span>
-          </div>
-          {hayAlimentos && (
-            <span className="text-[12.5px] text-atenuado">
-              plan <b className="text-acento">{r(totalesPlan.kcal)} kcal</b>
-            </span>
-          )}
+        {/* El número grande es lo que suma el plan, no el objetivo: lo que
+         * el cliente quiere saber es cuánto va a comer hoy, y el objetivo
+         * es la referencia contra la que se lee. Antes estaba al revés —
+         * 34 px para el objetivo y letra pequeña para el plan. */}
+        <div className="flex items-baseline gap-1.5 mb-2">
+          <span className="num-grande !text-[32px]" style={{ color: "var(--color-verde)" }}>
+            {hayAlimentos ? r(totalesPlan.kcal) : kcalAnimado}
+          </span>
+          <span className="text-atenuado text-[14px]">
+            {hayAlimentos ? `/ ${dieta.kcal_obj} kcal` : "kcal"}
+          </span>
         </div>
         {hayAlimentos && (
           <div className="barra-capsula mb-4">
@@ -99,37 +98,35 @@ export default function VistaDietas({
             />
           </div>
         )}
-        <div className="space-y-3.5">
+
+        {/* Los tres macros en fila. Apilados con su barra cada uno se
+         * comían media pantalla antes de llegar a las comidas, que es a
+         * lo que se entra en realidad. El punto de color de cada etiqueta
+         * sobraba: la barra de debajo ya lleva ese mismo color. */}
+        <div className="grid grid-cols-3 gap-2.5">
           {(
             [
-              [INFO_MACRO.proteina.etiqueta, dieta.prot_obj, totalesPlan.prot, INFO_MACRO.proteina.color],
-              [INFO_MACRO.carbohidratos.etiqueta, dieta.carb_obj, totalesPlan.carb, INFO_MACRO.carbohidratos.color],
-              [INFO_MACRO.grasas.etiqueta, dieta.gras_obj, totalesPlan.gras, INFO_MACRO.grasas.color],
+              ["Proteína", dieta.prot_obj, totalesPlan.prot, INFO_MACRO.proteina.color],
+              ["Carbos", dieta.carb_obj, totalesPlan.carb, INFO_MACRO.carbohidratos.color],
+              ["Grasas", dieta.gras_obj, totalesPlan.gras, INFO_MACRO.grasas.color],
             ] as const
           ).map(([etiqueta, objetivo, plan2, color]) => (
             <div key={etiqueta}>
-              <div className="flex justify-between items-baseline mb-1.5 text-[13.5px]">
-                <span className="flex items-center gap-1.5">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full"
-                    style={{ background: color }}
-                  />
-                  {etiqueta}
-                </span>
-                <span>
-                  {hayAlimentos && (
-                    <>
-                      <b style={{ color }}>{r1(plan2)}</b>
-                      <span className="text-atenuado"> / </span>
-                    </>
-                  )}
-                  <span className={hayAlimentos ? "text-atenuado" : "font-bold"}>
-                    {objetivo} g
-                  </span>
+              <div className="text-atenuado text-[11.5px] mb-0.5">{etiqueta}</div>
+              <div className="text-[13.5px] mb-1.5 tabular-nums leading-none">
+                {hayAlimentos && (
+                  <>
+                    <b style={{ color }}>{r1(plan2)}</b>
+                    <span className="text-atenuado">/</span>
+                  </>
+                )}
+                <span className={hayAlimentos ? "text-atenuado" : "font-bold"}>
+                  {objetivo}
+                  <span className="text-[11px]"> g</span>
                 </span>
               </div>
               {hayAlimentos && (
-                <div className="barra-capsula">
+                <div className="barra-capsula !h-1">
                   <div
                     className="barra-capsula-relleno"
                     style={{
