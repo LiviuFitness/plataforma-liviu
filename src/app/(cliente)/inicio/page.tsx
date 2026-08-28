@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
-import { Trophy, Dumbbell, UtensilsCrossed } from "lucide-react";
+import { Trophy, Dumbbell, UtensilsCrossed, ChevronRight } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 import RachaInline from "./RachaInline";
+import SemanaEntrenos from "./SemanaEntrenos";
 import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
 import { semanaHabitosCompleta } from "@/lib/habitos";
@@ -18,7 +19,6 @@ import { calcularRacha } from "@/lib/racha";
 
 export const dynamic = "force-dynamic";
 
-const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
 
 interface FilaSerieParaPR {
   kg: number | null;
@@ -320,10 +320,10 @@ export default async function PaginaInicio() {
       {/* 2. Racha — fila ligera, sin tarjeta, no compite con el entreno */}
       <RachaInline racha={racha} />
 
-      {/* 3. Frase motivacional — se mantiene, da personalidad a la app */}
-      <div className="tarjeta text-texto-2 text-[13.5px] italic anim-entrada-1">
-        “{fraseDelDia()}”
-      </div>
+      {/* 3. La semana de un vistazo. Aquí estaba la frase del día, que es
+       * el mejor hueco de la pantalla y lo ocupaba algo que no dice nada
+       * del cliente; la frase se ha ido al final. */}
+      <SemanaEntrenos diasEntrenados={diasEntrenados} objetivoSemana={objetivoSemana} />
 
       {/* 4. ENTRENAMIENTO DE HOY — la tarjeta protagonista. Sin eyebrow:
        * el nombre del día ES el título, y semana/ejercicios/series/
@@ -338,7 +338,10 @@ export default async function PaginaInicio() {
               <div className="font-bold text-[21px] leading-tight truncate">
                 {proximoDia.nombre}
               </div>
-              <div className="text-atenuado text-[13px] mt-1 truncate">
+              {/* Sin `truncate`: en un móvil estrecho la línea se cortaba
+               * justo en la duración ("· 3…"), que es el dato por el que
+               * más se decide si da tiempo a entrenar ahora. Envuelve. */}
+              <div className="text-atenuado text-[13px] mt-1 leading-snug">
                 Semana {rutina?.semana_actual ?? 1} · {proximoDia.ejercicios.length} ejercicios ·{" "}
                 {seriesEfectivasProximo} series · {duracionMin}–{duracionMax} min
               </div>
@@ -378,18 +381,22 @@ export default async function PaginaInicio() {
           {rutina.dias.map(
             (dia, i) =>
               i !== proximoIndice && (
+                // La fila entera ya es el enlace, así que el "Empezar →"
+                // de cada una solo servía para repetir tres veces en azul
+                // la llamada a la acción que ya hace el botón grande de
+                // arriba. Queda una flecha discreta.
                 <Link
                   key={dia.id}
                   href={`/sesion/${dia.id}`}
-                  className="flex justify-between items-center border-b border-borde last:border-0 py-3"
+                  className="flex justify-between items-center gap-3 border-b border-borde last:border-0 py-2.5 anim-pulsable"
                 >
-                  <div>
-                    <div className="font-bold text-[14.5px]">{dia.nombre}</div>
+                  <div className="min-w-0">
+                    <div className="font-semibold text-[14.5px] truncate">{dia.nombre}</div>
                     <div className="text-atenuado text-[12.5px]">
                       {dia.ejercicios.length} ejercicios
                     </div>
                   </div>
-                  <span className="text-acento text-[13.5px]">Empezar →</span>
+                  <ChevronRight size={16} className="text-atenuado shrink-0" />
                 </Link>
               )
           )}
@@ -454,28 +461,11 @@ export default async function PaginaInicio() {
         nuevos={nuevosLogros}
       />
 
-      {/* 9. Otras estadísticas — la prioridad más baja de la pantalla:
-       * cuántos entrenos llevas esta semana y avisos informativos, sin
-       * pelear por atención con nada de lo anterior. El "esta semana"
-       * vive en la propia frase, no hace falta un título aparte. */}
-      <div className="tarjeta !p-4 mt-2">
-        <div className="flex items-baseline gap-1.5">
-          <span className="num-grande !text-[20px]">{hechasSemana}</span>
-          <span className="text-atenuado text-[13px]">
-            /{objetivoSemana || "—"} entrenos esta semana
-          </span>
-        </div>
-        <div className="flex gap-1.5 mt-2.5">
-          {diasEntrenados.map((activo, i) => (
-            <div
-              key={i}
-              title={DIAS_SEMANA[i]}
-              className={`w-2 h-2 rounded-full ${activo ? "bg-acento" : "bg-borde-2"}`}
-            />
-          ))}
-        </div>
-      </div>
-
+      {/* 9. Cierre: el aviso de grupo descuidado y la frase del día, que
+       * es lo único decorativo de la pantalla y por eso va la última.
+       * Aquí estaba antes un resumen de la semana en siete puntitos sin
+       * etiquetas — la misma información que ahora se ve arriba y mejor,
+       * así que se ha quitado en vez de decirla dos veces. */}
       {avisoMuscular && (
         <div className="flex items-center gap-2 text-[13px] text-atenuado mt-3">
           <Dumbbell size={13} className="shrink-0" />
@@ -487,6 +477,10 @@ export default async function PaginaInicio() {
           </span>
         </div>
       )}
+
+      <p className="text-atenuado text-[13px] italic text-center mt-5 px-4">
+        “{fraseDelDia()}”
+      </p>
     </>
   );
 }
