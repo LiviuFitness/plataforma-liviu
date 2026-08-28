@@ -96,15 +96,24 @@ export default function MiDietaComida({
   return (
     <>
       <section className="tarjeta !p-0 overflow-hidden">
-        {/* Cabecera: icono + nombre + kcal de la comida, pulsable para plegar */}
+        {/* Cabecera: icono + nombre + kcal de la comida, pulsable para plegar.
+         * Lleva fondo propio, un velo del color de la comida, porque antes
+         * compartía el de la tarjeta con la lista de alimentos y lo único
+         * que las separaba era una línea de un píxel: con cinco comidas
+         * seguidas costaba ver dónde empezaba cada una. De paso, el tinte
+         * distingue unas de otras (desayuno, media mañana…) sin añadir
+         * ningún elemento nuevo. */}
         <button
-          className="flex items-center gap-3 px-4 pt-3.5 pb-2.5 w-full text-left anim-pulsable"
+          className={`flex items-center gap-3 px-4 pt-3.5 pb-3 w-full text-left anim-pulsable ${
+            expandida ? "border-b border-borde" : ""
+          }`}
+          style={{ background: `color-mix(in srgb, ${color} 13%, var(--color-panel))` }}
           onClick={() => setExpandida((v) => !v)}
           aria-expanded={expandida}
         >
           <IconoTarjeta Icono={Icono} color={color} tamano={36} />
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-[15px] leading-tight truncate">
+            <div className="font-bold text-[15.5px] leading-tight truncate">
               {comida.nombre}
             </div>
             {items.length > 0 && (
@@ -129,7 +138,7 @@ export default function MiDietaComida({
 
         <div className={`acordeon ${expandida ? "acordeon-abierto" : ""}`}>
           <div>
-            <div className="border-t border-borde">
+            <div>
               {/* Texto libre (compatibilidad con dietas antiguas) */}
               {comida.descripcion_libre && (
                 <div className="text-texto-2 text-[13.5px] px-4 pt-2.5">
