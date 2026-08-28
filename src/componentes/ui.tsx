@@ -4,6 +4,12 @@
 
 import Image from "next/image";
 import type { LucideIcon } from "lucide-react";
+
+/** Iconos que acepta la interfaz: los de lucide y los propios de la app
+ * (IconoMancuerna), que imitan su misma firma. */
+export type IconoApp =
+  | LucideIcon
+  | ((props: { size?: number; strokeWidth?: number; className?: string }) => React.ReactNode);
 import type { NivelEstado } from "@/lib/estadoCliente";
 
 const CIAN = "var(--color-acento)";
@@ -18,7 +24,7 @@ export function IconoTarjeta({
   className = "",
   titulo,
 }: {
-  Icono: LucideIcon;
+  Icono: IconoApp;
   color: string;
   tamano?: number;
   className?: string;

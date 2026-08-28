@@ -1,4 +1,4 @@
-import type { LucideIcon } from "lucide-react";
+import type { IconoApp } from "./ui";
 import { IconoTarjeta } from "./ui";
 
 /**
@@ -13,7 +13,7 @@ export default function EstadoVacio({
   descripcion,
   accion,
 }: {
-  Icono: LucideIcon;
+  Icono: IconoApp;
   color?: string;
   titulo: string;
   descripcion: string;

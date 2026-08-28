@@ -3,11 +3,12 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
-import { Trophy, Dumbbell, UtensilsCrossed, ChevronRight } from "lucide-react";
+import { Trophy, UtensilsCrossed, ChevronRight } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 import RachaInline from "./RachaInline";
 import SemanaEntrenos from "./SemanaEntrenos";
+import IconoMancuerna from "@/componentes/IconoMancuerna";
 import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
 import { semanaHabitosCompleta } from "@/lib/habitos";
@@ -202,7 +203,6 @@ export default async function PaginaInicio() {
       diasEntrenados[(fecha.getDay() + 6) % 7] = true;
     }
   }
-  const hechasSemana = diasEntrenados.filter(Boolean).length;
   const objetivoSemana = rutina?.dias.length ?? 0;
 
   const racha = calcularRacha(listaSesiones.map((s) => s.fecha_inicio));
@@ -300,20 +300,16 @@ export default async function PaginaInicio() {
     .reverse()
     .map((m) => Number(m.peso));
 
-  // Mensaje contextual del saludo — la racha ya tiene su propia fila
-  // (RachaInline) justo debajo, así que aquí no se repite.
-  let mensaje = "hoy es un buen día para tu primera sesión —";
-  if (hechasSemana > 0)
-    mensaje = `ya llevas ${hechasSemana} de ${objetivoSemana || "—"} entrenos esta semana —`;
-
   return (
     <>
-      {/* 1. Saludo */}
-      <h1 className="h1">
+      {/* 1. Saludo. Sin subtítulo: decía "llevas X de Y entrenos esta
+       * semana", exactamente lo que ahora enseña la tarjeta de la semana
+       * justo debajo y con los días marcados — no hace falta decirlo dos
+       * veces, y esa línea de más empujaba el entreno hacia abajo. */}
+      <h1 className="h1 mb-3">
         {saludoSegunHora()}
         {nombrePila ? `, ${nombrePila}` : ""}
       </h1>
-      <div className="sub mb-3">{mensaje}</div>
 
       <AvisosActualizacion avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
 
@@ -333,7 +329,7 @@ export default async function PaginaInicio() {
       {proximoDia ? (
         <section className="tarjeta tarjeta-acento anim-entrada-2 !p-6 !mb-3">
           <div className="flex items-center gap-3.5 mb-4">
-            <IconoTarjeta Icono={Dumbbell} color="var(--color-acento)" tamano={48} />
+            <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
             <div className="min-w-0">
               <div className="font-bold text-[21px] leading-tight truncate">
                 {proximoDia.nombre}
@@ -468,7 +464,7 @@ export default async function PaginaInicio() {
        * así que se ha quitado en vez de decirla dos veces. */}
       {avisoMuscular && (
         <div className="flex items-center gap-2 text-[13px] text-atenuado mt-3">
-          <Dumbbell size={13} className="shrink-0" />
+          <IconoMancuerna size={13} className="shrink-0" />
           <span>
             {avisoMuscular.diasDesdeUltimoEntreno === null
               ? "Llevas un tiempo"

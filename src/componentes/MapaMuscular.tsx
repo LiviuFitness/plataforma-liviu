@@ -1,4 +1,5 @@
-import { ChevronDown, Dumbbell } from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import IconoMancuerna from "./IconoMancuerna";
 import type { VolumenMuscular } from "@/lib/musculos";
 import EstadoVacio from "./EstadoVacio";
 import SiluetaMuscular from "./SiluetaMuscular";
@@ -57,7 +58,7 @@ export default function MapaMuscular({ volumen }: { volumen: VolumenMuscular[] }
       <section className="tarjeta">
         <div className="titulo-tarjeta">RECUPERACIÓN MUSCULAR</div>
         <EstadoVacio
-          Icono={Dumbbell}
+          Icono={IconoMancuerna}
           titulo="Entrena para ver tu recuperación"
           descripcion="En cuanto registres sesiones, aquí verás sobre el cuerpo qué músculos llevas cargados y cuáles están listos para volver a trabajarse."
         />
