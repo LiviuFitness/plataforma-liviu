@@ -30,13 +30,20 @@ export default function PoliticaPrivacidad() {
           <b>Datos técnicos:</b> los estrictamente necesarios para mantener la
           sesión iniciada (cookies técnicas).
         </li>
+        <li>
+          <b>Si todavía no eres cliente:</b> el nombre, el email, el teléfono
+          (si lo facilitas) y el mensaje que escribas en el formulario de la
+          página de planes, junto con el plan que te interese. No pedimos ahí
+          ningún dato de salud.
+        </li>
       </ul>
 
       <h2>3. Finalidad y base jurídica</h2>
       <p>
-        Tratamos tus datos con una única finalidad: el seguimiento deportivo y
-        nutricional que contratas con LIVIU Fitness Studio. La base jurídica es
-        doble:
+        La finalidad principal es el seguimiento deportivo y nutricional que
+        contratas con LIVIU Fitness Studio. Si solo has dejado tus datos en el
+        formulario de la página de planes, la única finalidad es responderte y
+        valorar contigo si el servicio te encaja. Bases jurídicas:
       </p>
       <ul>
         <li>
@@ -50,6 +57,12 @@ export default function PoliticaPrivacidad() {
           Puedes retirarlo en cualquier momento; sin él no es posible prestar
           el servicio de seguimiento.
         </li>
+        <li>
+          Tu <b>consentimiento</b> (art. 6.1.a RGPD) para los datos de contacto
+          que dejas en el formulario de la página de planes, que prestas al
+          marcar la casilla antes de enviarlo. No los usamos para enviarte
+          publicidad ni los cedemos a nadie.
+        </li>
       </ul>
 
       <h2>4. Cuánto tiempo conservamos los datos</h2>
@@ -57,6 +70,12 @@ export default function PoliticaPrivacidad() {
         Mientras dure la relación contractual. Al finalizar, tus datos se
         conservarán bloqueados durante los plazos de prescripción legal
         ([PLAZO, p. ej. 5 años]) y después se eliminarán o anonimizarán.
+      </p>
+      <p>
+        Si dejaste tus datos en el formulario de planes y finalmente no llegas a
+        ser cliente, los conservamos como máximo [PLAZO, p. ej. 1 año] desde tu
+        último contacto y después los eliminamos. Puedes pedirnos que los
+        borremos antes escribiendo a [EMAIL DE CONTACTO].
       </p>
 
       <h2>5. A quién comunicamos tus datos</h2>

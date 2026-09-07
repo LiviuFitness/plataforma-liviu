@@ -48,11 +48,14 @@ export default function Plantillas({
       })
       .select("id")
       .single();
-    setCargando(false);
     if (error || !data) {
+      setCargando(false);
       setError("No se pudo crear la plantilla. Inténtalo de nuevo.");
       return;
     }
+    /* No se suelta el bloqueo al salir bien: el botón seguiría pulsable
+     * el segundo que tarda la navegación, y otra pulsación crearía una
+     * segunda plantilla vacía. */
     router.push(`/plantillas/entreno/${data.id}`);
   }
 
@@ -70,11 +73,14 @@ export default function Plantillas({
       })
       .select("id")
       .single();
-    setCargando(false);
     if (error || !data) {
+      setCargando(false);
       setError("No se pudo crear la plantilla. Inténtalo de nuevo.");
       return;
     }
+    /* No se suelta el bloqueo al salir bien: el botón seguiría pulsable
+     * el segundo que tarda la navegación, y otra pulsación crearía una
+     * segunda plantilla vacía. */
     router.push(`/plantillas/dieta/${data.id}`);
   }
 

@@ -114,11 +114,15 @@ export default function OnboardingCliente({
       p_sexo: sexo,
       p_peso_kg: Number(peso.replace(",", ".")),
     });
-    setGuardando(false);
     if (error) {
+      setGuardando(false);
       setError("No se pudo guardar. Inténtalo de nuevo.");
       return;
     }
+    /* A propósito no se suelta el bloqueo al salir bien: hasta que la
+     * navegación se lleve la pantalla el botón seguiría pulsable, y otra
+     * pulsación repetiría el peso inicial en medidas y todas las
+     * respuestas del cuestionario de alta. */
     // Cuestionario de alta: opcional, no bloquea el onboarding si falla.
     const clienteId = usuarioAuth?.id;
     const respuestas = Object.entries(respuestasAlta)
