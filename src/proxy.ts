@@ -13,6 +13,11 @@ const RUTAS_PUBLICAS = [
   "/politica-cookies",
   "/terminos",
   "/opengraph-image", // miniatura al compartir el enlace (sin extensión en la URL, la genera Next)
+  // Latido contra la pausa de Supabase: lo llama el cron de Vercel, que
+  // no trae cookies de sesión — sin esto acabaría redirigido a /login y
+  // no llegaría nunca a la base de datos. La ruta se protege por su
+  // cuenta con CRON_SECRET (ver src/app/api/ping/route.ts).
+  "/api/ping",
 ];
 
 function esRutaPublica(ruta: string) {
