@@ -270,35 +270,11 @@ export default async function PaginaInicio() {
   const duracionMin = Math.round(seriesEfectivasProximo * 2.5);
   const duracionMax = Math.round(seriesEfectivasProximo * 3.2);
 
-  // Proporción de kcal por macro (P/C 4 kcal/g, G 9 kcal/g) para la
-  // barra apilada de distribución de la tarjeta de dieta.
-  const macroPct = dieta
-    ? (() => {
-        const kcalP = dieta.prot_obj * 4;
-        const kcalC = dieta.carb_obj * 4;
-        const kcalG = dieta.gras_obj * 9;
-        const total = kcalP + kcalC + kcalG || 1;
-        return { p: (kcalP / total) * 100, c: (kcalC / total) * 100, g: (kcalG / total) * 100 };
-      })()
-    : null;
-
   const nombrePila = perfil?.nombre?.split(" ")[0] ?? "";
 
   // listaMedidas viene ordenada de más reciente a más antigua (limit 20)
   const listaMedidas = medidas ?? [];
   const ultimoPeso = listaMedidas[0]?.peso ?? null;
-  // "Desde el inicio" = frente al registro más antiguo que tenemos (los
-  // últimos 20 pesajes cubren de sobra el histórico real en la práctica).
-  const primerPeso = listaMedidas[listaMedidas.length - 1]?.peso ?? null;
-  const deltaPeso =
-    listaMedidas.length >= 2 && ultimoPeso !== null && primerPeso !== null
-      ? Number(ultimoPeso) - Number(primerPeso)
-      : null;
-  // Cronológico (antiguo → reciente) para el sparkline.
-  const historialPeso = listaMedidas
-    .slice()
-    .reverse()
-    .map((m) => Number(m.peso));
 
   return (
     <>
@@ -403,8 +379,6 @@ export default async function PaginaInicio() {
       <RegistroPesoRapido
         clienteId={user.id}
         ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
-        deltaKg={deltaPeso}
-        historial={historialPeso}
       />
 
       {/* 6. Hábitos */}
@@ -414,38 +388,26 @@ export default async function PaginaInicio() {
         registros={registrosHabitos ?? []}
       />
 
-      {/* 7. Dieta — el verde vive solo en el icono, el kcal y la barra de
-       * macros (que ya comunica proteína/hidratos/grasas por color); los
-       * chips comparten un único estilo neutro en vez de repetir esos
-       * mismos 3 colores en sus bordes. */}
+      {/* 7. Dieta — una sola línea. La tarjeta de antes repetía kcal,
+       * los tres macros en chips y la barra de proporción: exactamente
+       * lo que se ve entero en Mi Dieta, que además es una pestaña de la
+       * barra. Aquí basta con recordar el objetivo del día y el acceso;
+       * el color de cada macro se queda en la letra, que es donde
+       * significa algo. */}
       {dieta && (
-        <Link
-          href="/mi-dieta"
-          className="tarjeta anim-pulsable anim-entrada-5 flex items-center gap-3.5 w-full"
-        >
-          <IconoTarjeta Icono={UtensilsCrossed} color="var(--color-verde)" />
-          <div className="flex-1 min-w-0">
-            <div className="flex items-baseline gap-1.5 mb-2">
-              <span className="num-grande !text-[20px]" style={{ color: "var(--color-verde)" }}>
-                {dieta.kcal_obj}
-              </span>
-              <span className="text-atenuado text-[12.5px]">kcal</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              <span className="chip !cursor-default">P {dieta.prot_obj}g</span>
-              <span className="chip !cursor-default">C {dieta.carb_obj}g</span>
-              <span className="chip !cursor-default">G {dieta.gras_obj}g</span>
-            </div>
-            {macroPct && (
-              <div className="barra-capsula flex" style={{ maxWidth: 220 }}>
-                <div className="h-full" style={{ width: `${macroPct.p}%`, background: INFO_MACRO.proteina.color }} />
-                <div
-                  className="h-full"
-                  style={{ width: `${macroPct.c}%`, background: INFO_MACRO.carbohidratos.color }}
-                />
-                <div className="h-full" style={{ width: `${macroPct.g}%`, background: INFO_MACRO.grasas.color }} />
-              </div>
-            )}
+        <Link href="/mi-dieta" className="fila anim-pulsable anim-entrada-5">
+          <UtensilsCrossed
+            size={17}
+            className="shrink-0"
+            style={{ color: "var(--color-verde)" }}
+          />
+          <div className="flex-1 min-w-0 text-[13.5px] flex items-baseline gap-1.5 flex-wrap">
+            <b style={{ color: "var(--color-verde)" }}>{dieta.kcal_obj}</b>
+            <span className="text-atenuado">kcal</span>
+            <span className="text-atenuado">·</span>
+            <span style={{ color: INFO_MACRO.proteina.color }}>P {dieta.prot_obj}</span>
+            <span style={{ color: INFO_MACRO.carbohidratos.color }}>C {dieta.carb_obj}</span>
+            <span style={{ color: INFO_MACRO.grasas.color }}>G {dieta.gras_obj}</span>
           </div>
           <span className="texto-secundario shrink-0">Ver →</span>
         </Link>

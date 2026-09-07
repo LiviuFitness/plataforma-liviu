@@ -5,20 +5,20 @@ import { useRouter } from "next/navigation";
 import { Scale } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { aNumero } from "@/lib/rutinas";
-import { IconoTarjeta, Sparkline } from "@/componentes/ui";
+import { IconoTarjeta } from "@/componentes/ui";
 import { useCountUp } from "@/lib/useCountUp";
 
-/** Tarjeta de Inicio: último peso + registro rápido sin ir a "Progreso". */
+/**
+ * Fila de Inicio: pesarse hoy sin ir a "Progreso". Es una ACCIÓN del
+ * día, por eso vive aquí; la evolución (gráfica, variación desde el
+ * inicio, medidas) es de Mi Progreso y no se repite en la Home.
+ */
 export default function RegistroPesoRapido({
   clienteId,
   ultimoPeso,
-  deltaKg,
-  historial,
 }: {
   clienteId: string;
   ultimoPeso: number | null;
-  deltaKg: number | null;
-  historial: number[];
 }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
@@ -84,37 +84,25 @@ export default function RegistroPesoRapido({
 
   return (
     <button
-      className="tarjeta anim-pulsable anim-entrada-3 w-full text-left"
+      className="tarjeta anim-pulsable anim-entrada-3 w-full text-left flex items-center gap-3.5"
       onClick={() => setEditando(true)}
     >
-      <div className="flex items-center gap-3.5">
-        <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" />
-        <div className="flex-1 min-w-0">
-          {ultimoPeso !== null ? (
-            <div className="flex items-baseline gap-1.5">
-              <span className="num-grande" style={{ color: "var(--color-turquesa)" }}>
-                {pesoAnimado.toFixed(1)}
-              </span>
-              <span className="text-atenuado text-[13px]">kg</span>
-            </div>
-          ) : (
-            <div className="text-atenuado text-[13.5px]">Sin registrar todavía</div>
-          )}
-        </div>
-        <span className="texto-secundario shrink-0">
-          {ultimoPeso !== null ? "Actualizar →" : "Registrar →"}
-        </span>
+      <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" />
+      <div className="flex-1 min-w-0">
+        {ultimoPeso !== null ? (
+          <div className="flex items-baseline gap-1.5">
+            <span className="num-grande" style={{ color: "var(--color-turquesa)" }}>
+              {pesoAnimado.toFixed(1)}
+            </span>
+            <span className="text-atenuado text-[13px]">kg</span>
+          </div>
+        ) : (
+          <div className="text-atenuado text-[13.5px]">Sin registrar todavía</div>
+        )}
       </div>
-      {historial.length >= 2 && (
-        <div className="mt-3">
-          <Sparkline datos={historial} color="var(--color-turquesa)" />
-          {deltaKg !== null && Math.abs(deltaKg) >= 0.1 && (
-            <div className="text-[12.5px] text-atenuado -mt-1.5">
-              {deltaKg < 0 ? "↓" : "↑"} {Math.abs(deltaKg).toFixed(1)} kg desde el inicio
-            </div>
-          )}
-        </div>
-      )}
+      <span className="texto-secundario shrink-0">
+        {ultimoPeso !== null ? "Actualizar →" : "Registrar →"}
+      </span>
     </button>
   );
 }
