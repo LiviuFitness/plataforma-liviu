@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChevronRight, Inbox } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { haceCuanto, PuntoEstado } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
@@ -33,6 +34,7 @@ export default async function PaginaHoy() {
     { data: sesiones },
     { data: medidas },
     { data: records },
+    { count: leadsNuevos },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -57,6 +59,10 @@ export default async function PaginaHoy() {
       .select("*")
       .order("kg_nuevo", { ascending: false })
       .limit(20),
+    supabase
+      .from("leads")
+      .select("id", { count: "exact", head: true })
+      .eq("estado", "nuevo"),
   ]);
 
   const listaClientes = clientes ?? [];
@@ -196,6 +202,22 @@ export default async function PaginaHoy() {
     <>
       <h1 className="h1">Hoy</h1>
       <div className="sub mb-6">{fecha} — así va tu estudio</div>
+
+      {/* Un lead sin contestar es lo único que caduca de verdad: sale
+       * antes que nada y solo cuando lo hay. */}
+      {(leadsNuevos ?? 0) > 0 && (
+        <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-6 flex items-center gap-3">
+          <Inbox size={20} className="text-acento shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[14.5px]">
+              {leadsNuevos} {leadsNuevos === 1 ? "lead nuevo" : "leads nuevos"} sin
+              contestar
+            </div>
+            <div className="text-atenuado text-[12.5px]">del QR de planes</div>
+          </div>
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
+      )}
 
       {/* 1. Necesita atención — lo primero que se mira */}
       <div className="mb-6">

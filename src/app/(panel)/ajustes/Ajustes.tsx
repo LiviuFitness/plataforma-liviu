@@ -3,12 +3,21 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronRight, Apple, ClipboardCheck, ClipboardList } from "lucide-react";
+import { ChevronRight, Apple, ClipboardCheck, ClipboardList, Inbox } from "lucide-react";
+import QrPlanes from "@/componentes/QrPlanes";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import type { Perfil } from "@/lib/tipos";
 
 /** Ajustes del entrenador: nombre, correo y contraseña de su cuenta. */
-export default function Ajustes({ perfil, email }: { perfil: Perfil; email: string }) {
+export default function Ajustes({
+  perfil,
+  email,
+  leadsNuevos,
+}: {
+  perfil: Perfil;
+  email: string;
+  leadsNuevos: number;
+}) {
   const router = useRouter();
   const [nombre, setNombre] = useState(perfil.nombre);
   const [guardandoNombre, setGuardandoNombre] = useState(false);
@@ -86,6 +95,20 @@ export default function Ajustes({ perfil, email }: { perfil: Perfil; email: stri
       <h1 className="h1">Ajustes</h1>
       <div className="sub mb-4">tu cuenta de entrenador —</div>
 
+      <Link href="/leads" className="fila !py-3 !px-4 mb-2.5 superficie">
+        <Inbox size={18} className="text-atenuado shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-[14.5px]">Leads</div>
+          <div className="text-atenuado text-[12px]">quien deja sus datos desde el QR</div>
+        </div>
+        {leadsNuevos > 0 && (
+          <span className="bg-acento text-fondo font-bold text-[11.5px] rounded-full px-2 py-0.5 shrink-0">
+            {leadsNuevos}
+          </span>
+        )}
+        <ChevronRight size={16} className="text-atenuado shrink-0" />
+      </Link>
+
       <Link href="/alimentos" className="fila !py-3 !px-4 mb-2.5 superficie">
         <Apple size={18} className="text-atenuado shrink-0" />
         <div className="flex-1 min-w-0">
@@ -112,6 +135,8 @@ export default function Ajustes({ perfil, email }: { perfil: Perfil; email: stri
         </div>
         <ChevronRight size={16} className="text-atenuado shrink-0" />
       </Link>
+
+      <QrPlanes />
 
       {/* Una sola superficie con 3 secciones internas — sin espacio
        * muerto entre tarjetas idénticas, estilo Stripe/Vercel. */}

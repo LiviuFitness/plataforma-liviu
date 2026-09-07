@@ -8,6 +8,7 @@ const RUTAS_PUBLICAS = [
   "/restablecer",
   "/alta",
   "/auth", // callback de OAuth (Google)
+  "/planes", // a esto apunta el QR: la ve quien todavía no es cliente
   "/aviso-legal",
   "/politica-privacidad",
   "/politica-cookies",
