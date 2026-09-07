@@ -369,6 +369,12 @@ export default function SesionEnCurso({
   );
   const avisado = useRef(false);
   const hidratado = useRef(false);
+  /* Guarda contra el doble guardado: los dos botones del resumen final
+   * vuelven a estar pulsables en cuanto termina el insert, pero la
+   * navegación de Next tarda un segundo más — una segunda pulsación ahí
+   * insertaba OTRA sesión entera con las mismas series (así se colaron 9
+   * sesiones duplicadas en el histórico). El ref no depende del render. */
+  const guardado = useRef<Promise<boolean> | null>(null);
   const gruposRefs = useRef<Record<number, HTMLElement | null>>({});
 
   function empezarEntreno() {
@@ -683,7 +689,18 @@ export default function SesionEnCurso({
     }
   }
 
+  /** Una sola vez por sesión: si ya se está guardando (o se guardó bien),
+   * se reutiliza la misma promesa en vez de insertar otra fila. Solo un
+   * fallo la suelta, para que se pueda reintentar. */
   async function guardarSesion(): Promise<boolean> {
+    guardado.current ??= insertarSesion().then((ok) => {
+      if (!ok) guardado.current = null;
+      return ok;
+    });
+    return guardado.current;
+  }
+
+  async function insertarSesion(): Promise<boolean> {
     setError("");
     const supabase = crearClienteNavegador();
 
@@ -702,6 +719,13 @@ export default function SesionEnCurso({
       .single();
 
     if (e1 || !sesion) {
+      /* 23505 = índice único: esta misma sesión ya está guardada (dos
+       * pestañas, o un reintento tras recuperar el autoguardado). No es
+       * un error para el cliente, ya tiene su entreno registrado. */
+      if (e1?.code === "23505") {
+        borrarAutosave(clienteId, diaId);
+        return true;
+      }
       setError("No se pudo guardar la sesión. Comprueba la conexión e inténtalo de nuevo.");
       return false;
     }
@@ -729,6 +753,10 @@ export default function SesionEnCurso({
     const { error: e2 } = await supabase.from("series_realizadas").insert(filas);
 
     if (e2) {
+      /* Se deshace la sesión sin series: si se quedara ahí, el reintento
+       * chocaría contra el índice único (mismo cliente y misma hora de
+       * inicio) y el entreno saldría vacío en el historial. */
+      await supabase.from("sesiones").delete().eq("id", sesion.id);
       setError("La sesión se creó pero fallaron las series. Inténtalo de nuevo.");
       return false;
     }
@@ -742,11 +770,14 @@ export default function SesionEnCurso({
   async function guardarYNavegar(destino: string, accion: "inicio" | "analisis") {
     setAccionGuardando(accion);
     const ok = await guardarSesion();
-    setAccionGuardando(null);
-    if (ok) {
-      router.push(destino);
-      router.refresh();
+    if (!ok) {
+      setAccionGuardando(null);
+      return;
     }
+    /* No se limpia el estado a propósito: los botones siguen bloqueados
+     * mientras Next prepara la pantalla de destino. */
+    router.push(destino);
+    router.refresh();
   }
 
   function salir() {
