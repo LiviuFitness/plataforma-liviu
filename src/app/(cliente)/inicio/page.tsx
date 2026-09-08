@@ -17,6 +17,7 @@ import { calcularVolumenMuscular, grupoMasDescuidado } from "@/lib/musculos";
 import { INFO_MACRO } from "@/lib/tipos";
 import { IconoTarjeta } from "@/componentes/ui";
 import { calcularRacha } from "@/lib/racha";
+import { fotoEntreno } from "@/lib/fotoEntreno";
 
 export const dynamic = "force-dynamic";
 
@@ -303,10 +304,36 @@ export default async function PaginaInicio() {
        * chips — todo el bloque de arriba se lee en menos de un segundo,
        * y el botón queda como el único elemento que pide ser pulsado. */}
       {proximoDia ? (
-        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-6 !mb-3">
-          <div className="flex items-center gap-3.5 mb-4">
-            <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
-            <div className="min-w-0">
+        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-0 !mb-3 overflow-hidden">
+          {/* La foto va SOLO detrás de esta fila, no del botón: "Empezar
+           * sesión" es la única acción de la pantalla y no puede perder
+           * nitidez. Entra por la derecha y el degradado la apaga antes
+           * del nombre del día. La imagen depende de los músculos que se
+           * trabajan, no del nombre del día (ver lib/fotoEntreno.ts). */}
+          <div className="relative flex items-center gap-3.5 p-6 pb-4">
+            <span
+              aria-hidden
+              className="absolute inset-y-0 right-0 w-[46%] pointer-events-none"
+              style={{
+                backgroundImage: `url(${fotoEntreno(
+                  proximoDia.ejercicios.map((e) => e.grupo_muscular)
+                )})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center right",
+              }}
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(90deg, var(--color-panel) 0%, var(--color-panel) 52%, color-mix(in srgb, var(--color-panel) 55%, transparent) 78%, color-mix(in srgb, var(--color-panel) 35%, transparent) 100%)",
+              }}
+            />
+            <span className="relative shrink-0">
+              <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
+            </span>
+            <div className="min-w-0 relative">
               <div className="font-bold text-[21px] leading-tight truncate">
                 {proximoDia.nombre}
               </div>
@@ -319,12 +346,14 @@ export default async function PaginaInicio() {
               </div>
             </div>
           </div>
-          <Link
-            href={`/sesion/${proximoDia.id}`}
-            className="cta anim-pulsable !mb-0 block text-center"
-          >
-            Empezar sesión →
-          </Link>
+          <div className="px-6 pb-6">
+            <Link
+              href={`/sesion/${proximoDia.id}`}
+              className="cta anim-pulsable !mb-0 block text-center"
+            >
+              Empezar sesión →
+            </Link>
+          </div>
         </section>
       ) : (
         <section className="tarjeta anim-entrada-2">

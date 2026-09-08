@@ -6,6 +6,7 @@ import { Check, ChevronDown } from "lucide-react";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
 import EstadoVacio from "@/componentes/EstadoVacio";
+import { fotoEntreno } from "@/lib/fotoEntreno";
 import type { DiaUI, EjercicioUI } from "@/lib/tipos";
 
 /** Series efectivas: las de calentamiento no cuentan como trabajo. */
@@ -107,13 +108,36 @@ export default function MiRutina({
             }`}
           >
             <button
-              className="w-full flex items-center gap-3 px-4 py-3.5 text-left anim-pulsable"
+              className="relative overflow-hidden w-full flex items-center gap-3 px-4 py-3.5 text-left anim-pulsable"
               onClick={() => setAbierto(estaAbierto ? null : dia.id)}
               aria-expanded={estaAbierto}
             >
+              {/* Foto según los músculos del día, no según su nombre: los
+               * nombres son texto libre y "TORSO A + ABS" no hay quien lo
+               * adivine. Se apaga antes del nombre para que el texto se
+               * lea igual en las seis. */}
+              <span
+                aria-hidden
+                className="absolute inset-y-0 right-0 w-[52%] pointer-events-none"
+                style={{
+                  backgroundImage: `url(${fotoEntreno(
+                    dia.ejercicios.map((e) => e.grupo_muscular)
+                  )})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center right",
+                }}
+              />
+              <span
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "linear-gradient(90deg, var(--color-panel) 0%, var(--color-panel) 46%, color-mix(in srgb, var(--color-panel) 55%, transparent) 74%, color-mix(in srgb, var(--color-panel) 35%, transparent) 100%)",
+                }}
+              />
               {/* Marca de estado: hecho esta semana, o el día que toca. */}
               <span
-                className={`w-9 h-9 rounded-full grid place-items-center shrink-0 ${
+                className={`relative w-9 h-9 rounded-full grid place-items-center shrink-0 ${
                   hecho ? "bg-verde/15" : esSiguiente ? "bg-acento/15" : "bg-campo"
                 }`}
               >
@@ -127,7 +151,7 @@ export default function MiRutina({
                 )}
               </span>
 
-              <span className="flex-1 min-w-0">
+              <span className="relative flex-1 min-w-0">
                 <span className="flex items-center gap-2">
                   <span className="font-bold text-[15.5px] leading-tight truncate">
                     {dia.nombre}
@@ -156,7 +180,7 @@ export default function MiRutina({
 
               <ChevronDown
                 size={16}
-                className={`icono-rotable text-atenuado shrink-0 ${
+                className={`icono-rotable text-atenuado shrink-0 relative ${
                   estaAbierto ? "icono-rotable-abierto" : ""
                 }`}
               />
