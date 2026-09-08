@@ -25,18 +25,30 @@ import {
 import { INFO_MACRO } from "@/lib/tipos";
 import { IconoTarjeta } from "@/componentes/ui";
 
-/** Icono + color según el nombre de la comida (Desayuno → café azul,
- * Cena → luna morada…), mismo criterio de color que el resto de la app. */
-function infoComida(nombre: string): { Icono: LucideIcon; color: string } {
+/** Icono, color y foto según el nombre de la comida (Desayuno → café
+ * azul, Cena → luna morada…), mismo criterio de color que el resto de la
+ * app. La foto es ambiente, no el plato pautado: se eligió a propósito
+ * que fuera genérica y apetecible, no un intento de representar lo que
+ * el cliente tiene puesto ese día. */
+function infoComida(nombre: string): {
+  Icono: LucideIcon;
+  color: string;
+  foto: string | null;
+} {
   const n = nombre.toLowerCase();
-  if (n.includes("desayuno")) return { Icono: Coffee, color: "var(--color-acento)" };
+  if (n.includes("desayuno"))
+    return { Icono: Coffee, color: "var(--color-acento)", foto: "/comidas/desayuno.webp" };
   if (n.includes("media mañana") || n.includes("almuerzo"))
-    return { Icono: Apple, color: "var(--color-verde)" };
-  if (n.includes("merienda")) return { Icono: Cookie, color: "var(--color-naranja)" };
-  if (n.includes("recena")) return { Icono: BedDouble, color: "var(--color-turquesa)" };
-  if (n.includes("cena")) return { Icono: Moon, color: "var(--color-morado)" };
-  if (n.includes("comida")) return { Icono: UtensilsCrossed, color: "var(--color-dorado)" };
-  return { Icono: Utensils, color: "var(--color-atenuado)" };
+    return { Icono: Apple, color: "var(--color-verde)", foto: "/comidas/almuerzo.webp" };
+  if (n.includes("merienda"))
+    return { Icono: Cookie, color: "var(--color-naranja)", foto: "/comidas/merienda.webp" };
+  if (n.includes("recena"))
+    return { Icono: BedDouble, color: "var(--color-turquesa)", foto: "/comidas/recena.webp" };
+  if (n.includes("cena"))
+    return { Icono: Moon, color: "var(--color-morado)", foto: "/comidas/cena.webp" };
+  if (n.includes("comida"))
+    return { Icono: UtensilsCrossed, color: "var(--color-dorado)", foto: "/comidas/comida.webp" };
+  return { Icono: Utensils, color: "var(--color-atenuado)", foto: null };
 }
 
 // Mismos colores que el resto de la app (objetivo diario, tarjeta de
@@ -91,7 +103,8 @@ export default function MiDietaComida({
 
   const total = sumar(items.map((i) => macrosDe(i.alimentos!, Number(i.gramos))));
   const valores = [total.prot, total.carb, total.gras];
-  const { Icono, color } = infoComida(comida.nombre);
+  const { Icono, color, foto } = infoComida(comida.nombre);
+  const velo = `color-mix(in srgb, ${color} 13%, var(--color-panel))`;
 
   return (
     <>
@@ -102,17 +115,46 @@ export default function MiDietaComida({
          * que las separaba era una línea de un píxel: con cinco comidas
          * seguidas costaba ver dónde empezaba cada una. De paso, el tinte
          * distingue unas de otras (desayuno, media mañana…) sin añadir
-         * ningún elemento nuevo. */}
+         * ningún elemento nuevo. Encima va la foto, entrando por la
+         * derecha: el degradado la apaga antes de llegar al nombre y deja
+         * el lado izquierdo en el velo liso de siempre, así el texto no
+         * depende de lo clara que salga la imagen. */}
         <button
-          className={`flex items-center gap-3 px-4 pt-3.5 pb-3 w-full text-left anim-pulsable ${
+          className={`relative overflow-hidden flex items-center gap-3 px-4 pt-3.5 pb-3 w-full text-left anim-pulsable ${
             expandida ? "border-b border-borde" : ""
           }`}
-          style={{ background: `color-mix(in srgb, ${color} 13%, var(--color-panel))` }}
+          style={{ background: velo }}
           onClick={() => setExpandida((v) => !v)}
           aria-expanded={expandida}
         >
-          <IconoTarjeta Icono={Icono} color={color} tamano={36} />
-          <div className="flex-1 min-w-0">
+          {foto && (
+            <>
+              {/* La foto ocupa solo la mitad derecha; encima, un degradado
+               * que llega opaco hasta pasado el nombre. Así el texto se
+               * lee siempre igual, salga la imagen clara u oscura, y a la
+               * foto le queda sitio para reconocerse. */}
+              <span
+                aria-hidden
+                className="absolute inset-y-0 right-0 w-[54%] pointer-events-none"
+                style={{
+                  backgroundImage: `url(${foto})`,
+                  backgroundSize: "cover",
+                  backgroundPosition: "center right",
+                }}
+              />
+              <span
+                aria-hidden
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: `linear-gradient(90deg, ${velo} 0%, ${velo} 44%, color-mix(in srgb, ${velo} 60%, transparent) 70%, color-mix(in srgb, ${velo} 45%, transparent) 100%)`,
+                }}
+              />
+            </>
+          )}
+          <span className="relative shrink-0">
+            <IconoTarjeta Icono={Icono} color={color} tamano={36} />
+          </span>
+          <div className="flex-1 min-w-0 relative">
             <div className="font-bold text-[15.5px] leading-tight truncate">
               {comida.nombre}
             </div>
@@ -124,15 +166,20 @@ export default function MiDietaComida({
           </div>
           {items.length > 0 && (
             <span
-              className="shrink-0 text-[12px] font-bold rounded-full px-2.5 py-1"
-              style={{ color, background: `color-mix(in srgb, ${color} 14%, transparent)` }}
+              className="relative shrink-0 text-[12px] font-bold rounded-full px-2.5 py-1"
+              style={{
+                color,
+                /* Sobre la foto un fondo translúcido no basta: se mezcla
+                 * con el color del plato y el número deja de leerse. */
+                background: `color-mix(in srgb, ${color} 14%, ${foto ? "var(--color-fondo)" : "transparent"})`,
+              }}
             >
               {r(total.kcal)} kcal
             </span>
           )}
           <ChevronDown
             size={16}
-            className={`icono-rotable text-atenuado shrink-0 ${expandida ? "icono-rotable-abierto" : ""}`}
+            className={`icono-rotable text-atenuado shrink-0 relative ${expandida ? "icono-rotable-abierto" : ""}`}
           />
         </button>
 
