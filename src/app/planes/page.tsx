@@ -7,6 +7,10 @@ export const metadata: Metadata = {
   title: "Planes de entrenamiento — LIVFIT",
   description:
     "Entrenamiento y nutrición con seguimiento real: plan automático dentro de la app o coaching presencial con Liviu.",
+  /* Fuera de Google mientras no esté colgado el QR. La página funciona
+   * igual para quien tenga la URL — solo deja de aparecer en búsquedas.
+   * Cuando Liviu quiera que se encuentre sola, se borra este bloque. */
+  robots: { index: false, follow: false },
 };
 
 /**
