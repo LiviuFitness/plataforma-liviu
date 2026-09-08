@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Check, ChevronRight, X } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { PLANES, type ClavePlan } from "@/lib/planes";
@@ -86,11 +87,27 @@ export default function Planes({ origen }: { origen: string | null }) {
         <br />
         no a ojo.
       </h1>
-      <p className="text-texto-2 text-[15px] leading-relaxed mb-8 max-w-[560px]">
-        Soy Liviu. Te preparo el entrenamiento y la alimentación, y los vamos
-        ajustando cada semana con tus datos reales: lo que levantas, lo que pesas,
-        cómo te ves y cómo te encuentras. Todo dentro de una app hecha para eso.
-      </p>
+      {/* La cara va aquí y no de fondo a sangre: quien llega por el QR no
+       * conoce a Liviu de nada, y lo que decide si escribe no es la app,
+       * es que haya una persona detrás. Junto a sus propias palabras. */}
+      <div className="flex items-start gap-4 mb-8">
+        <Image
+          src="/liviu.webp"
+          alt="Liviu, entrenador personal"
+          width={92}
+          height={92}
+          className="rounded-full shrink-0"
+          priority
+        />
+        <div className="min-w-0">
+          <p className="text-texto-2 text-[15px] leading-relaxed max-w-[460px]">
+            Soy Liviu. Te preparo el entrenamiento y la alimentación, y los vamos
+            ajustando cada semana con tus datos reales: lo que levantas, lo que
+            pesas, cómo te ves y cómo te encuentras. Todo dentro de una app hecha
+            para eso.
+          </p>
+        </div>
+      </div>
 
       <div className="grid md:grid-cols-2 gap-3 mb-10">
         {PLANES.map((p) => (
