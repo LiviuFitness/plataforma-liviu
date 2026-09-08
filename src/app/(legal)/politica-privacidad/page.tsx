@@ -86,7 +86,7 @@ export default function PoliticaPrivacidad() {
       <ul>
         <li>
           <b>Supabase</b> (base de datos y autenticación), con alojamiento en
-          la Unión Europea ([FRANKFURT/PARÍS]).
+          la Unión Europea ([REGIÓN DEL SERVIDOR]).
         </li>
         <li>
           <b>Vercel</b> (alojamiento de la aplicación web).
