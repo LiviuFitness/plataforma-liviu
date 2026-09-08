@@ -2,14 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, MessageSquareText } from "lucide-react";
+import { CalendarClock, Check, MessageSquareText } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta } from "@/componentes/ui";
 import type { PreguntaRevision, RespuestaRevision } from "@/lib/tipos";
 
 /** Cuestionario de revisión semanal: el entrenador define las preguntas
  * (Ajustes → Cuestionario semanal), el cliente las responde una vez por
- * semana. Si ya respondió esta semana, se ve en modo lectura. */
+ * semana. Si ya respondió esta semana, se ve en modo lectura.
+ *
+ * Solo se puede responder SÁBADO o DOMINGO: la revisión mira la semana
+ * entera, y contestarla un martes es contar media semana. El resto de
+ * días queda una línea apagada avisando de cuándo se abre.
+ *
+ * La comprobación es del lado del cliente a propósito, con la hora del
+ * propio móvil: el servidor va en UTC y un sábado a las 00:30 en España
+ * allí todavía es viernes, así que una regla en la base de datos le
+ * cerraría la puerta al cliente dentro de su propio fin de semana. */
 export default function CuestionarioSemanal({
   clienteId,
   preguntas,
@@ -22,6 +31,9 @@ export default function CuestionarioSemanal({
   semanaActualISO: string;
 }) {
   const router = useRouter();
+  /* 6 = sábado, 0 = domingo, en la zona horaria del dispositivo. */
+  const diaSemana = new Date().getDay();
+  const esFinDeSemana = diaSemana === 6 || diaSemana === 0;
   const respuestasPorPregunta = new Map(respuestasSemana.map((r) => [r.pregunta_id, r.respuesta]));
   const yaRespondioTodo =
     preguntas.length > 0 && preguntas.every((p) => respuestasPorPregunta.has(p.id));
@@ -31,7 +43,7 @@ export default function CuestionarioSemanal({
   // lo primero que veía el cliente al entrar a "su progreso" era un
   // formulario, no su progreso.
   const [abierto, setAbierto] = useState(false);
-  const [editando, setEditando] = useState(!yaRespondioTodo);
+  const [editando, setEditando] = useState(!yaRespondioTodo && esFinDeSemana);
   const [valores, setValores] = useState<Record<string, string>>(() => {
     const inicial: Record<string, string> = {};
     for (const p of preguntas) inicial[p.id] = respuestasPorPregunta.get(p.id) ?? "";
@@ -73,6 +85,19 @@ export default function CuestionarioSemanal({
     // está el progreso, que es a lo que se venía.
     setAbierto(false);
     router.refresh();
+  }
+
+  /* Entre semana y sin responder: ni tarjeta ni botón, solo el aviso de
+   * cuándo toca. Así no ocupa sitio cinco días de siete. */
+  if (!esFinDeSemana && !yaRespondioTodo) {
+    return (
+      <div className="fila !cursor-default opacity-70">
+        <CalendarClock size={17} className="text-atenuado shrink-0" />
+        <div className="flex-1 min-w-0 text-[13.5px] text-atenuado">
+          El cuestionario de la semana se abre el sábado
+        </div>
+      </div>
+    );
   }
 
   if (!abierto) {
@@ -124,14 +149,23 @@ export default function CuestionarioSemanal({
               </div>
             </div>
           ))}
-          <button className="ghost w-full mt-2" onClick={() => setEditando(true)}>
-            Editar respuestas
-          </button>
+          {esFinDeSemana ? (
+            <button className="ghost w-full mt-2" onClick={() => setEditando(true)}>
+              Editar respuestas
+            </button>
+          ) : (
+            <p className="text-atenuado text-[12.5px] mt-2">
+              Podrás cambiarlas el próximo fin de semana.
+            </p>
+          )}
         </>
       ) : (
         <>
           <p className="text-atenuado text-[12.5px] mb-2">
-            Cuéntale a tu entrenador cómo ha ido tu semana.
+            Cuéntale a tu entrenador cómo ha ido la semana.{" "}
+            {diaSemana === 0
+              ? "Hoy es el último día para enviarlo."
+              : "Tienes hasta el domingo."}
           </p>
           {preguntas.map((p) => (
             <div key={p.id} className="mb-2.5">

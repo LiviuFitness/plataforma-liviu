@@ -57,7 +57,7 @@ interface DatosSustitucion {
 
 /**
  * Una comida del plan del cliente: cabecera plegable con icono y kcal,
- * alimentos con los gramos en chip, equivalencias intercambiables (en un
+ * alimentos con la cantidad destacada, equivalencias intercambiables (en un
  * bottom sheet, mismo patrón que la calculadora de discos y las
  * preferencias) y macros abajo.
  */
@@ -153,16 +153,20 @@ export default function MiDietaComida({
                   const tieneAlternativas = alt.length > 0;
                   const nombre = it.alimentos!.nombre;
 
-                  // El nombre es lo que el cliente identifica primero — es el
-                  // elemento dominante; los gramos son la referencia
-                  // secundaria (antes era al revés: el chip de gramos iba en
-                  // negrita con borde y el nombre en texto plano).
+                  // Manda la cantidad: es el dato que se usa (en la cocina se
+                  // busca el número, el alimento ya se sabe cuál es). Va en
+                  // columna fija alineada a la derecha y con cifras de ancho
+                  // igual, así 150 / 60 / 110 / 10 cuadran por las unidades y
+                  // la lista se lee de una pasada; centrada dentro de un chip
+                  // no cuadraba ninguna. El nombre baja de peso para no
+                  // competir, pero sigue siendo perfectamente legible.
                   const contenidoFila = (
                     <>
-                      <span className="shrink-0 min-w-[48px] text-center text-[11px] font-semibold text-atenuado bg-campo/70 rounded-lg py-1.5 px-1.5">
-                        {r(g)} g
+                      <span className="shrink-0 w-[52px] text-right tabular-nums leading-none">
+                        <span className="text-[16.5px] font-bold">{r(g)}</span>
+                        <span className="text-[11px] text-atenuado ml-0.5">g</span>
                       </span>
-                      <span className="flex-1 min-w-0 text-[14.5px] font-semibold leading-tight truncate">
+                      <span className="flex-1 min-w-0 text-[14.5px] text-texto-2 leading-tight truncate">
                         {nombre}
                       </span>
                       {tieneAlternativas && (
