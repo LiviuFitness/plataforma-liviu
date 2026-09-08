@@ -25,6 +25,15 @@ import type {
 } from "@/lib/tipos";
 
 /** Progreso del cliente: registra su peso, ve PRs e historial. */
+/* El peso y las medidas responden a "cómo voy"; los récords y el
+ * historial a "qué he hecho". Son dos visitas distintas a la pantalla. */
+const PESTANAS = [
+  ["cuerpo", "Cuerpo"],
+  ["entrenos", "Entrenos"],
+] as const;
+
+type Pestana = (typeof PESTANAS)[number][0];
+
 export default function MiProgreso({
   clienteId,
   medidas,
@@ -55,6 +64,7 @@ export default function MiProgreso({
   semanaActualISO: string;
 }) {
   const router = useRouter();
+  const [pestana, setPestana] = useState<Pestana>("cuerpo");
   const [peso, setPeso] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -124,52 +134,26 @@ export default function MiProgreso({
         semanaActualISO={semanaActualISO}
       />
 
-      {semanaActual && semanaActual.variacionPct !== null && (
-        <section
-          className={`tarjeta ${semanaActual.variacionPct < 0 ? "tarjeta-turquesa" : semanaActual.variacionPct > 0 ? "tarjeta-dorado" : ""}`}
-        >
-          <div className="titulo-tarjeta">ESTA SEMANA</div>
-          <div className="text-[14px] text-texto-2">
-            Media de peso{" "}
-            <b className="text-white">{semanaActual.mediaPeso.toFixed(1)} kg</b>
-            {" · "}
-            <span
-              className={
-                semanaActual.variacionPct < 0
-                  ? "text-turquesa"
-                  : semanaActual.variacionPct > 0
-                    ? "text-dorado"
-                    : "text-atenuado"
-              }
-            >
-              {semanaActual.variacionPct > 0 ? "+" : ""}
-              {semanaActual.variacionPct.toFixed(2)}% respecto a la semana pasada
-            </span>
-          </div>
-        </section>
-      )}
+      {/* Dos pestañas, no nueve tarjetas seguidas. Antes había que pasar
+       * por el cuestionario, el peso, las medidas, las fotos, el mapa
+       * muscular y los logros para llegar al historial: la pantalla
+       * respondía a tres preguntas distintas ("cómo voy", "qué he hecho"
+       * y "cómo estoy") apiladas en un scroll único. Mismo componente de
+       * pestañas que la ficha del entrenador, para no inventar otro. */}
+      <nav className="tabs-texto my-4">
+        {PESTANAS.map(([clave, etiqueta]) => (
+          <button
+            key={clave}
+            className={pestana === clave ? "tab-texto tab-texto-activa" : "tab-texto"}
+            onClick={() => setPestana(clave)}
+          >
+            {etiqueta}
+          </button>
+        ))}
+      </nav>
 
-      {revisiones.length > 0 && (
-        <section className="tarjeta">
-          <div className="titulo-tarjeta">REVISIONES</div>
-          {revisiones.map((r) => (
-            <div key={r.id} className="border-b border-borde last:border-0 py-2">
-              <div className="text-[13.5px]">
-                Ajuste de dieta: {r.kcal_anterior} → <b>{r.kcal_nuevo} kcal</b>{" "}
-                <span className={r.delta < 0 ? "text-turquesa" : "text-dorado"}>
-                  ({r.delta > 0 ? "+" : ""}
-                  {r.delta} kcal/día)
-                </span>
-              </div>
-              <div className="text-atenuado text-[12px] mt-0.5">
-                {fechaCorta(r.creado_en.slice(0, 10))}
-                {r.motivo ? ` · ${r.motivo}` : ""}
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-
+      {pestana === "cuerpo" && (
+        <>
       <section className="tarjeta tarjeta-turquesa">
         <div className="flex items-center gap-3.5 mb-1">
           <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" />
@@ -220,20 +204,73 @@ export default function MiProgreso({
         </p>
       </section>
 
+      {semanaActual && semanaActual.variacionPct !== null && (
+        <section
+          className={`tarjeta ${semanaActual.variacionPct < 0 ? "tarjeta-turquesa" : semanaActual.variacionPct > 0 ? "tarjeta-dorado" : ""}`}
+        >
+          <div className="titulo-tarjeta">ESTA SEMANA</div>
+          <div className="text-[14px] text-texto-2">
+            Media de peso{" "}
+            <b className="text-white">{semanaActual.mediaPeso.toFixed(1)} kg</b>
+            {" · "}
+            <span
+              className={
+                semanaActual.variacionPct < 0
+                  ? "text-turquesa"
+                  : semanaActual.variacionPct > 0
+                    ? "text-dorado"
+                    : "text-atenuado"
+              }
+            >
+              {semanaActual.variacionPct > 0 ? "+" : ""}
+              {semanaActual.variacionPct.toFixed(2)}% respecto a la semana pasada
+            </span>
+          </div>
+        </section>
+      )}
+
+      {revisiones.length > 0 && (
+        <section className="tarjeta">
+          <div className="titulo-tarjeta">REVISIONES</div>
+          {revisiones.map((r) => (
+            <div key={r.id} className="border-b border-borde last:border-0 py-2">
+              <div className="text-[13.5px]">
+                Ajuste de dieta: {r.kcal_anterior} → <b>{r.kcal_nuevo} kcal</b>{" "}
+                <span className={r.delta < 0 ? "text-turquesa" : "text-dorado"}>
+                  ({r.delta > 0 ? "+" : ""}
+                  {r.delta} kcal/día)
+                </span>
+              </div>
+              <div className="text-atenuado text-[12px] mt-0.5">
+                {fechaCorta(r.creado_en.slice(0, 10))}
+                {r.motivo ? ` · ${r.motivo}` : ""}
+              </div>
+            </div>
+          ))}
+        </section>
+      )}
+
       <PanelMedidas clienteId={clienteId} medidas={medidas} />
 
       <FotosProgreso clienteId={clienteId} entradasIniciales={entradasFotos} />
 
-      <MapaMuscular volumen={volumenMuscular} />
+        </>
+      )}
 
-      <GridLogros desbloqueados={logrosDesbloqueados} />
-
+      {pestana === "entrenos" && (
+        <>
       <HistorialProgreso
         prs={prs}
         progresiones={progresiones}
         historial={historial}
         onBorrarSesion={borrarSesion}
       />
+      <MapaMuscular volumen={volumenMuscular} />
+
+      <GridLogros desbloqueados={logrosDesbloqueados} />
+
+        </>
+      )}
 
     </>
   );
