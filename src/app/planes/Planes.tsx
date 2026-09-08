@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, ChevronRight, X } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { PLANES, type ClavePlan } from "@/lib/planes";
 
@@ -135,20 +135,25 @@ export default function Planes({ origen }: { origen: string | null }) {
             </div>
             <div className="text-atenuado text-[12.5px] mb-5">{p.alterno}</div>
 
-            <ul className="flex flex-col gap-2 mb-4">
+            <ul className="flex flex-col gap-2 mb-3">
               {p.incluye.map((linea) => (
                 <li key={linea} className="flex gap-2 text-[13.5px] text-texto-2">
                   <Check size={15} className="text-acento shrink-0 mt-[3px]" />
                   <span>{linea}</span>
                 </li>
               ))}
-              {p.excluye.map((linea) => (
-                <li key={linea} className="flex gap-2 text-[13.5px] text-atenuado">
-                  <X size={15} className="shrink-0 mt-[3px]" />
-                  <span>{linea}</span>
-                </li>
-              ))}
             </ul>
+
+            {/* Lo que no lleva, en una línea atenuada y no como dos items
+             * más de la lista. Se sigue diciendo —quien paga 39 € tiene
+             * que saber que no hay presencial— pero deja de ser lo último
+             * que se lee antes del botón: cinco síes que acaban en dos
+             * noes justo encima de "me interesa" cortan la decisión. */}
+            {p.excluye.length > 0 && (
+              <p className="text-atenuado text-[12.5px] leading-snug mb-4">
+                No incluye {p.excluye.map((e) => e.toLowerCase()).join(" ni ")}.
+              </p>
+            )}
 
             <button
               className="cta !mb-0 mt-auto anim-pulsable"
