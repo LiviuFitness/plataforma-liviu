@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, Apple, ClipboardCheck, ClipboardList, Inbox } from "lucide-react";
 import QrPlanes from "@/componentes/QrPlanes";
+import CopiaSeguridad from "@/componentes/CopiaSeguridad";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import type { Perfil } from "@/lib/tipos";
 
@@ -221,6 +222,8 @@ export default function Ajustes({
             {cambiando ? "Cambiando…" : "Cambiar contraseña"}
           </button>
         </div>
+
+        <CopiaSeguridad />
       </div>
     </>
   );
