@@ -84,7 +84,21 @@ export default function PaginaLogin() {
   }
 
   return (
-    <div className="max-w-[480px] w-full mx-auto px-[18px] flex flex-col justify-center min-h-screen py-10">
+    <div className="relative max-w-[480px] w-full mx-auto px-[18px] flex flex-col justify-center min-h-screen py-10">
+      {/* Banda de ambiente detrás del logo. Solo arriba: los campos del
+       * formulario no van nunca encima de una foto, y el degradado la
+       * funde con el fondo antes de llegar al primer input. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-[230px] pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(10,12,14,0.35) 0%, rgba(10,12,14,0.72) 58%, var(--color-fondo) 100%), url(/entrenos/general.webp)",
+          backgroundSize: "cover, cover",
+          backgroundPosition: "center, center",
+        }}
+      />
+      <div className="relative">
       <div className="text-center mb-10">
         <Logo tamano={80} />
       </div>
@@ -163,6 +177,7 @@ export default function PaginaLogin() {
           Privacidad
         </Link>
       </p>
+      </div>
     </div>
   );
 }
