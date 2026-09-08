@@ -236,6 +236,9 @@ export interface EjercicioUI {
   ejercicio_id: string;
   nombre: string;
   grupo_muscular: string;
+  /** Gif propio o vídeo de YouTube. Opcional: el editor del entrenador
+   * construye estos objetos sin él. */
+  video_url?: string | null;
   descanso_seg: number;
   notas: string;
   series: SerieUI[];

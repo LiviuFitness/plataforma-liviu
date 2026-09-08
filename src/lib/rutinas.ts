@@ -7,7 +7,7 @@ export const SELECT_RUTINA_COMPLETA = `
     id, orden, nombre, semana,
     rutina_ejercicios (
       id, orden, descanso_seg, notas, ejercicio_id, grupo_superserie,
-      ejercicios ( nombre, grupo_muscular ),
+      ejercicios ( nombre, grupo_muscular, video_url ),
       series_prescritas ( id, orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto )
     )
   )
@@ -30,7 +30,7 @@ interface FilaRutinaEjercicio {
   notas: string | null;
   ejercicio_id: string;
   grupo_superserie: string | null;
-  ejercicios: { nombre: string; grupo_muscular: string } | null;
+  ejercicios: { nombre: string; grupo_muscular: string; video_url: string | null } | null;
   series_prescritas: FilaSerie[];
 }
 
@@ -129,6 +129,7 @@ export function aRutinaUI(fila: FilaRutina): RutinaUI {
           ejercicio_id: e.ejercicio_id,
           nombre: e.ejercicios?.nombre ?? "Ejercicio",
           grupo_muscular: e.ejercicios?.grupo_muscular ?? "",
+          video_url: e.ejercicios?.video_url ?? null,
           descanso_seg: e.descanso_seg,
           notas: e.notas ?? "",
           grupoSuperserie: e.grupo_superserie,

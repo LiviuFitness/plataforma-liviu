@@ -346,33 +346,19 @@ export default async function PaginaInicio() {
         </div>
       )}
 
-      {/* Otros días de la rutina — alternativa directa a la misma decisión */}
+      {/* La lista de los otros días vivía aquí debajo, tres filas
+       * siempre abiertas. Ahora tienen su sitio en Mi rutina, donde
+       * además se ven los ejercicios de cada día sin entrar a
+       * entrenarlo; aquí queda solo la puerta, en una línea, porque es
+       * justo el momento en que uno piensa "hoy no me apetece este". */}
       {rutina && rutina.dias.length > 1 && (
-        <section className="tarjeta">
-          <div className="titulo-tarjeta">O elige otro día</div>
-          {rutina.dias.map(
-            (dia, i) =>
-              i !== proximoIndice && (
-                // La fila entera ya es el enlace, así que el "Empezar →"
-                // de cada una solo servía para repetir tres veces en azul
-                // la llamada a la acción que ya hace el botón grande de
-                // arriba. Queda una flecha discreta.
-                <Link
-                  key={dia.id}
-                  href={`/sesion/${dia.id}`}
-                  className="flex justify-between items-center gap-3 border-b border-borde last:border-0 py-2.5 anim-pulsable"
-                >
-                  <div className="min-w-0">
-                    <div className="font-semibold text-[14.5px] truncate">{dia.nombre}</div>
-                    <div className="text-atenuado text-[12.5px]">
-                      {dia.ejercicios.length} ejercicios
-                    </div>
-                  </div>
-                  <ChevronRight size={16} className="text-atenuado shrink-0" />
-                </Link>
-              )
-          )}
-        </section>
+        <Link href="/mi-rutina" className="fila anim-pulsable">
+          <IconoMancuerna size={17} className="text-atenuado shrink-0" />
+          <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
+            Ver toda mi rutina
+          </div>
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
       )}
 
       {/* 5. Peso */}
