@@ -17,7 +17,12 @@ export default function BarraCliente({
   return (
     <nav
       className="md:hidden fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] flex gap-2 z-20 border-t border-borde bg-[rgba(12,15,18,0.96)] backdrop-blur-lg px-3 pt-2"
-      style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom))" }}
+      style={{
+        /* Alto explícito para que `--alto-barra-inferior` no sea una
+         * suposición: el chat se coloca justo encima con esa medida. */
+        height: "calc(var(--alto-barra-inferior) + env(safe-area-inset-bottom))",
+        paddingBottom: "calc(8px + env(safe-area-inset-bottom))",
+      }}
     >
       {PESTANAS_CLIENTE.map((p) => {
         const activa = ruta === p.ruta || ruta.startsWith(p.ruta + "/");

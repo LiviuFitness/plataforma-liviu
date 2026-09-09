@@ -4,6 +4,14 @@
    LIVIU FITNESS STUDIO — Tokens de marca (especificación §4)
    ============================================================ */
 @theme {
+  /* Alto de la barra inferior, sin contar el área segura del móvil. La
+     usan la propia barra y la barra de escribir del chat, que va justo
+     encima: cuando se desincronizaron (la barra medía 89 px y el chat se
+     colocaba a 64) la barra tapaba el campo de texto y no se podía ni
+     tocar. Este es el valor de la app del cliente; el panel, cuya barra
+     es más baja, lo redefine en su propio layout. */
+  --alto-barra-inferior: 89px;
+
   --color-fondo: #0a0c0e;
   --color-panel: #111519;
   --color-borde: #1b2127;

@@ -28,7 +28,13 @@ export default async function LayoutPanel({
   if (perfil?.rol !== "entrenador") redirect("/inicio");
 
   return (
-    <div className="max-w-[480px] md:max-w-[760px] w-full mx-auto relative min-h-screen">
+    /* La barra del panel es más baja que la del cliente (68 px frente a
+     * 89): se redefine aquí para que el chat, que comparte componente,
+     * se coloque justo encima en las dos vistas. */
+    <div
+      className="max-w-[480px] md:max-w-[760px] w-full mx-auto relative min-h-screen"
+      style={{ "--alto-barra-inferior": "68px" } as React.CSSProperties}
+    >
       <header className="flex justify-between items-center px-[18px] pt-4 pb-2.5 sticky top-0 z-10 cabecera-solida border-b border-borde">
         <div>
           <Logo tamano={38} />

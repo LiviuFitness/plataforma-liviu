@@ -17,7 +17,12 @@ export default function BarraInferior() {
   return (
     <nav
       className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[480px] md:max-w-[760px] flex gap-2 z-20 border-t border-borde bg-[rgba(12,15,18,0.96)] backdrop-blur-lg px-3 pt-2"
-      style={{ paddingBottom: "calc(8px + env(safe-area-inset-bottom))" }}
+      style={{
+        /* Alto explícito, igual que en la barra del cliente: así
+         * `--alto-barra-inferior` no es una suposición. */
+        height: "calc(var(--alto-barra-inferior) + env(safe-area-inset-bottom))",
+        paddingBottom: "calc(8px + env(safe-area-inset-bottom))",
+      }}
     >
       {PESTANAS.map((p) => {
         const activa = ruta === p.ruta || ruta.startsWith(p.ruta + "/");

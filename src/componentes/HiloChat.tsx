@@ -97,7 +97,7 @@ export default function HiloChat({
     <>
       {/* Espacio para que el último mensaje no quede tapado por la
        * barra de escritura fija */}
-      <div className="flex flex-col pb-20">
+      <div className="flex flex-col pb-28">
         {mensajes.length === 0 && (
           <EstadoVacio
             Icono={MessageCircle}
@@ -146,7 +146,9 @@ export default function HiloChat({
 
       <div
         className={`fixed left-1/2 -translate-x-1/2 w-full ${anchoMaximo} z-20 px-[18px]`}
-        style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
+        style={{
+          bottom: "calc(var(--alto-barra-inferior) + env(safe-area-inset-bottom))",
+        }}
       >
         <div className="flex gap-2 items-end bg-fondo/95 backdrop-blur-md pt-2">
           <textarea
