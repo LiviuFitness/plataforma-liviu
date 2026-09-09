@@ -366,10 +366,33 @@ export default async function PaginaInicio() {
          * se le dice qué está pasando y qué puede hacer ya — pesarse y
          * marcar hábitos son las dos cosas que no dependen de la rutina
          * y están justo debajo en esta misma pantalla. */
-        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-6 !mb-3">
-          <div className="flex items-center gap-3.5 mb-3">
-            <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
-            <div className="min-w-0">
+        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-0 !mb-3 overflow-hidden">
+          {/* Un gimnasio vacío con la luz entrando: dice "todavía no ha
+           * empezado" sin necesidad de escribirlo. Mismo tratamiento que
+           * la tarjeta de entreno de verdad, para que el primer día se
+           * parezca a los que vendrán después. */}
+          <div className="relative flex items-center gap-3.5 p-6 pb-4">
+            <span
+              aria-hidden
+              className="absolute inset-y-0 right-0 w-[46%] pointer-events-none"
+              style={{
+                backgroundImage: "url(/en-camino.webp)",
+                backgroundSize: "cover",
+                backgroundPosition: "center right",
+              }}
+            />
+            <span
+              aria-hidden
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                background:
+                  "linear-gradient(90deg, var(--color-panel) 0%, var(--color-panel) 52%, color-mix(in srgb, var(--color-panel) 55%, transparent) 78%, color-mix(in srgb, var(--color-panel) 35%, transparent) 100%)",
+              }}
+            />
+            <span className="relative shrink-0">
+              <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
+            </span>
+            <div className="min-w-0 relative">
               <div className="font-bold text-[19px] leading-tight">
                 Tu rutina está en camino
               </div>
@@ -378,7 +401,7 @@ export default async function PaginaInicio() {
               </div>
             </div>
           </div>
-          <p className="text-texto-2 text-[13.5px] leading-relaxed">
+          <p className="text-texto-2 text-[13.5px] leading-relaxed px-6 pb-6">
             Mientras tanto puedes apuntar tu peso de hoy y marcar tus hábitos,
             ahí abajo. Cuanto antes empieces a registrar, antes tendrá tu
             entrenador con qué ajustarte el plan.
