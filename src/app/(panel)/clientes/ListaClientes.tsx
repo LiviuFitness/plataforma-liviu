@@ -18,6 +18,7 @@ export default function ListaClientes({
   diasDesdeAlta,
   chatSinLeer,
   invitaciones,
+  ahora,
 }: {
   clientes: Perfil[];
   adherencias: Record<string, number>;
@@ -28,6 +29,9 @@ export default function ListaClientes({
   /** true si el último mensaje del hilo lo mandó el cliente (pendiente de responder) */
   chatSinLeer: Record<string, boolean>;
   invitaciones: Invitacion[];
+  /** Marca de tiempo del servidor, para que los días que le quedan a una
+   * invitación se calculen igual aquí y allí. */
+  ahora: number;
 }) {
   const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
@@ -78,6 +82,7 @@ export default function ListaClientes({
     const supabase = crearClienteNavegador();
     await supabase
       .from("invitaciones")
+      // eslint-disable-next-line react-hooks/purity -- va en un manejador de clic, no en el render
       .update({ expira: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() })
       .eq("id", id);
     setRenovando(null);
@@ -169,7 +174,7 @@ export default function ListaClientes({
           <div className="titulo-tarjeta">INVITACIONES PENDIENTES</div>
           {invitaciones.map((inv) => {
             const dias = Math.ceil(
-              (new Date(inv.expira).getTime() - Date.now()) / 86400000
+              (new Date(inv.expira).getTime() - ahora) / 86400000
             );
             const caducada = dias <= 0;
             return (

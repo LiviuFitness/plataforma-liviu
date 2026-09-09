@@ -43,6 +43,13 @@ export default async function PaginaClientes() {
       .limit(500),
   ]);
 
+  /* Una sola lectura del reloj para toda la pantalla: los días sin
+   * entrenar, los días desde el alta y lo que le queda a cada invitación
+   * se cuentan contra el mismo instante. Además baja como dato al
+   * componente de cliente, para que el navegador no vuelva a mirar la
+   * hora al hidratar y diga "5 días" donde el servidor dijo "6". */
+  const ahora = new Date().getTime();
+
   const mapaAdh = new Map(
     (adherencias ?? []).map((a) => [a.cliente_id, a.adherencia as number])
   );
@@ -57,7 +64,7 @@ export default async function PaginaClientes() {
     if (!diasSinEntrenar.has(s.cliente_id)) {
       diasSinEntrenar.set(
         s.cliente_id,
-        Math.floor((Date.now() - new Date(s.fecha_inicio).getTime()) / 86400000)
+        Math.floor((ahora - new Date(s.fecha_inicio).getTime()) / 86400000)
       );
     }
   }
@@ -72,7 +79,6 @@ export default async function PaginaClientes() {
 
   // Días desde el alta — para no marcar "riesgo" a quien acaba de entrar
   // y todavía no ha tenido tiempo de registrar su primera sesión.
-  const ahora = new Date().getTime();
   const diasDesdeAlta = new Map<string, number>();
   for (const c of clientes ?? []) {
     diasDesdeAlta.set(
@@ -90,6 +96,7 @@ export default async function PaginaClientes() {
       diasDesdeAlta={Object.fromEntries(diasDesdeAlta)}
       chatSinLeer={Object.fromEntries(chatSinLeer)}
       invitaciones={(invitaciones ?? []) as Invitacion[]}
+      ahora={ahora}
     />
   );
 }
