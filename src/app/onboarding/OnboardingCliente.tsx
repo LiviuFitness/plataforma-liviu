@@ -2,15 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Dumbbell,
-  Flame,
-  MessageCircle,
-  UtensilsCrossed,
-  type LucideIcon,
-} from "lucide-react";
+import Image from "next/image";
+import { Flame, MessageCircle, UtensilsCrossed } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { IconoTarjeta, Logo } from "@/componentes/ui";
+import IconoMancuerna from "@/componentes/IconoMancuerna";
+import { IconoTarjeta, Logo, type IconoApp } from "@/componentes/ui";
 import type { PreguntaAlta } from "@/lib/tipos";
 
 type Sexo = "hombre" | "mujer" | "otro";
@@ -21,30 +17,43 @@ const PREFIJO_ALTA = "alta:";
 
 // Mismo color por dominio que el resto de la app (Inicio, Mi Progreso…):
 // entreno = acento, dieta = verde, progreso/racha = dorado.
-const TOUR: Record<string, { Icono: LucideIcon; color: string; titulo: string; texto: string }> = {
+/* OJO al tocar la app: estas cuatro pantallas son lo primero que lee un
+ * cliente nuevo, y describen pantallas concretas. Ya se quedaron
+ * desfasadas una vez (decían que el próximo entreno se ve "en Inicio",
+ * cuando Mi rutina ya tenía su propia pestaña). Si se mueve algo de
+ * sitio, hay que pasar por aquí. */
+const TOUR: Record<
+  string,
+  { Icono: IconoApp; color: string; titulo: string; texto: string; foto?: string }
+> = {
   "tour-rutina": {
-    Icono: Dumbbell,
+    Icono: IconoMancuerna,
     color: "var(--color-acento)",
     titulo: "Tu rutina",
-    texto: "Tu entrenador te asigna la rutina semana a semana. En Inicio siempre verás tu próximo entreno listo para empezar.",
+    texto: "Tu entrenador te la asigna semana a semana. En Rutina tienes todos tus días con sus ejercicios, y en Inicio el que te toca hoy listo para empezar.",
+    foto: "/entrenos/general.webp",
   },
   "tour-dieta": {
     Icono: UtensilsCrossed,
     color: "var(--color-verde)",
     titulo: "Tu dieta",
     texto: "Comidas con gramos exactos de cada alimento, con equivalencias intercambiables y un plan distinto para tus días de entreno y de descanso.",
+    foto: "/comidas/comida.webp",
   },
   "tour-progreso": {
     Icono: Flame,
     color: "var(--color-dorado)",
     titulo: "Progreso y hábitos",
-    texto: "Registra tu peso y mira tu evolución, y marca a diario tus hábitos (pasos, agua, sueño…) desde la tarjeta de Inicio.",
+    texto: "Registra tu peso y tus medidas y mira tu evolución, y marca a diario tus hábitos (pasos, agua, sueño…) desde Inicio.",
   },
   "tour-chat": {
     Icono: MessageCircle,
     color: "var(--color-acento)",
     titulo: "Habla con tu entrenador",
     texto: "Desde la pestaña Chat puedes escribirle directamente cuando lo necesites: dudas, molestias o lo que quieras contarle.",
+    foto: "/liviu.webp",
+    /* Aquí la foto no es ambiente: es la cara de la persona a la que va a
+     * escribir. Es la única de las cuatro que se pinta redonda. */
   },
 };
 
@@ -267,12 +276,29 @@ export default function OnboardingCliente({
         {clave in TOUR && (
           <div className="flex flex-col items-center text-center pt-10 anim-aparecer">
             {(() => {
-              const { Icono, color, titulo, texto } = TOUR[clave];
+              const { Icono, color, titulo, texto, foto } = TOUR[clave];
+              const esRetrato = clave === "tour-chat";
               return (
                 <>
-                  <div className="mb-5">
-                    <IconoTarjeta Icono={Icono} color={color} tamano={64} />
-                  </div>
+                  {foto ? (
+                    <div className="mb-5">
+                      <Image
+                        src={foto}
+                        alt=""
+                        width={esRetrato ? 108 : 260}
+                        height={esRetrato ? 108 : 100}
+                        className={
+                          esRetrato
+                            ? "rounded-full"
+                            : "rounded-[14px] object-cover w-[260px] h-[100px]"
+                        }
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-5">
+                      <IconoTarjeta Icono={Icono} color={color} tamano={64} />
+                    </div>
+                  )}
                   <h2 className="h1 !text-[22px] mb-2.5">{titulo}</h2>
                   <p className="text-atenuado text-[14.5px] leading-relaxed max-w-[320px]">
                     {texto}
