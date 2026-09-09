@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CalendarCheck } from "lucide-react";
+import { AlertTriangle, CalendarCheck, ChevronDown } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Sparkline } from "@/componentes/ui";
 import {
@@ -38,6 +38,7 @@ export default function TabResumen({
     .map((m) => Number(m.peso));
 
   /* --- Notas privadas con autoguardado (debounce) --- */
+  const [datosAbiertos, setDatosAbiertos] = useState(false);
   const [notas, setNotas] = useState(perfil.notas_entrenador ?? "");
   const [estadoNotas, setEstadoNotas] = useState<"" | "guardando" | "ok">("");
   const temporizador = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -142,33 +143,9 @@ export default function TabResumen({
 
   return (
     <>
-      {/* Peso + adherencia agrupados en una sola superficie — dos datos
-       * relacionados de la semana, no necesitan dos cajas separadas. */}
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">Peso — evolución</div>
-        <Sparkline datos={pesos} />
-        {pesos.length >= 2 && (
-          <div className="flex justify-between items-center">
-            <span className="text-atenuado text-[13.5px]">
-              Inicio {pesos[0]} kg
-            </span>
-            <span className="num-grande">{pesos[pesos.length - 1]} kg</span>
-          </div>
-        )}
-        <div className="border-t border-borde my-3.5" />
-        <div className="titulo-tarjeta">Adherencia — esta semana</div>
-        <div className="flex justify-between px-1.5 py-1">
-          {diasEntrenados.map((activo, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5">
-              <div
-                className={`w-2.5 h-2.5 rounded-full ${activo ? "bg-acento" : "bg-borde-2"}`}
-              />
-              <span className="text-[11px] text-atenuado">{DIAS[i]}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
+      {/* Lo accionable, primero. Iba detrás de la gráfica de peso,
+       * que en un cliente nuevo solo dice que aún no hay registros:
+       * se abría la ficha y lo primero era un hueco. */}
       {/* Necesita atención — banners de una línea, no una caja roja */}
       {alertas.length > 0 && (
         <div className="flex flex-col gap-1.5 mb-3.5">
@@ -197,6 +174,33 @@ export default function TabResumen({
           )}
         </div>
       )}
+
+      {/* Peso + adherencia agrupados en una sola superficie — dos datos
+       * relacionados de la semana, no necesitan dos cajas separadas. */}
+      <section className="tarjeta">
+        <div className="titulo-tarjeta">Peso — evolución</div>
+        <Sparkline datos={pesos} />
+        {pesos.length >= 2 && (
+          <div className="flex justify-between items-center">
+            <span className="text-atenuado text-[13.5px]">
+              Inicio {pesos[0]} kg
+            </span>
+            <span className="num-grande">{pesos[pesos.length - 1]} kg</span>
+          </div>
+        )}
+        <div className="border-t border-borde my-3.5" />
+        <div className="titulo-tarjeta">Adherencia — esta semana</div>
+        <div className="flex justify-between px-1.5 py-1">
+          {diasEntrenados.map((activo, i) => (
+            <div key={i} className="flex flex-col items-center gap-1.5">
+              <div
+                className={`w-2.5 h-2.5 rounded-full ${activo ? "bg-acento" : "bg-borde-2"}`}
+              />
+              <span className="text-[11px] text-atenuado">{DIAS[i]}</span>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {respuestasAlta.length > 0 && (
         <section className="tarjeta">
@@ -229,8 +233,25 @@ export default function TabResumen({
         />
       </section>
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">DATOS DEL CLIENTE</div>
+      {/* Los datos del cliente se rellenan una vez y luego estorban:
+       * esto es la pestaña "Resumen", no un formulario. Plegado. */}
+      <section className="tarjeta !p-0 overflow-hidden">
+        <button
+          className="w-full flex items-center gap-3 px-4 py-3.5 text-left anim-pulsable"
+          onClick={() => setDatosAbiertos((v) => !v)}
+          aria-expanded={datosAbiertos}
+        >
+          <span className="flex-1 min-w-0 font-semibold text-[14.5px]">
+            Datos del cliente
+          </span>
+          <ChevronDown
+            size={16}
+            className={`icono-rotable text-atenuado shrink-0 ${datosAbiertos ? "icono-rotable-abierto" : ""}`}
+          />
+        </button>
+        <div className={`acordeon ${datosAbiertos ? "acordeon-abierto" : ""}`}>
+          <div>
+            <div className="border-t border-borde px-4 py-4">
         <label className="text-[13px] text-texto-2 block mb-1">Nombre</label>
         <input
           className="input"
@@ -333,6 +354,9 @@ export default function TabResumen({
         <button className="cta" onClick={guardarDatos} disabled={guardandoDatos}>
           {datosOk ? "Guardado ✓" : guardandoDatos ? "Guardando…" : "Guardar datos"}
         </button>
+            </div>
+          </div>
+        </div>
       </section>
 
       <section className="tarjeta !border-peligro/40">

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Inbox } from "lucide-react";
+import { CalendarCheck, ChevronRight, Inbox } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { haceCuanto, PuntoEstado } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
@@ -201,12 +201,32 @@ export default async function PaginaHoy() {
   return (
     <>
       <h1 className="h1">Hoy</h1>
-      <div className="sub mb-6">{fecha} — así va tu estudio</div>
+      <div className="sub mb-4">{fecha} — así va tu estudio</div>
+
+      {/* Las cifras del estudio, arriba. Antes iban sueltas en mitad de
+       * la pantalla, entre dos listas y sin título: un resumen colocado
+       * después de lo que resume no lo lee nadie. */}
+      <div className="superficie grid grid-cols-3 divide-x divide-borde mb-5">
+        {[
+          { n: `${listaClientes.length}`, t: "activos", alerta: false },
+          { n: `${media}%`, t: "adherencia", alerta: false },
+          { n: `${enRiesgo.length}`, t: "en riesgo", alerta: enRiesgo.length > 0 },
+        ].map((k) => (
+          <div key={k.t} className="px-3 py-3 text-center">
+            <div
+              className={`num-grande !text-[22px] ${k.alerta ? "text-peligro" : ""}`}
+            >
+              {k.n}
+            </div>
+            <div className="text-atenuado text-[11.5px] mt-0.5">{k.t}</div>
+          </div>
+        ))}
+      </div>
 
       {/* Un lead sin contestar es lo único que caduca de verdad: sale
        * antes que nada y solo cuando lo hay. */}
       {(leadsNuevos ?? 0) > 0 && (
-        <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-6 flex items-center gap-3">
+        <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-5 flex items-center gap-3">
           <Inbox size={20} className="text-acento shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="font-bold text-[14.5px]">
@@ -219,107 +239,91 @@ export default async function PaginaHoy() {
         </Link>
       )}
 
-      {/* 1. Necesita atención — lo primero que se mira */}
-      <div className="mb-6">
-        <div className="titulo-seccion">
-          Necesita atención{enRiesgo.length > 0 ? ` · ${enRiesgo.length}` : ""}
-        </div>
-        {enRiesgo.length === 0 ? (
-          <div className="text-atenuado text-[13.5px]">
-            Nadie en riesgo ahora mismo — buen trabajo.
+      {/* PARA HOY: las dos listas que piden hacer algo, juntas. Antes
+       * estaban separadas por la actividad reciente y los récords, así
+       * que había que cruzar información pasiva para encontrar la
+       * segunda cosa pendiente. */}
+      <div className="titulo-seccion">Para hoy</div>
+      <div className="superficie px-4 mb-6">
+        {enRiesgo.length === 0 && listosParaAvanzar.length === 0 && (
+          <div className="text-atenuado text-[13.5px] py-3">
+            Nada pendiente ahora mismo — buen trabajo.
           </div>
-        ) : (
-          enRiesgo.map((r) => (
-            <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
-              <PuntoEstado nivel={r.score >= 5 ? "riesgo" : "atencion"} />
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-[14.5px] truncate">{r.nombre}</div>
-                <div className="text-texto-2 text-[12.5px] truncate">{r.motivos[0]}</div>
-              </div>
-            </Link>
-          ))
         )}
+
+        {enRiesgo.map((r) => (
+          <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
+            <PuntoEstado nivel={r.score >= 5 ? "riesgo" : "atencion"} />
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-[14.5px] truncate">{r.nombre}</div>
+              <div className="text-texto-2 text-[12.5px] truncate">{r.motivos[0]}</div>
+            </div>
+            <ChevronRight size={16} className="text-atenuado shrink-0" />
+          </Link>
+        ))}
+
+        {listosParaAvanzar.map((a, i) => (
+          <Link key={`av-${i}`} href={`/clientes/${a.cliente_id}`} className="fila">
+            <CalendarCheck size={17} className="text-acento shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-bold text-[14.5px] truncate">{a.nombre}</div>
+              <div className="text-texto-2 text-[12.5px] truncate">{a.mensaje}</div>
+            </div>
+            <ChevronRight size={16} className="text-atenuado shrink-0" />
+          </Link>
+        ))}
       </div>
 
-      {/* 2. Actividad reciente */}
-      <div className="mb-6">
-        <div className="titulo-seccion">Actividad reciente</div>
-        {listaClientes.length === 0 && (
-          <div className="text-atenuado text-[13.5px]">
+      {recordsSemana.length > 0 && (
+        <>
+          <div className="titulo-seccion">Récords de la semana</div>
+          <div className="superficie px-4 mb-6">
+            {recordsSemana.map((rec, i) => (
+              <Link key={i} href={`/clientes/${rec.cliente_id}`} className="fila">
+                <span className="flex-1 min-w-0 truncate text-[13.5px]">
+                  <b>{rec.nombre}</b>
+                  <span className="text-texto-2"> — {rec.ejercicio}</span>
+                </span>
+                <span className="shrink-0 text-[13.5px]">
+                  <span className="text-atenuado">{Number(rec.kg_previo)} kg → </span>
+                  <b className="text-aviso">{Number(rec.kg_nuevo)} kg</b>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="titulo-seccion">Actividad reciente</div>
+      <div className="superficie px-4 mb-6">
+        {listaClientes.length === 0 ? (
+          <div className="text-atenuado text-[13.5px] py-3">
             Sin clientes todavía. Crea la primera invitación desde «Clientes».
           </div>
-        )}
-        {actividadOrdenada.slice(0, 7).map((c) => {
-          const cuando = haceCuanto(ultimaActividad.get(c.id) ?? null);
-          return (
-            <Link key={c.id} href={`/clientes/${c.id}`} className="fila">
-              <span className="flex-1 min-w-0 truncate text-[14px]">{c.nombre}</span>
-              <span
-                className={`text-[12.5px] shrink-0 ${cuando === "Hoy" ? "text-acento" : "text-atenuado"}`}
-              >
-                {cuando}
-              </span>
-            </Link>
-          );
-        })}
-        {actividadOrdenada.length > 7 && (
-          <Link href="/clientes" className="text-acento text-[13px] inline-block mt-2">
-            Ver todos →
-          </Link>
+        ) : (
+          <>
+            {actividadOrdenada.slice(0, 7).map((c) => {
+              const cuando = haceCuanto(ultimaActividad.get(c.id) ?? null);
+              return (
+                <Link key={c.id} href={`/clientes/${c.id}`} className="fila">
+                  <span className="flex-1 min-w-0 truncate text-[14px]">{c.nombre}</span>
+                  <span
+                    className={`text-[12.5px] shrink-0 ${cuando === "Hoy" ? "text-acento" : "text-atenuado"}`}
+                  >
+                    {cuando}
+                  </span>
+                </Link>
+              );
+            })}
+            {actividadOrdenada.length > 7 && (
+              <Link href="/clientes" className="fila text-acento text-[13px]">
+                Ver todos →
+              </Link>
+            )}
+          </>
         )}
       </div>
 
-      {/* 3. KPIs — discretos, una línea de texto, nada de cajas grandes */}
-      <div className="flex items-center gap-2 text-[13px] text-atenuado mb-6">
-        <span>
-          <b className="text-texto-2">{listaClientes.length}</b> activos
-        </span>
-        <span>·</span>
-        <span>
-          <b className="text-texto-2">{media}%</b> adherencia
-        </span>
-        <span>·</span>
-        <span className={enRiesgo.length > 0 ? "text-peligro" : ""}>
-          <b className={enRiesgo.length > 0 ? "text-peligro" : "text-texto-2"}>
-            {enRiesgo.length}
-          </b>{" "}
-          en riesgo
-        </span>
-      </div>
-
-      {/* 4. Resto: buenas noticias, al final */}
-      {recordsSemana.length > 0 && (
-        <div className="mb-6">
-          <div className="titulo-seccion">Récords de la semana</div>
-          {recordsSemana.map((rec, i) => (
-            <Link key={i} href={`/clientes/${rec.cliente_id}`} className="fila">
-              <span className="flex-1 min-w-0 truncate text-[13.5px]">
-                <b>{rec.nombre}</b>
-                <span className="text-texto-2"> — {rec.ejercicio}</span>
-              </span>
-              <span className="shrink-0 text-[13.5px]">
-                <span className="text-atenuado">{Number(rec.kg_previo)} kg → </span>
-                <b className="text-aviso">{Number(rec.kg_nuevo)} kg</b>
-              </span>
-            </Link>
-          ))}
-        </div>
-      )}
-
-      {listosParaAvanzar.length > 0 && (
-        <div className="mb-6">
-          <div className="titulo-seccion">Listos para avanzar</div>
-          {listosParaAvanzar.map((a, i) => (
-            <Link key={i} href={`/clientes/${a.cliente_id}`} className="fila">
-              <span className="flex-1 min-w-0 truncate text-[13.5px]">
-                <b>{a.nombre}</b>
-                <span className="text-texto-2"> — {a.mensaje}</span>
-              </span>
-              <span className="text-acento shrink-0 text-[13.5px]">→</span>
-            </Link>
-          ))}
-        </div>
-      )}
     </>
   );
 }
