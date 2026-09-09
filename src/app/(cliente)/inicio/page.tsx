@@ -295,8 +295,14 @@ export default async function PaginaInicio() {
 
       {/* 3. La semana de un vistazo. Aquí estaba la frase del día, que es
        * el mejor hueco de la pantalla y lo ocupaba algo que no dice nada
-       * del cliente; la frase se ha ido al final. */}
-      <SemanaEntrenos diasEntrenados={diasEntrenados} objetivoSemana={objetivoSemana} />
+       * del cliente; la frase se ha ido al final.
+       *
+       * Solo si tiene rutina: a un cliente recién dado de alta esto le
+       * enseñaba siete casillas vacías —seguimiento de algo que todavía
+       * no existe— ANTES de contarle que aún no tiene plan. */}
+      {objetivoSemana > 0 && (
+        <SemanaEntrenos diasEntrenados={diasEntrenados} objetivoSemana={objetivoSemana} />
+      )}
 
       {/* 4. ENTRENAMIENTO DE HOY — la tarjeta protagonista. Sin eyebrow:
        * el nombre del día ES el título, y semana/ejercicios/series/
@@ -356,11 +362,27 @@ export default async function PaginaInicio() {
           </div>
         </section>
       ) : (
-        <section className="tarjeta anim-entrada-2">
-          <div className="text-atenuado text-[14px]">
-            Tu rutina está en el horno 🔥 En cuanto tu entrenador te asigne el
-            plan, aparecerá aquí.
+        /* Primer día del cliente: en vez de un aviso de que no hay nada,
+         * se le dice qué está pasando y qué puede hacer ya — pesarse y
+         * marcar hábitos son las dos cosas que no dependen de la rutina
+         * y están justo debajo en esta misma pantalla. */
+        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-6 !mb-3">
+          <div className="flex items-center gap-3.5 mb-3">
+            <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
+            <div className="min-w-0">
+              <div className="font-bold text-[19px] leading-tight">
+                Tu rutina está en camino
+              </div>
+              <div className="text-atenuado text-[13px] mt-1 leading-snug">
+                Tu entrenador la está preparando. Aparecerá aquí en cuanto esté.
+              </div>
+            </div>
           </div>
+          <p className="text-texto-2 text-[13.5px] leading-relaxed">
+            Mientras tanto puedes apuntar tu peso de hoy y marcar tus hábitos,
+            ahí abajo. Cuanto antes empieces a registrar, antes tendrá tu
+            entrenador con qué ajustarte el plan.
+          </p>
         </section>
       )}
 
