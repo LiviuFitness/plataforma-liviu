@@ -23,11 +23,13 @@ export default async function PaginaClientes() {
       .order("nombre"),
     supabase.from("v_adherencia").select("cliente_id, adherencia"),
     supabase.from("v_alertas").select("cliente_id"),
+    /* Sin filtrar por fecha: una invitación caducada desaparecía de la
+     * pantalla sin dejar rastro. El cliente veía "enlace no válido" y
+     * aquí no había nada pendiente que explicara por qué. */
     supabase
       .from("invitaciones")
       .select("*")
       .eq("usada", false)
-      .gt("expira", new Date().toISOString())
       .order("creada_en", { ascending: false }),
     supabase
       .from("sesiones")

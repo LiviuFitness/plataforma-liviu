@@ -39,6 +39,7 @@ export default function ListaClientes({
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
   const [copiada, setCopiada] = useState<string | null>(null);
+  const [renovando, setRenovando] = useState<string | null>(null);
 
   const filtrados = clientes.filter((c) =>
     c.nombre.toLowerCase().includes(busqueda.toLowerCase())
@@ -67,6 +68,19 @@ export default function ListaClientes({
     setNombre("");
     setEmail("");
     setMostrarNueva(false);
+    router.refresh();
+  }
+
+  /* Renovar en vez de borrar y volver a escribir nombre y correo: el
+   * enlace es el mismo, solo se le corre la fecha de caducidad. */
+  async function renovarInvitacion(id: string) {
+    setRenovando(id);
+    const supabase = crearClienteNavegador();
+    await supabase
+      .from("invitaciones")
+      .update({ expira: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() })
+      .eq("id", id);
+    setRenovando(null);
     router.refresh();
   }
 
@@ -153,7 +167,12 @@ export default function ListaClientes({
       {invitaciones.length > 0 && (
         <section className="tarjeta mt-3.5">
           <div className="titulo-tarjeta">INVITACIONES PENDIENTES</div>
-          {invitaciones.map((inv) => (
+          {invitaciones.map((inv) => {
+            const dias = Math.ceil(
+              (new Date(inv.expira).getTime() - Date.now()) / 86400000
+            );
+            const caducada = dias <= 0;
+            return (
             <div key={inv.id} className="fila">
 
               <div className="flex-1 min-w-0">
@@ -161,10 +180,30 @@ export default function ListaClientes({
                 <div className="text-atenuado text-[12.5px] truncate">
                   {inv.email}
                 </div>
+                {/* Cuánto le queda al enlace. Sin esto, el cliente decía
+                 * "no me funciona" y aquí no había forma de saber que era
+                 * porque habían pasado más de siete días. */}
+                <div
+                  className={`text-[12px] mt-0.5 ${caducada ? "text-peligro" : "text-atenuado"}`}
+                >
+                  {caducada
+                    ? `Enlace caducado hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? "día" : "días"}`
+                    : `Caduca en ${dias} ${dias === 1 ? "día" : "días"}`}
+                </div>
               </div>
-              <button className="ghost" onClick={() => copiarEnlace(inv)}>
-                {copiada === inv.id ? "¡Copiado!" : "Copiar enlace"}
-              </button>
+              {caducada ? (
+                <button
+                  className="ghost"
+                  onClick={() => renovarInvitacion(inv.id)}
+                  disabled={renovando === inv.id}
+                >
+                  {renovando === inv.id ? "…" : "Renovar"}
+                </button>
+              ) : (
+                <button className="ghost" onClick={() => copiarEnlace(inv)}>
+                  {copiada === inv.id ? "¡Copiado!" : "Copiar enlace"}
+                </button>
+              )}
               <button
                 className="mini mini-peligro"
                 onClick={() => borrarInvitacion(inv.id)}
@@ -173,7 +212,8 @@ export default function ListaClientes({
                 ✕
               </button>
             </div>
-          ))}
+            );
+          })}
         </section>
       )}
 
