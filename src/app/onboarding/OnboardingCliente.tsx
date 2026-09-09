@@ -45,6 +45,9 @@ const TOUR: Record<
     color: "var(--color-dorado)",
     titulo: "Progreso y hábitos",
     texto: "Registra tu peso y tus medidas y mira tu evolución, y marca a diario tus hábitos (pasos, agua, sueño…) desde Inicio.",
+    /* El recorte se queda con la cinta métrica y el canto de la báscula:
+     * la marca del fabricante, bien legible en el original, cae fuera. */
+    foto: "/tour/progreso.webp",
   },
   "tour-chat": {
     Icono: MessageCircle,
