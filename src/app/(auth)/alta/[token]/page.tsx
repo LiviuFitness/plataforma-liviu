@@ -20,7 +20,22 @@ export default async function PaginaAlta({
   const valida = data?.valida === true;
 
   return (
-    <div className="max-w-[480px] w-full mx-auto px-[18px] py-10 min-h-screen flex flex-col justify-center">
+    <div className="relative max-w-[480px] w-full mx-auto px-[18px] py-10 min-h-screen flex flex-col justify-center">
+      {/* Misma banda que el login: esta es la primera pantalla de LivFit
+       * que ve un cliente en su vida, antes incluso de tener cuenta. El
+       * degradado la funde con el fondo antes del formulario — los
+       * campos no van nunca encima de una foto. */}
+      <div
+        aria-hidden
+        className="absolute inset-x-0 top-0 h-[230px] pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(180deg, rgba(10,12,14,0.35) 0%, rgba(10,12,14,0.72) 58%, var(--color-fondo) 100%), url(/entrenos/general.webp)",
+          backgroundSize: "cover, cover",
+          backgroundPosition: "center, center",
+        }}
+      />
+      <div className="relative">
       <div className="text-center mb-8">
         <Logo tamano={80} />
         <div className="sub serifa mt-1">empieza tu seguimiento —</div>
@@ -51,6 +66,7 @@ export default async function PaginaAlta({
           Términos del servicio
         </Link>
       </p>
+      </div>
     </div>
   );
 }
