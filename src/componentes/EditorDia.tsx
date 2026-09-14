@@ -16,7 +16,9 @@ import {
   type SerieUI,
 } from "@/lib/tipos";
 
-const SERIE_NUEVA: SerieUI = { tipo: "efectiva", kg: "", reps: "10", rir: "2" };
+/* Lo que Liviu pauta por defecto: 8-10 repeticiones a RIR 0. La carga
+ * se deja vacía a propósito porque depende del cliente. */
+const SERIE_NUEVA: SerieUI = { tipo: "efectiva", kg: "", reps: "8-10", rir: "0" };
 
 interface EjercicioConIndice extends EjercicioUI {
   indiceGlobal: number;
@@ -295,7 +297,10 @@ export default function EditorDia({
                       </div>
                     )}
 
-                    <div className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 text-[10.5px] tracking-wider uppercase text-atenuado pt-1.5 pb-1">
+                    {/* Las tres columnas no reparten igual: «90 o goma» es la
+                     * pista más larga y en un móvil se cortaba, mientras que el
+                     * RIR casi siempre es un carácter. */}
+                    <div className="grid grid-cols-[64px_1.35fr_1fr_0.9fr_30px] gap-1.5 text-[10.5px] tracking-wider uppercase text-atenuado pt-1.5 pb-1">
                       <span>Serie</span>
                       <span>Carga</span>
                       <span>Reps</span>
@@ -304,11 +309,11 @@ export default function EditorDia({
                     </div>
                     {ex.series.map((s, si) => (
                       <div
-                        className="grid grid-cols-[78px_1fr_1fr_1fr_32px] gap-2 items-center py-1"
+                        className="grid grid-cols-[64px_1.35fr_1fr_0.9fr_30px] gap-1.5 items-center py-1"
                         key={si}
                       >
                         <button
-                          className="bg-campo border rounded-lg py-2 px-0.5 font-bold text-[11.5px] cursor-pointer"
+                          className="bg-campo border rounded-lg py-2 px-0.5 font-bold text-[11px] leading-none cursor-pointer"
                           style={{
                             color: INFO_TIPO_SERIE[s.tipo].color,
                             borderColor: INFO_TIPO_SERIE[s.tipo].color + "55",
@@ -320,27 +325,27 @@ export default function EditorDia({
                         </button>
                         <input
                           className="campo-serie"
-                          placeholder="90 ó goma"
+                          placeholder="90 o goma"
                           value={s.kg}
                           onChange={(e) => parchearSerie(ei, si, { kg: e.target.value })}
                           aria-label="Carga (kg o texto)"
                         />
                         <input
                           className="campo-serie"
-                          placeholder="6-10"
+                          placeholder="8-10"
                           value={s.reps}
                           onChange={(e) => parchearSerie(ei, si, { reps: e.target.value })}
                           aria-label="Repeticiones (valor o rango)"
                         />
                         <input
                           className="campo-serie"
-                          placeholder="2 ó P"
+                          placeholder="0 o P"
                           value={s.rir}
                           onChange={(e) => parchearSerie(ei, si, { rir: e.target.value })}
                           aria-label="RIR o técnica"
                         />
                         <button
-                          className="mini mini-peligro"
+                          className="mini mini-peligro mini-estrecho"
                           onClick={() => borrarSerie(ei, si)}
                           aria-label="Quitar serie"
                         >
@@ -509,8 +514,8 @@ function HojaBiblioteca({
             >
               <AvatarEjercicio videoUrl={e.video_url} tamano={38} />
               <div className="flex-1 min-w-0">
-                <div className="font-bold text-[15px] truncate">{e.nombre}</div>
-                <div className="text-atenuado text-[12.5px] truncate">
+                <div className="font-bold text-[15px] leading-tight break-words">{e.nombre}</div>
+                <div className="text-atenuado text-[12.5px] break-words">
                   {e.grupo_muscular}
                   {e.nombre_en ? ` · ${e.nombre_en}` : e.material ? ` · ${e.material}` : ""}
                 </div>

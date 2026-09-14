@@ -154,7 +154,7 @@ export default function TabResumen({
               <div key={i} className="banner banner-accion justify-between">
                 <span className="flex items-center gap-1.5 min-w-0">
                   <CalendarCheck size={14} className="shrink-0" />
-                  <span className="truncate">{a.mensaje}</span>
+                  <span className="min-w-0">{a.mensaje}</span>
                 </span>
                 <button
                   className="mini !w-auto !px-2.5 shrink-0"

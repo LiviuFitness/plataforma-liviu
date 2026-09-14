@@ -182,7 +182,7 @@ export default function ListaClientes({
 
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-[14px]">{inv.nombre}</div>
-                <div className="text-atenuado text-[12.5px] truncate">
+                <div className="text-atenuado text-[12.5px] break-all">
                   {inv.email}
                 </div>
                 {/* Cuánto le queda al enlace. Sin esto, el cliente decía
@@ -255,13 +255,13 @@ export default function ListaClientes({
           >
             <Avatar nombre={c.nombre} />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-[15px] flex items-center gap-2 truncate">
+              <div className="font-bold text-[15px] flex items-center gap-2 leading-tight">
                 {c.nombre}
                 {c.estado === "activo" && (
                   <PuntoEstado nivel={estado.nivel} titulo={estado.motivo ?? "Al día"} />
                 )}
               </div>
-              <div className="text-atenuado text-[12.5px] truncate">
+              <div className="text-atenuado text-[12.5px] break-words">
                 {plan} · {actividad}
                 {adh !== undefined ? ` · ${adh}% adherencia` : ""}
                 {c.estado !== "activo" ? ` · ${c.estado}` : ""}

@@ -358,7 +358,7 @@ export default function EditorRutina({
               className="flex-1 min-w-0 text-left cursor-pointer"
               onClick={() => abrirDia(indiceGlobal)}
             >
-              <div className="font-bold text-[15.5px] truncate">{dia.nombre}</div>
+              <div className="font-bold text-[15.5px] leading-tight break-words">{dia.nombre}</div>
               <div className="text-atenuado text-[12.5px]">
                 {dia.ejercicios.length} ejercicios · {efectivas} series efectivas
               </div>

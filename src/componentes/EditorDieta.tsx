@@ -460,7 +460,7 @@ export default function EditorDieta({
                   key={ii}
                   className="flex items-center gap-2 py-1.5 border-b border-borde last:border-0"
                 >
-                  <span className="flex-1 text-[13.5px] truncate">{it.alimento.nombre}</span>
+                  <span className="flex-1 min-w-0 text-[13.5px] leading-tight break-words">{it.alimento.nombre}</span>
                   <input
                     className="campo-serie !w-[64px] shrink-0"
                     inputMode="decimal"

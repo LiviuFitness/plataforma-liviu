@@ -281,7 +281,7 @@ function FilaSerie({
             <button
               type="button"
               onClick={() => setEditandoRir(true)}
-              className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-bold anim-pulsable max-w-[78px] truncate ${
+              className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-bold anim-pulsable max-w-[92px] leading-tight text-center break-words ${
                 esTecnica
                   ? "text-texto-2 bg-borde-2/60"
                   : "text-atenuado bg-campo border border-borde-2"
@@ -912,7 +912,7 @@ export default function SesionEnCurso({
                 key={r.nombre}
                 className="flex justify-between items-center gap-2 py-1.5 border-b border-borde last:border-0 text-[13.5px]"
               >
-                <span className="min-w-0 truncate">{r.nombre}</span>
+                <span className="min-w-0 leading-tight break-words">{r.nombre}</span>
                 <span className="shrink-0">
                   <span className="text-atenuado">{r.antes} kg → </span>
                   <b className="text-dorado">{r.kg} kg</b>
@@ -1003,9 +1003,9 @@ export default function SesionEnCurso({
           <X size={16} />
         </button>
         <div className="min-w-0 flex-1">
-          <div className="font-bold text-[17px] leading-tight truncate">{nombreDia}</div>
+          <div className="font-bold text-[17px] leading-tight break-words">{nombreDia}</div>
           {nombreCliente && (
-            <div className="text-atenuado text-[12px] truncate">
+            <div className="text-atenuado text-[12px] break-words">
               Sesión presencial de {nombreCliente}
             </div>
           )}
@@ -1117,7 +1117,7 @@ export default function SesionEnCurso({
                     <span className="w-7 h-7 rounded-full bg-acento/15 border border-acento/40 flex items-center justify-center shrink-0">
                       <Check size={14} strokeWidth={3} className="text-acento" />
                     </span>
-                    <span className="flex-1 min-w-0 text-[14px] font-semibold text-texto-2 truncate">
+                    <span className="flex-1 min-w-0 text-[14px] font-semibold text-texto-2 leading-tight break-words">
                       {ex.nombre}
                     </span>
                     <span className="texto-secundario shrink-0">
@@ -1213,7 +1213,7 @@ export default function SesionEnCurso({
                     {notaInline && (
                       <>
                         <span className="text-borde-2">|</span>
-                        <span className="min-w-0 truncate">{notaInline}</span>
+                        <span className="min-w-0 break-words">{notaInline}</span>
                       </>
                     )}
 

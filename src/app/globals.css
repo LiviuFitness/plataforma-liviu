@@ -429,6 +429,13 @@ body {
     color: var(--color-peligro);
     border-color: rgba(226, 85, 41, 0.35);
   }
+  /* La ✕ de una fila de series comparte espacio con tres campos de texto:
+     en un móvil los 36 px de .mini se comían lo que hay que leer. */
+  .mini-estrecho {
+    width: 30px;
+    height: 34px;
+    border-radius: 8px;
+  }
 
   /* Campos de formulario */
   .input {
@@ -450,14 +457,21 @@ body {
   }
   .campo-serie {
     width: 100%;
+    min-width: 0;
     background: var(--color-campo);
     border: 1px solid var(--color-borde-2);
     border-radius: 8px;
     color: #fff;
-    padding: 8px 6px;
+    padding: 8px 3px;
     text-align: center;
     font-size: 14px;
     font-weight: 600;
+  }
+  /* La pista ("90 o goma") es más larga que el valor que se escribe
+     encima: en un móvil solo entera si va un punto más pequeña. */
+  .campo-serie::placeholder {
+    font-size: 12px;
+    font-weight: 500;
   }
 
   /* Chips y pestañas */

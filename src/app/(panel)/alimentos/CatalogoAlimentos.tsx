@@ -60,8 +60,8 @@ export default function CatalogoAlimentos({
         return (
           <div key={a.id} className="fila">
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-[14.5px] truncate">{a.nombre}</div>
-              <div className="text-atenuado text-[12px] truncate">
+              <div className="font-bold text-[14.5px] leading-tight break-words">{a.nombre}</div>
+              <div className="text-atenuado text-[12px] break-words">
                 {r(a.kcal_100)} kcal · P{r1(a.prot_100)} C{r1(a.carb_100)} G{r1(a.gras_100)} /100g
                 {" · "}
                 {alts.length === 0

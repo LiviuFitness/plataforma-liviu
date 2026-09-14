@@ -134,8 +134,8 @@ export default function Plantillas({
       {rutinas.map((p) => (
         <div key={p.id} className="fila">
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-[15px] truncate">{p.nombre}</div>
-            <div className="text-atenuado text-[12.5px] truncate">
+            <div className="font-bold text-[15px] leading-tight break-words">{p.nombre}</div>
+            <div className="text-atenuado text-[12.5px] break-words">
               {p.num_dias} {p.num_dias === 1 ? "día" : "días"}
               {p.notas ? ` · ${p.notas}` : ""}
             </div>
@@ -177,10 +177,10 @@ export default function Plantillas({
       {dietas.map((p) => (
         <div key={p.id} className="fila">
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-[15px] truncate">
+            <div className="font-bold text-[15px] leading-tight break-words">
               {p.nombre ?? "Plantilla de dieta"}
             </div>
-            <div className="text-atenuado text-[12.5px] truncate">
+            <div className="text-atenuado text-[12.5px] break-words">
               {p.kcal_obj} kcal ·{" "}
               <span style={{ color: INFO_MACRO.proteina.color }}>P{p.prot_obj}</span>{" "}
               / <span style={{ color: INFO_MACRO.carbohidratos.color }}>C{p.carb_obj}</span>{" "}
@@ -252,7 +252,7 @@ export default function Plantillas({
                   onClick={() => asignar(c.id)}
                   disabled={cargando}
                 >
-                  <span className="font-bold text-[15px] flex-1 min-w-0 truncate">{c.nombre}</span>
+                  <span className="font-bold text-[15px] flex-1 min-w-0 leading-tight">{c.nombre}</span>
                   <span className="text-acento text-[13.5px] shrink-0">Asignar →</span>
                 </button>
               ))}

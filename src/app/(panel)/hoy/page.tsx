@@ -255,8 +255,8 @@ export default async function PaginaHoy() {
           <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
             <PuntoEstado nivel={r.score >= 5 ? "riesgo" : "atencion"} />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-[14.5px] truncate">{r.nombre}</div>
-              <div className="text-texto-2 text-[12.5px] truncate">{r.motivos[0]}</div>
+              <div className="font-bold text-[14.5px] leading-tight">{r.nombre}</div>
+              <div className="text-texto-2 text-[12.5px] break-words">{r.motivos[0]}</div>
             </div>
             <ChevronRight size={16} className="text-atenuado shrink-0" />
           </Link>
@@ -266,8 +266,8 @@ export default async function PaginaHoy() {
           <Link key={`av-${i}`} href={`/clientes/${a.cliente_id}`} className="fila">
             <CalendarCheck size={17} className="text-acento shrink-0" />
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-[14.5px] truncate">{a.nombre}</div>
-              <div className="text-texto-2 text-[12.5px] truncate">{a.mensaje}</div>
+              <div className="font-bold text-[14.5px] leading-tight">{a.nombre}</div>
+              <div className="text-texto-2 text-[12.5px] break-words">{a.mensaje}</div>
             </div>
             <ChevronRight size={16} className="text-atenuado shrink-0" />
           </Link>
@@ -280,7 +280,7 @@ export default async function PaginaHoy() {
           <div className="superficie px-4 mb-6">
             {recordsSemana.map((rec, i) => (
               <Link key={i} href={`/clientes/${rec.cliente_id}`} className="fila">
-                <span className="flex-1 min-w-0 truncate text-[13.5px]">
+                <span className="flex-1 min-w-0 text-[13.5px] leading-snug">
                   <b>{rec.nombre}</b>
                   <span className="text-texto-2"> — {rec.ejercicio}</span>
                 </span>
@@ -306,7 +306,7 @@ export default async function PaginaHoy() {
               const cuando = haceCuanto(ultimaActividad.get(c.id) ?? null);
               return (
                 <Link key={c.id} href={`/clientes/${c.id}`} className="fila">
-                  <span className="flex-1 min-w-0 truncate text-[14px]">{c.nombre}</span>
+                  <span className="flex-1 min-w-0 text-[14px] leading-tight">{c.nombre}</span>
                   <span
                     className={`text-[12.5px] shrink-0 ${cuando === "Hoy" ? "text-acento" : "text-atenuado"}`}
                   >
