@@ -110,11 +110,16 @@ export default function HistorialProgreso({
               </div>
             </div>
             <span className="text-[18px] flex items-center gap-2">
-              {s.prsPre && <span title="Cómo llegó">{EMOJIS[s.prsPre]}</span>}
-              {s.prsPre && s.sensacion && (
+              {/* Comparación explícita con null: `{numero && <jsx>}` pinta un
+                * "0" literal si el número es 0 — React trata el 0 como hijo
+                * válido, no como "no pintes nada". Hoy la escala va de 1 a 5
+                * y no se dispara, pero basta un 0 en la base de datos para
+                * que aparezcan ceros sueltos en el historial. */}
+              {s.prsPre != null && <span title="Cómo llegó">{EMOJIS[s.prsPre]}</span>}
+              {s.prsPre != null && s.sensacion != null && (
                 <span className="text-atenuado text-[11px]">→</span>
               )}
-              {s.sensacion && <span title="Cómo fue">{EMOJIS[s.sensacion]}</span>}
+              {s.sensacion != null && <span title="Cómo fue">{EMOJIS[s.sensacion]}</span>}
               {onBorrarSesion && (
                 <button
                   className="mini mini-peligro"
