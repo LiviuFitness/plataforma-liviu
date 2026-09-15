@@ -15,6 +15,7 @@ import {
 } from "@/lib/rutinas";
 import EditorDia from "./EditorDia";
 import type { DiaUI, Ejercicio, RutinaUI } from "@/lib/tipos";
+import AsignarPlantilla, { type PlantillaResumen } from "@/componentes/AsignarPlantilla";
 
 /**
  * Editor de rutina: semanas (microciclos) duplicables, lista de días,
@@ -23,6 +24,7 @@ import type { DiaUI, Ejercicio, RutinaUI } from "@/lib/tipos";
  */
 export default function EditorRutina({
   rutina,
+  plantillas,
   clienteId,
   nombreCliente,
   biblioteca,
@@ -30,6 +32,8 @@ export default function EditorRutina({
   alEditarDia,
 }: {
   rutina: RutinaUI | null;
+  /** Plantillas de rutina, para aplicar una sin salir de la ficha. */
+  plantillas?: PlantillaResumen[];
   clienteId?: string | null; // null => plantilla
   nombreCliente?: string;
   biblioteca: Ejercicio[];
@@ -271,11 +275,13 @@ export default function EditorRutina({
     return (
       <section className="tarjeta">
         <div className="text-atenuado text-[13.5px] mb-3">
-          Sin rutina asignada todavía. Crea la primera desde cero o asigna una
-          plantilla desde la pantalla «Plantillas».
+          Sin rutina asignada todavía.
         </div>
+        {clienteId && plantillas && (
+          <AsignarPlantilla tipo="rutina" plantillas={plantillas} clienteId={clienteId} />
+        )}
         {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
-        <button className="cta !mb-0" onClick={crearRutina} disabled={cargando}>
+        <button className="ghost w-full" onClick={crearRutina} disabled={cargando}>
           {cargando ? "Creando…" : "+ Crear rutina desde cero"}
         </button>
       </section>

@@ -11,6 +11,7 @@ import TabHabitos from "./TabHabitos";
 import HiloChat from "@/componentes/HiloChat";
 import type { Alimento } from "@/lib/dietas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
+import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
 import type {
   Alerta,
   Dieta,
@@ -46,6 +47,8 @@ export default function FichaCliente({
   adherencia,
   diasEntrenados,
   rutina,
+  plantillasRutina,
+  plantillasDieta,
   dieta,
   dietaDescanso,
   biblioteca,
@@ -67,6 +70,8 @@ export default function FichaCliente({
   adherencia: number;
   diasEntrenados: boolean[];
   rutina: RutinaUI | null;
+  plantillasRutina: PlantillaResumen[];
+  plantillasDieta: PlantillaResumen[];
   dieta: Dieta | null;
   dietaDescanso: Dieta | null;
   biblioteca: Ejercicio[];
@@ -136,6 +141,7 @@ export default function FichaCliente({
       {pestana === "entreno" && (
         <EditorRutina
           rutina={rutina}
+          plantillas={plantillasRutina}
           clienteId={perfil.id}
           nombreCliente={perfil.nombre}
           biblioteca={biblioteca}
@@ -166,6 +172,7 @@ export default function FichaCliente({
           <EditorDieta
             key={tipoDieta}
             dieta={tipoDieta === "entreno" ? dieta : dietaDescanso}
+            plantillas={plantillasDieta}
             tipoDieta={tipoDieta}
             puedeCopiarDeEntreno={!!dieta}
             clienteId={perfil.id}

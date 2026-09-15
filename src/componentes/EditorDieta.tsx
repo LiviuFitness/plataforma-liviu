@@ -19,6 +19,7 @@ import {
 import { Sparkles } from "lucide-react";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
+import AsignarPlantilla, { type PlantillaResumen } from "@/componentes/AsignarPlantilla";
 
 interface ItemUI {
   alimento: Alimento;
@@ -46,6 +47,7 @@ export default function EditorDieta({
   excluidos,
   tipoDieta = "entreno",
   puedeCopiarDeEntreno = false,
+  plantillas,
 }: {
   dieta: Dieta | null;
   clienteId?: string | null; // null => plantilla
@@ -55,6 +57,8 @@ export default function EditorDieta({
   tipoDieta?: "entreno" | "descanso";
   /** true si el cliente tiene dieta de entreno activa de la que copiar */
   puedeCopiarDeEntreno?: boolean;
+  /** Plantillas de dieta, para aplicar una sin salir de la ficha. */
+  plantillas?: PlantillaResumen[];
 }) {
   const router = useRouter();
   const [kcal, setKcal] = useState(dieta?.kcal_obj ?? 2000);
@@ -351,11 +355,13 @@ export default function EditorDieta({
     return (
       <section className="tarjeta">
         <div className="text-atenuado text-[13.5px] mb-3">
-          Sin dieta asignada todavía. Crea una desde cero o asigna una plantilla
-          desde «Plantillas».
+          Sin dieta asignada todavía.
         </div>
+        {clienteId && plantillas && (
+          <AsignarPlantilla tipo="dieta" plantillas={plantillas} clienteId={clienteId} />
+        )}
         {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
-        <button className="cta !mb-0" onClick={crearDieta} disabled={guardando}>
+        <button className="ghost w-full" onClick={crearDieta} disabled={guardando}>
           {guardando ? "Creando…" : "+ Crear dieta desde cero"}
         </button>
       </section>

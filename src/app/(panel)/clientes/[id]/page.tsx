@@ -18,6 +18,7 @@ import type {
   RespuestaRevisionConPregunta,
   RevisionKcal,
 } from "@/lib/tipos";
+import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +59,8 @@ export default async function PaginaFichaCliente({
     { data: revisiones },
     { data: respuestasCuestionario },
     { data: respuestasAlta },
+    { data: plantillasRutinaBruto },
+    { data: plantillasDietaBruto },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -135,9 +138,32 @@ export default async function PaginaFichaCliente({
       .select("id, respuesta, creado_en, preguntas_alta ( texto )")
       .eq("cliente_id", id)
       .order("creado_en"),
+    /* Plantillas: para poder aplicarlas desde aquí el día que entra un
+     * cliente nuevo, sin el rodeo por la pantalla «Plantillas». */
+    supabase
+      .from("rutinas")
+      .select("id, nombre, rutina_dias ( id )")
+      .eq("es_plantilla", true)
+      .order("creada_en", { ascending: false }),
+    supabase
+      .from("dietas")
+      .select("id, nombre, kcal_obj, prot_obj, carb_obj, gras_obj")
+      .eq("es_plantilla", true)
+      .eq("tipo", "entreno")
+      .order("creada_en", { ascending: false }),
   ]);
 
   if (!perfil) notFound();
+
+  const plantillasRutina: PlantillaResumen[] = (plantillasRutinaBruto ?? []).map((p) => {
+    const n = (p.rutina_dias ?? []).length;
+    return { id: p.id, nombre: p.nombre ?? "Plantilla de entreno", detalle: `${n} ${n === 1 ? "día" : "días"}` };
+  });
+  const plantillasDieta: PlantillaResumen[] = (plantillasDietaBruto ?? []).map((p) => ({
+    id: p.id,
+    nombre: p.nombre ?? "Plantilla de dieta",
+    detalle: `${p.kcal_obj} kcal · P${p.prot_obj} / C${p.carb_obj} / G${p.gras_obj}`,
+  }));
 
   // Días de la semana (L-D) con sesión registrada
   const diasEntrenados = [false, false, false, false, false, false, false];
@@ -159,6 +185,8 @@ export default async function PaginaFichaCliente({
       adherencia={adherencia?.adherencia ?? 0}
       diasEntrenados={diasEntrenados}
       rutina={rutina ? aRutinaUI(rutina as unknown as FilaRutina) : null}
+      plantillasRutina={plantillasRutina}
+      plantillasDieta={plantillasDieta}
       dieta={(dieta as Dieta | null) ?? null}
       dietaDescanso={(dietaDescanso as Dieta | null) ?? null}
       biblioteca={(biblioteca ?? []) as Ejercicio[]}

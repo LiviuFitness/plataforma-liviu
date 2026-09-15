@@ -1,3 +1,10 @@
+/* Los precios NO se escriben aquí: se leen de lib/planes.ts, que es de
+ * donde los saca la página pública. Escritos a mano se desincronizan —
+ * y de hecho lo estaban: estos términos decían 110 €/mes cuando el plan
+ * real son 39 €/mes. Un contrato que contradice a la página de ventas
+ * es justo lo que no puede pasar. */
+import { PLANES } from "@/lib/planes";
+
 export const metadata = {
   title: "Términos del servicio — LIVIU Fitness Studio",
 };
@@ -28,10 +35,20 @@ export default function Terminos() {
 
       <h2>3. Planes y pagos</h2>
       <p>
-        Los servicios se contratan en la modalidad acordada con el entrenador
-        (plan mensual de [110 €] o trimestral de [300 €]). El pago se gestiona
-        fuera de la plataforma, por los medios acordados. [AJUSTAR SEGÚN LA
-        FORMA DE COBRO REAL].
+        Los servicios se contratan en la modalidad acordada con el entrenador.
+        Planes vigentes:
+      </p>
+      <ul>
+        {PLANES.map((p) => (
+          <li key={p.clave}>
+            <b>{p.nombre}</b>: {p.precio} {p.periodo}
+            {p.alterno ? ` (${p.alterno})` : ""}.
+          </li>
+        ))}
+      </ul>
+      <p>
+        El pago se gestiona fuera de la plataforma, por los medios acordados con
+        el entrenador. [AJUSTAR SEGÚN LA FORMA DE COBRO REAL].
       </p>
 
       <h2>4. Salud y responsabilidad</h2>
