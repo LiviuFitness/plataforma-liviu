@@ -722,24 +722,38 @@ body {
     transform: translateY(0);
   }
 }
+/* OJO: nada de translate(-50%) aquí dentro. Tailwind v4 centra estos
+   elementos con la propiedad `translate` (no con `transform`), y las dos
+   se SUMAN en vez de pisarse: repetir el -50% en el keyframe mandaba la
+   barra media pantalla a la izquierda. El centrado lo pone la clase
+   -translate-x-1/2; el keyframe solo anima la entrada. */
 @keyframes subir-barra {
   from {
     opacity: 0;
-    transform: translate(-50%, 12px);
+    transform: translateY(12px);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0);
+    transform: translateY(0);
+  }
+}
+@keyframes latido {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
   }
 }
 @keyframes caer {
   from {
     opacity: 0;
-    transform: translate(-50%, -14px) scale(0.94);
+    transform: translateY(-14px) scale(0.94);
   }
   to {
     opacity: 1;
-    transform: translate(-50%, 0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 @keyframes destello {
@@ -809,6 +823,11 @@ body {
   }
   .anim-destello {
     animation: destello 0.5s ease;
+  }
+  /* Últimos segundos del descanso. Solo opacidad a propósito: un
+     transform volvería a pelearse con el centrado de Tailwind. */
+  .anim-latido {
+    animation: latido 1s ease-in-out infinite;
   }
   /* Bottom sheet: fondo con fade, hoja con la curva de easing típica de
      las hojas de iOS (arranca rápido, frena con suavidad al asentar). */

@@ -19,6 +19,7 @@ import { IconoTarjeta } from "@/componentes/ui";
 import { useCountUp } from "@/lib/useCountUp";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
+import BarraDescanso from "@/componentes/BarraDescanso";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
   ArrowDown,
@@ -1430,39 +1431,12 @@ export default function SesionEnCurso({
 
       {/* Temporizador de descanso — barra fija sobre la navegación */}
       {descanso && (
-        <div
-          className="fixed left-1/2 -translate-x-1/2 w-full max-w-[480px] z-30 px-3 anim-subir-barra"
-          style={{ bottom: "calc(64px + env(safe-area-inset-bottom))" }}
-        >
-          <div className="tarjeta !mb-2 !py-3 flex items-center gap-2.5 !border-acento/50 bg-[#0E1215]">
-            <button
-              className="stepper-boton"
-              onClick={() => ajustarDescanso(-15)}
-              aria-label="Restar 15 segundos al descanso"
-            >
-              <span className="text-[11px] font-bold">−15</span>
-            </button>
-            <div className="flex-1 h-1.5 rounded bg-borde-2 overflow-hidden">
-              <div
-                className="h-full bg-acento transition-[width] duration-300 ease-linear"
-                style={{ width: `${(restante / descanso.total) * 100}%` }}
-              />
-            </div>
-            <span className="num-grande !text-[20px] text-acento min-w-[52px] text-right tabular-nums">
-              {fmt(restante)}
-            </span>
-            <button
-              className="stepper-boton"
-              onClick={() => ajustarDescanso(15)}
-              aria-label="Sumar 15 segundos al descanso"
-            >
-              <span className="text-[11px] font-bold">+15</span>
-            </button>
-            <button className="ghost shrink-0" onClick={saltarDescanso}>
-              Saltar
-            </button>
-          </div>
-        </div>
+        <BarraDescanso
+          restante={restante}
+          total={descanso.total}
+          onAjustar={ajustarDescanso}
+          onSaltar={saltarDescanso}
+        />
       )}
     </>
   );
