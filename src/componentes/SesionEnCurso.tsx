@@ -329,6 +329,7 @@ export default function SesionEnCurso({
   nombreCliente,
   sesionAnterior = null,
   analisisHref = "/mi-progreso",
+  avisarSiDuplicada = false,
 }: {
   clienteId: string;
   diaId: string;
@@ -345,6 +346,12 @@ export default function SesionEnCurso({
   /** A dónde lleva "Ver análisis completo" — Mi Progreso del cliente por
    * defecto; el entrenador en modo presencial lo lleva a la ficha. */
   analisisHref?: string;
+  /** Presencial: comprueba antes de guardar si el cliente ya ha
+   * registrado este mismo día por su cuenta, y avisa. Sin esto se
+   * guardarían dos sesiones del mismo entreno (el índice único no las
+   * pilla: la hora de inicio es distinta), y eso infla su adherencia y
+   * duplica el volumen y los récords. */
+  avisarSiDuplicada?: boolean;
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
@@ -704,6 +711,39 @@ export default function SesionEnCurso({
   async function insertarSesion(): Promise<boolean> {
     setError("");
     const supabase = crearClienteNavegador();
+
+    /* Se pregunta AQUÍ y no al abrir la pantalla a propósito: el caso
+     * que de verdad pasa es que el cliente lo apunte en su móvil
+     * mientras tú lo apuntas en el tuyo, y eso ocurre después de
+     * abrirla. */
+    if (avisarSiDuplicada) {
+      const desde = new Date();
+      desde.setHours(0, 0, 0, 0);
+      const { data: yaHay } = await supabase
+        .from("sesiones")
+        .select("fecha_inicio")
+        .eq("cliente_id", clienteId)
+        .eq("dia_id", diaId)
+        .gte("fecha_inicio", desde.toISOString())
+        .limit(1);
+      if (yaHay && yaHay.length > 0) {
+        const hora = new Date(yaHay[0].fecha_inicio).toLocaleTimeString("es-ES", {
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const seguir = confirm(
+          `Este entreno ya está registrado hoy a las ${hora} — probablemente lo ha apuntado el cliente desde su móvil.\n\n` +
+            "Si guardas, quedarán dos sesiones del mismo entreno y le contarán doble el volumen y la adherencia.\n\n" +
+            "¿Guardar de todas formas?"
+        );
+        if (!seguir) {
+          setError(
+            "No se ha guardado. El entreno ya estaba registrado; puedes salir sin guardar."
+          );
+          return false;
+        }
+      }
+    }
 
     const { data: sesion, error: e1 } = await supabase
       .from("sesiones")

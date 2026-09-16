@@ -226,6 +226,7 @@ export default async function PaginaSesionPresencial({
       nombreCliente={perfil.nombre}
       sesionAnterior={sesionAnterior}
       analisisHref={`/clientes/${id}`}
+      avisarSiDuplicada
     />
   );
 }
