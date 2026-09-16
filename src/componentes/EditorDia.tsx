@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Link2, Unlink } from "lucide-react";
+import { AlertTriangle, Copy, Link2, Unlink } from "lucide-react";
 
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -36,24 +36,31 @@ export default function EditorDia({
   ejerciciosExcluidos,
   guardando,
   error,
+  semanas = [],
   onGuardar,
   onVolver,
   onEliminar,
+  onCopiado,
 }: {
   dia: DiaUI;
   biblioteca: Ejercicio[];
   ejerciciosExcluidos?: string[]; // ejercicios que el cliente evita (lesión…)
   guardando: boolean;
   error: string;
+  /** Semanas que existen en la rutina, para poder copiar este día a ellas. */
+  semanas?: number[];
   onGuardar: (dia: DiaUI) => Promise<boolean>;
   onVolver: () => void;
   onEliminar: () => void;
+  /** Tras copiar a otras semanas hay que releer la rutina de la base. */
+  onCopiado?: () => void;
 }) {
   const [borrador, setBorrador] = useState<DiaUI>(() =>
     JSON.parse(JSON.stringify(dia))
   );
   const [sucio, setSucio] = useState(false);
   const [mostrarBiblioteca, setMostrarBiblioteca] = useState(false);
+  const [mostrarCopiar, setMostrarCopiar] = useState(false);
 
   function cambiar(nuevo: DiaUI) {
     setBorrador(nuevo);
@@ -173,6 +180,8 @@ export default function EditorDia({
   const fmtDescanso = (seg: number) =>
     `${Math.floor(seg / 60)}:${String(seg % 60).padStart(2, "0")}`;
 
+  const otrasSemanas = semanas.filter((s) => s !== dia.semana);
+
   const conIndice: EjercicioConIndice[] = borrador.ejercicios.map((ex, ei) => ({
     ...ex,
     indiceGlobal: ei,
@@ -196,10 +205,29 @@ export default function EditorDia({
         onChange={(e) => cambiar({ ...borrador, nombre: e.target.value })}
         aria-label="Nombre del día"
       />
-      <div className="text-atenuado text-[12.5px] mb-3.5">
+      <div className="text-atenuado text-[12.5px] mb-2">
         {borrador.ejercicios.length} ejercicios · {totalEfectivas} series
         efectivas
       </div>
+
+      {/* Corregir un día y tener que repetirlo semana por semana era el
+       * precio de que las semanas sean copias independientes. Esto lo
+       * quita sin renunciar a que cada semana lleve sus propias cargas. */}
+      {otrasSemanas.length > 0 && (
+        <button
+          className="ghost mb-3.5 flex items-center gap-1.5"
+          onClick={() => {
+            if (sucio) {
+              alert("Guarda primero los cambios del día y luego cópialo.");
+              return;
+            }
+            setMostrarCopiar(true);
+          }}
+          title="Llevar este día a las demás semanas de la rutina"
+        >
+          <Copy size={13} /> Copiar a otras semanas
+        </button>
+      )}
 
       {grupos.map((grupo, gi) => {
         const esSuperserie = grupo.length > 1;
@@ -389,6 +417,20 @@ export default function EditorDia({
             {guardando ? "Guardando…" : "Guardar día"}
           </button>
         </div>
+      )}
+
+      {mostrarCopiar && (
+        <HojaCopiarSemanas
+          diaId={dia.id}
+          nombreDia={dia.nombre}
+          semanaOrigen={dia.semana}
+          semanas={otrasSemanas}
+          onCerrar={() => setMostrarCopiar(false)}
+          onHecho={() => {
+            setMostrarCopiar(false);
+            onCopiado?.();
+          }}
+        />
       )}
 
       {mostrarBiblioteca && (
@@ -596,6 +638,132 @@ function HojaBiblioteca({
             </button>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Hoja inferior: copiar este día a las demás semanas.
+   ============================================================ */
+function HojaCopiarSemanas({
+  diaId,
+  nombreDia,
+  semanaOrigen,
+  semanas,
+  onCerrar,
+  onHecho,
+}: {
+  diaId: string;
+  nombreDia: string;
+  semanaOrigen: number;
+  semanas: number[];
+  onCerrar: () => void;
+  onHecho: () => void;
+}) {
+  const [elegidas, setElegidas] = useState<number[]>(semanas);
+  const [incluirCargas, setIncluirCargas] = useState(false);
+  const [copiando, setCopiando] = useState(false);
+  const [error, setError] = useState("");
+
+  const alternar = (s: number) =>
+    setElegidas((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s].sort((a, b) => a - b)
+    );
+
+  async function copiar() {
+    if (elegidas.length === 0) return;
+    setCopiando(true);
+    setError("");
+    const supabase = crearClienteNavegador();
+    const { error: e } = await supabase.rpc("copiar_dia_a_semanas", {
+      p_dia: diaId,
+      p_semanas: elegidas,
+      p_incluir_cargas: incluirCargas,
+    });
+    if (e) {
+      setCopiando(false);
+      setError("No se pudo copiar. Inténtalo de nuevo.");
+      return;
+    }
+    /* No se suelta el bloqueo a propósito: hasta que la rutina se relea,
+     * otra pulsación repetiría la copia entera. */
+    onHecho();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-40 flex items-end justify-center anim-fondo-aparece"
+      onClick={onCerrar}
+    >
+      <div
+        className="w-full max-w-[480px] max-h-[82vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] flex flex-col overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <div className="titulo-tarjeta !m-0">COPIAR A OTRAS SEMANAS</div>
+          <button className="ghost" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+
+        <p className="text-texto-2 text-[13.5px] leading-relaxed mb-3.5">
+          «{nombreDia}» de la semana {semanaOrigen} sustituirá al día que ocupa
+          esa misma posición en las semanas que elijas.
+        </p>
+
+        <div className="titulo-tarjeta">Semanas</div>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {semanas.map((s) => (
+            <button
+              key={s}
+              className={elegidas.includes(s) ? "chip chip-activo" : "chip"}
+              onClick={() => alternar(s)}
+            >
+              Semana {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="titulo-tarjeta">Qué se copia</div>
+        <button
+          className={`w-full text-left rounded-[12px] border p-3 mb-2 cursor-pointer ${
+            !incluirCargas ? "border-acento bg-acento/10" : "border-borde-2 bg-campo"
+          }`}
+          onClick={() => setIncluirCargas(false)}
+        >
+          <div className="font-bold text-[14.5px]">Solo los ejercicios</div>
+          <div className="text-atenuado text-[12.5px] leading-relaxed mt-0.5">
+            Ejercicios, orden, descansos y superseries. Los kilos y las reps que
+            ya tuvieras ajustados en esas semanas <b>se conservan</b>.
+          </div>
+        </button>
+        <button
+          className={`w-full text-left rounded-[12px] border p-3 mb-4 cursor-pointer ${
+            incluirCargas ? "border-aviso bg-aviso/10" : "border-borde-2 bg-campo"
+          }`}
+          onClick={() => setIncluirCargas(true)}
+        >
+          <div className="font-bold text-[14.5px]">Todo, cargas incluidas</div>
+          <div className="text-atenuado text-[12.5px] leading-relaxed mt-0.5">
+            El día se copia entero. <b className="text-aviso">Pisa las progresiones</b>{" "}
+            que hubiera en esas semanas.
+          </div>
+        </button>
+
+        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+
+        <button
+          className="cta !mb-0"
+          onClick={copiar}
+          disabled={copiando || elegidas.length === 0}
+        >
+          {copiando
+            ? "Copiando…"
+            : elegidas.length === 0
+              ? "Elige al menos una semana"
+              : `Copiar a ${elegidas.length} ${elegidas.length === 1 ? "semana" : "semanas"}`}
+        </button>
       </div>
     </div>
   );

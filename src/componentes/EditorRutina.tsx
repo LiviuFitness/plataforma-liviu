@@ -297,9 +297,14 @@ export default function EditorRutina({
         ejerciciosExcluidos={ejerciciosExcluidos}
         guardando={cargando}
         error={error}
+        semanas={semanas}
         onGuardar={(d) => guardarDia(indiceAbierto, d)}
         onVolver={() => abrirDia(null)}
         onEliminar={() => eliminarDia(dias[indiceAbierto])}
+        onCopiado={() => {
+          recargarDias();
+          abrirDia(null);
+        }}
       />
     );
   }
