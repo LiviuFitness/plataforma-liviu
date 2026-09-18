@@ -16,13 +16,20 @@ export interface PestanaCliente {
   Icono: IconoApp;
 }
 
-/** Pestañas de la app del cliente — compartidas entre la barra inferior
- * (móvil) y el lateral (escritorio) para que no se desincronicen. */
+/** Lo que se hace a diario: entrenar, comer y hablar con el entrenador.
+ * Son las que van en la barra inferior del móvil, donde seis pestañas se
+ * leían como un muro de iconos. */
 export const PESTANAS_CLIENTE: PestanaCliente[] = [
   { ruta: "/inicio", etiqueta: "Inicio", Icono: Home },
-  { ruta: "/mi-rutina", etiqueta: "Rutina", Icono: IconoMancuerna },
-  { ruta: "/mi-progreso", etiqueta: "Progreso", Icono: TrendingUp },
+  { ruta: "/mi-rutina", etiqueta: "Entreno", Icono: IconoMancuerna },
   { ruta: "/mi-dieta", etiqueta: "Dieta", Icono: UtensilsCrossed },
   { ruta: "/chat", etiqueta: "Chat", Icono: MessageCircle },
+];
+
+/** Progreso y Perfil: se consultan de vez en cuando, no cada día. En el
+ * móvil se llega desde Inicio (Progreso) y desde la cabecera (Perfil);
+ * en escritorio sobra sitio, así que siguen en el lateral. */
+export const PESTANAS_SECUNDARIAS: PestanaCliente[] = [
+  { ruta: "/mi-progreso", etiqueta: "Progreso", Icono: TrendingUp },
   { ruta: "/perfil", etiqueta: "Perfil", Icono: CircleUserRound },
 ];

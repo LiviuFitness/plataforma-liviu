@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/componentes/ui";
 import BotonSalir from "@/componentes/BotonSalir";
-import { PESTANAS_CLIENTE } from "./navegacionCliente";
+import { PESTANAS_CLIENTE, PESTANAS_SECUNDARIAS } from "./navegacionCliente";
 
 /** Navegación lateral de la app del cliente en pantallas de escritorio
  * (md+); en móvil la sustituye BarraCliente (barra inferior). */
@@ -22,7 +22,7 @@ export default function BarraLateralCliente({
         <Logo tamano={34} />
       </div>
       <nav className="flex flex-col gap-1 flex-1">
-        {PESTANAS_CLIENTE.map((p) => {
+        {[...PESTANAS_CLIENTE, ...PESTANAS_SECUNDARIAS].map((p) => {
           const activa = ruta === p.ruta || ruta.startsWith(p.ruta + "/");
           return (
             <Link

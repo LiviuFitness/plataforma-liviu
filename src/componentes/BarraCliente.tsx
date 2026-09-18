@@ -38,8 +38,11 @@ export default function BarraCliente({
                 strokeWidth={1.75}
                 className={activa ? "text-acento" : "text-atenuado"}
               />
+              {/* La revisión de kcal avisaba en la pestaña Progreso, que ya
+                * no está en la barra: el aviso pasa a Inicio, que es desde
+                * donde se llega ahora. */}
               {((p.ruta === "/chat" && chatSinLeer) ||
-                (p.ruta === "/mi-progreso" && revisionSinLeer)) && (
+                (p.ruta === "/inicio" && revisionSinLeer)) && (
                 <span className="absolute top-0.5 right-0.5 w-2 h-2 rounded-full bg-peligro" />
               )}
             </span>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
-import { Trophy, UtensilsCrossed, ChevronRight } from "lucide-react";
+import { Trophy, TrendingUp, UtensilsCrossed, ChevronRight } from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
 import AvisosActualizacion from "./AvisosActualizacion";
 import RachaInline from "./RachaInline";
@@ -83,12 +83,13 @@ export default async function PaginaInicio() {
     { data: medidas },
     { data: rutinaMeta },
     { data: dietaMeta },
+    { data: revisionMeta },
     { data: habitos },
     { data: registrosHabitos },
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("nombre, rutina_vista_en, dieta_vista_en")
+      .select("nombre, rutina_vista_en, dieta_vista_en, revisiones_visto_en")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -143,6 +144,13 @@ export default async function PaginaInicio() {
       .limit(1)
       .maybeSingle(),
     supabase
+      .from("revisiones_kcal")
+      .select("creado_en")
+      .eq("cliente_id", user.id)
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
       .from("habitos")
       .select("*")
       .eq("cliente_id", user.id)
@@ -167,6 +175,16 @@ export default async function PaginaInicio() {
         .eq("completado", true),
       supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
     ]);
+
+  /* El aviso de "te han ajustado las kcal" lo llevaba la pestaña
+   * Progreso; al salir de la barra lo hereda Inicio. Se compara la
+   * revisión más reciente con la última visita, igual que la rutina y la
+   * dieta, para no añadir otra ida y vuelta al servidor. */
+  const hayRevisionSinLeer = !!(
+    revisionMeta?.creado_en &&
+    (!perfil?.revisiones_visto_en ||
+      new Date(revisionMeta.creado_en) > new Date(perfil.revisiones_visto_en))
+  );
 
   const avisoRutina = !!(
     rutinaMeta?.actualizada_en &&
@@ -434,6 +452,23 @@ export default async function PaginaInicio() {
           <ChevronRight size={16} className="text-atenuado shrink-0" />
         </Link>
       )}
+
+      {/* Progreso salió de la barra inferior al bajarla a cuatro
+        * pestañas: esta es su puerta, y la que hereda el aviso de que el
+        * entrenador ha ajustado las kcal. */}
+      <Link href="/mi-progreso" className="fila anim-pulsable">
+        <TrendingUp size={17} className="text-atenuado shrink-0" />
+        <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
+          Mi progreso
+          {hayRevisionSinLeer && (
+            <span className="text-aviso"> · tu entrenador ha ajustado tus kcal</span>
+          )}
+        </div>
+        {hayRevisionSinLeer && (
+          <span className="w-2 h-2 rounded-full bg-peligro shrink-0" />
+        )}
+        <ChevronRight size={16} className="text-atenuado shrink-0" />
+      </Link>
 
       {/* 5. Peso */}
       <RegistroPesoRapido

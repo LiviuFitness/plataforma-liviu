@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
+import { CircleUserRound } from "lucide-react";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { Logo } from "@/componentes/ui";
 import BarraCliente from "@/componentes/BarraCliente";
@@ -63,9 +65,19 @@ export default async function LayoutCliente({
       <BarraLateralCliente chatSinLeer={hayChatSinLeer} revisionSinLeer={hayRevisionSinLeer} />
 
       <div className="max-w-[480px] md:max-w-[640px] w-full mx-auto md:flex-1 relative min-h-screen">
+        {/* Perfil salió de la barra inferior al bajarla a cuatro
+          * pestañas, y aquí arriba es donde se busca. El botón de salir
+          * no se pierde: vive dentro de Perfil, que además es donde uno
+          * lo va a buscar de verdad. */}
         <header className="md:hidden flex justify-between items-center px-[18px] pt-4 pb-2.5 sticky top-0 z-10 cabecera-solida border-b border-borde">
           <Logo tamano={38} />
-          <BotonSalir />
+          <Link
+            href="/perfil"
+            aria-label="Mi perfil"
+            className="w-10 h-10 rounded-full border border-borde-2 bg-campo flex items-center justify-center text-texto-2 anim-pulsable"
+          >
+            <CircleUserRound size={20} strokeWidth={1.75} />
+          </Link>
         </header>
 
         <main className="p-[18px] pb-32 md:pb-[18px]">{children}</main>
