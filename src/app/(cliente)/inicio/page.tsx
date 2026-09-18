@@ -447,7 +447,7 @@ export default async function PaginaInicio() {
         <Link href="/mi-rutina" className="fila anim-pulsable">
           <IconoMancuerna size={17} className="text-atenuado shrink-0" />
           <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
-            Ver toda mi rutina
+            Ver todos mis entrenos
           </div>
           <ChevronRight size={16} className="text-atenuado shrink-0" />
         </Link>

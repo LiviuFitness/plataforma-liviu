@@ -69,7 +69,7 @@ export default function MiRutina({
   if (dias.length === 0) {
     return (
       <>
-        <h1 className="h1">Mi rutina</h1>
+        <h1 className="h1">Mi entreno</h1>
         <div className="sub mb-4">tu plan de entrenamiento —</div>
         <EstadoVacio
           Icono={IconoMancuerna}
@@ -83,7 +83,7 @@ export default function MiRutina({
 
   return (
     <>
-      <h1 className="h1">Mi rutina</h1>
+      <h1 className="h1">Mi entreno</h1>
       <div className="sub mb-4">
         {nombreRutina ? `${nombreRutina} · ` : ""}semana {semana} —
       </div>
