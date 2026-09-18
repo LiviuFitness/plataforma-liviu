@@ -19,6 +19,9 @@ import {
 /* Lo que Liviu pauta por defecto: 8-10 repeticiones a RIR 0. La carga
  * se deja vacía a propósito porque depende del cliente. */
 const SERIE_NUEVA: SerieUI = { tipo: "efectiva", kg: "", reps: "8-10", rir: "0" };
+/* La primera efectiva va más pesada y a menos reps: es donde se busca
+ * la fuerza, antes de que la fatiga se coma la calidad. */
+const PRIMERA_SERIE: SerieUI = { ...SERIE_NUEVA, reps: "5-8" };
 
 interface EjercicioConIndice extends EjercicioUI {
   indiceGlobal: number;
@@ -131,7 +134,7 @@ export default function EditorDia({
           descanso_seg: 120,
           notas: "",
           grupoSuperserie: null,
-          series: [{ ...SERIE_NUEVA }, { ...SERIE_NUEVA }, { ...SERIE_NUEVA }],
+          series: [{ ...PRIMERA_SERIE }, { ...SERIE_NUEVA }, { ...SERIE_NUEVA }],
         },
       ],
     });

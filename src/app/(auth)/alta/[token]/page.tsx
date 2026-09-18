@@ -27,12 +27,21 @@ export default async function PaginaAlta({
        * campos no van nunca encima de una foto. */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-0 h-[230px] pointer-events-none"
+        className="absolute inset-x-0 top-0 h-[264px] pointer-events-none"
         style={{
           backgroundImage:
-            "linear-gradient(180deg, rgba(10,12,14,0.35) 0%, rgba(10,12,14,0.72) 58%, var(--color-fondo) 100%), url(/entrenos/general.webp)",
+            "linear-gradient(180deg, rgba(10,12,14,0.40) 0%, rgba(10,12,14,0.70) 55%, rgba(10,12,14,0.84) 100%), url(/entrenos/general.webp)",
           backgroundSize: "cover, cover",
           backgroundPosition: "center, center",
+          /* La banda se desvanece por transparencia, no tapando con un
+           * color: el fondo de la página lleva un halo azul arriba, así
+           * que terminar en un #0a0c0e plano dejaba una raya horizontal
+           * justo donde acababa la foto. Con la máscara no hay borde
+           * posible, se funda con lo que haya debajo. */
+          maskImage:
+            "linear-gradient(180deg, #000 0%, #000 34%, rgba(0,0,0,0.55) 68%, transparent 100%)",
+          WebkitMaskImage:
+            "linear-gradient(180deg, #000 0%, #000 34%, rgba(0,0,0,0.55) 68%, transparent 100%)",
         }}
       />
       <div className="relative">
