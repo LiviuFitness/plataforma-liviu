@@ -47,6 +47,7 @@ export default function EditorRutina({
   const [indiceAbierto, setIndiceAbierto] = useState<number | null>(null);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
+  const [mostrarIgualar, setMostrarIgualar] = useState(false);
 
   /* Semanas existentes (siempre al menos la 1) */
   const semanas = useMemo(() => {
@@ -335,7 +336,31 @@ export default function EditorRutina({
         >
           ⧉ Duplicar semana
         </button>
+        {semanas.length > 1 && (
+          <button
+            className="chip !border-acento/40 !text-acento"
+            onClick={() => setMostrarIgualar(true)}
+            disabled={cargando}
+            title="Deja las demás semanas igual que esta"
+          >
+            ⇄ Igualar las demás
+          </button>
+        )}
       </div>
+
+      {mostrarIgualar && rutina && (
+        <HojaIgualarSemanas
+          rutinaId={rutina.id}
+          semanaOrigen={semanaVista}
+          dias={dias}
+          semanas={semanas}
+          onCerrar={() => setMostrarIgualar(false)}
+          onHecho={() => {
+            setMostrarIgualar(false);
+            recargarDias();
+          }}
+        />
+      )}
 
       {/* Semana activa para el cliente */}
       {clienteId && semanaVista !== semanaActual && (
@@ -419,5 +444,165 @@ export default function EditorRutina({
         </section>
       )}
     </>
+  );
+}
+
+
+/* ============================================================
+   Hoja inferior: dejar las demás semanas igual que la que se ve.
+   Es la única acción del editor que BORRA días, así que enseña
+   exactamente cuáles antes de tocar nada.
+   ============================================================ */
+function HojaIgualarSemanas({
+  rutinaId,
+  semanaOrigen,
+  dias,
+  semanas,
+  onCerrar,
+  onHecho,
+}: {
+  rutinaId: string;
+  semanaOrigen: number;
+  dias: DiaUI[];
+  semanas: number[];
+  onCerrar: () => void;
+  onHecho: () => void;
+}) {
+  const otras = semanas.filter((s) => s !== semanaOrigen);
+  const [elegidas, setElegidas] = useState<number[]>(otras);
+  const [incluirCargas, setIncluirCargas] = useState(false);
+  const [trabajando, setTrabajando] = useState(false);
+  const [error, setError] = useState("");
+
+  const diasOrigen = dias.filter((d) => d.semana === semanaOrigen);
+  const maxOrden = Math.max(...diasOrigen.map((d) => d.orden), -1);
+
+  /* Lo que se va a borrar: los días que sobran en cada semana elegida */
+  const sobran = elegidas.flatMap((s) =>
+    dias
+      .filter((d) => d.semana === s && d.orden > maxOrden)
+      .map((d) => ({ semana: s, nombre: d.nombre || "(sin nombre)" }))
+  );
+
+  const alternar = (s: number) =>
+    setElegidas((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s].sort((a, b) => a - b)
+    );
+
+  async function igualar() {
+    if (elegidas.length === 0) return;
+    setTrabajando(true);
+    setError("");
+    const supabase = crearClienteNavegador();
+    const { error: e } = await supabase.rpc("sincronizar_semana", {
+      p_rutina: rutinaId,
+      p_semana_origen: semanaOrigen,
+      p_semanas: elegidas,
+      p_incluir_cargas: incluirCargas,
+    });
+    if (e) {
+      setTrabajando(false);
+      setError("No se pudo igualar. Inténtalo de nuevo.");
+      return;
+    }
+    /* No se suelta el bloqueo: hasta que la rutina se relea, otra
+     * pulsación repetiría el borrado y la copia. */
+    onHecho();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-40 flex items-end justify-center anim-fondo-aparece"
+      onClick={onCerrar}
+    >
+      <div
+        className="w-full max-w-[480px] max-h-[86vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] flex flex-col overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-3">
+          <div className="titulo-tarjeta !m-0">IGUALAR A LA SEMANA {semanaOrigen}</div>
+          <button className="ghost" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+
+        <p className="text-texto-2 text-[13.5px] leading-relaxed mb-3.5">
+          Las semanas que elijas quedarán con los mismos{" "}
+          <b>
+            {diasOrigen.length} {diasOrigen.length === 1 ? "día" : "días"}
+          </b>{" "}
+          que la semana {semanaOrigen}, en el mismo orden.
+        </p>
+
+        <div className="titulo-tarjeta">Semanas</div>
+        <div className="flex flex-wrap gap-1.5 mb-4">
+          {otras.map((s) => (
+            <button
+              key={s}
+              className={elegidas.includes(s) ? "chip chip-activo" : "chip"}
+              onClick={() => alternar(s)}
+            >
+              Semana {s}
+            </button>
+          ))}
+        </div>
+
+        <div className="titulo-tarjeta">Qué se copia</div>
+        <button
+          className={`w-full text-left rounded-[12px] border p-3 mb-2 cursor-pointer ${
+            !incluirCargas ? "border-acento bg-acento/10" : "border-borde-2 bg-campo"
+          }`}
+          onClick={() => setIncluirCargas(false)}
+        >
+          <div className="font-bold text-[14.5px]">Solo los ejercicios</div>
+          <div className="text-atenuado text-[12.5px] leading-relaxed mt-0.5">
+            Los kilos y las reps que ya tuvieras ajustados en esas semanas{" "}
+            <b>se conservan</b>.
+          </div>
+        </button>
+        <button
+          className={`w-full text-left rounded-[12px] border p-3 mb-4 cursor-pointer ${
+            incluirCargas ? "border-aviso bg-aviso/10" : "border-borde-2 bg-campo"
+          }`}
+          onClick={() => setIncluirCargas(true)}
+        >
+          <div className="font-bold text-[14.5px]">Todo, cargas incluidas</div>
+          <div className="text-atenuado text-[12.5px] leading-relaxed mt-0.5">
+            <b className="text-aviso">Pisa las progresiones</b> que hubiera.
+          </div>
+        </button>
+
+        {sobran.length > 0 && (
+          <div className="tarjeta !border-peligro/50 !mb-4">
+            <div className="titulo-tarjeta !text-peligro">
+              SE BORRARÁN {sobran.length} {sobran.length === 1 ? "DÍA" : "DÍAS"}
+            </div>
+            {sobran.map((d, i) => (
+              <div key={i} className="text-[13.5px] py-0.5">
+                <b>{d.nombre}</b> <span className="text-atenuado">— semana {d.semana}</span>
+              </div>
+            ))}
+            <p className="text-atenuado text-[12px] mt-2 leading-relaxed">
+              Los entrenos que el cliente ya tenga registrados de esos días no se
+              borran: siguen en su historial con sus series.
+            </p>
+          </div>
+        )}
+
+        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+
+        <button
+          className="cta !mb-0"
+          onClick={igualar}
+          disabled={trabajando || elegidas.length === 0}
+        >
+          {trabajando
+            ? "Igualando…"
+            : elegidas.length === 0
+              ? "Elige al menos una semana"
+              : `Igualar ${elegidas.length} ${elegidas.length === 1 ? "semana" : "semanas"}`}
+        </button>
+      </div>
+    </div>
   );
 }
