@@ -187,13 +187,35 @@ export default function EditorRutina({
 
   async function eliminarDia(dia: DiaUI) {
     if (!confirm(`¿Eliminar «${dia.nombre}» y todos sus ejercicios?`)) return;
+
+    /* El mismo día en las otras semanas: se empareja por posición, igual
+     * que al copiar. No se borra solo —sería la única edición que se
+     * propaga sin pedir permiso, y sin deshacer— pero preguntarlo aquí
+     * ahorra repetir el borrado semana por semana. */
+    const gemelos = dias.filter((d) => d.semana !== dia.semana && d.orden === dia.orden);
+    let ids = [dia.id];
+    if (gemelos.length > 0) {
+      const donde = gemelos
+        .map((d) => `semana ${d.semana}`)
+        .join(", ");
+      if (
+        confirm(
+          `Ese día también existe en ${donde}.\n\n` +
+            "¿Lo borro también ahí? Se irían con sus ejercicios y sus cargas.\n\n" +
+            "Aceptar = borrar en todas · Cancelar = solo en esta semana"
+        )
+      ) {
+        ids = [dia.id, ...gemelos.map((d) => d.id)];
+      }
+    }
+
     const supabase = crearClienteNavegador();
-    const { error } = await supabase.from("rutina_dias").delete().eq("id", dia.id);
+    const { error } = await supabase.from("rutina_dias").delete().in("id", ids);
     if (error) {
       setError("No se pudo eliminar el día.");
       return;
     }
-    setDias((d) => d.filter((x) => x.id !== dia.id));
+    setDias((d) => d.filter((x) => !ids.includes(x.id)));
     abrirDia(null);
   }
 
