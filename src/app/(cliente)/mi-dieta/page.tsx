@@ -7,7 +7,8 @@ import {
   type ComidaEstructurada,
 } from "@/lib/dietas";
 import type { Dieta } from "@/lib/tipos";
-import { UtensilsCrossed } from "lucide-react";
+import { ChevronRight, ShoppingCart, UtensilsCrossed } from "lucide-react";
+import Link from "next/link";
 import VistaDietas, { type PlanDieta } from "./VistaDietas";
 import PreferenciasAlimentos from "./PreferenciasAlimentos";
 import EstadoVacio from "@/componentes/EstadoVacio";
@@ -105,11 +106,23 @@ export default async function PaginaMiDieta() {
           />
         </section>
       ) : (
-        <VistaDietas
-          entreno={entreno}
-          descanso={descanso}
-          equivalencias={equivPorAlimento}
-        />
+        <>
+          {/* La dieta no se rompe en el súper, se rompe en la nevera
+            * vacía. Esto suma la semana entera y la ordena por pasillos. */}
+          <Link href="/mi-dieta/compra" className="fila anim-pulsable !py-3 mb-3">
+            <ShoppingCart size={17} className="text-acento shrink-0" />
+            <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
+              Lista de la compra de la semana
+            </div>
+            <ChevronRight size={16} className="text-atenuado shrink-0" />
+          </Link>
+
+          <VistaDietas
+            entreno={entreno}
+            descanso={descanso}
+            equivalencias={equivPorAlimento}
+          />
+        </>
       )}
 
       <PreferenciasAlimentos
