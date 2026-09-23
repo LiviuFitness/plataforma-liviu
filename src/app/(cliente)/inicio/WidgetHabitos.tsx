@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { casillasSemana, fechaLocal } from "@/lib/habitos";
+import { fechaLocal } from "@/lib/habitos";
 import {
   COLOR_ICONO_HABITO,
   HABITOS_SUGERIDOS,
@@ -19,8 +19,6 @@ import {
 } from "@/lib/tipos";
 import { IconoTarjeta } from "@/componentes/ui";
 
-const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
-
 const ICONOS: Record<string, LucideIcon> = {
   footprints: Footprints,
   "glass-water": GlassWater,
@@ -28,7 +26,14 @@ const ICONOS: Record<string, LucideIcon> = {
   "circle-check": CircleCheck,
 };
 
-/** Tarjeta de Inicio: checklist de hábitos diarios + racha semanal por hábito. */
+/**
+ * Bloque de "Tu día": los hábitos de hoy como botones de un toque.
+ *
+ * Aquí solo se contesta "¿lo he hecho hoy?". Las barras de la semana
+ * (2/7, 1/7…) que antes iban debajo de cada uno respondían a otra
+ * pregunta, "¿cómo voy?", y se han ido a Mi progreso, que es donde se
+ * mira la evolución.
+ */
 export default function WidgetHabitos({
   clienteId,
   habitos,
@@ -93,62 +98,73 @@ export default function WidgetHabitos({
 
   if (activos.length === 0) {
     return (
-      <section className="tarjeta anim-entrada-4">
-        <div className="titulo-tarjeta">HÁBITOS DIARIOS</div>
-        <div className="text-atenuado text-[13.5px] mb-3">
-          Lleva el control de pasos, agua, sueño… lo que quieras marcar cada día.
+      <div className="fila">
+        <IconoTarjeta Icono={CircleCheck} color="var(--color-atenuado)" tamano={34} />
+        <div className="flex-1 min-w-0">
+          <div className="text-[14px] font-semibold leading-tight">Hábitos diarios</div>
+          <div className="text-atenuado text-[12.5px] leading-snug">
+            Pasos, agua y sueño, marcados cada día
+          </div>
         </div>
-        <button className="cta !mb-0" onClick={activarSugeridos} disabled={creando}>
-          {creando ? "…" : "Empezar a registrar hábitos"}
+        <button
+          className="cta cta-mini !mb-0 shrink-0"
+          onClick={activarSugeridos}
+          disabled={creando}
+        >
+          {creando ? "…" : "Empezar"}
         </button>
-      </section>
+      </div>
     );
   }
 
+  /* Tres botones en fila, con el icono encima, mientras quepan. Con un
+   * cuarto hábito o un nombre largo ("Estiramientos de cadera") pasan a
+   * dos columnas con el icono al lado: en un tercio de móvil la palabra
+   * se partía por la mitad. */
+  const holgado = activos.length <= 3 && activos.every((h) => h.nombre.length <= 10);
+
   return (
-    <section className="tarjeta anim-entrada-4">
-      <div className="titulo-tarjeta">HÁBITOS DE HOY</div>
-      <div className="flex flex-col gap-4">
+    <div className="py-3 border-b border-borde last:border-b-0">
+      <div className={`grid gap-2 ${holgado ? "grid-cols-3" : "grid-cols-2"}`}>
         {activos.map((h) => {
           const Icono = ICONOS[h.icono] ?? CircleCheck;
           const color = COLOR_ICONO_HABITO[h.icono] ?? COLOR_ICONO_HABITO["circle-check"];
           const hecho = marcadosHoy.has(h.id);
-          const semana = casillasSemana(registros, h.id);
-          const diasHechos = semana.filter(Boolean).length;
-          const pct = Math.round((diasHechos / 7) * 100);
           return (
             <button
               key={h.id}
-              className={`flex items-center gap-3 w-full text-left anim-pulsable ${
-                pendientes.has(h.id) ? "opacity-50" : ""
-              }`}
+              className={`rounded-[12px] border px-2.5 py-2.5 flex items-center gap-1.5 min-w-0 anim-pulsable transition-colors ${
+                holgado ? "flex-col" : "flex-row text-left"
+              } ${pendientes.has(h.id) ? "opacity-50" : ""}`}
+              style={{
+                borderColor: hecho
+                  ? `color-mix(in srgb, ${color} 45%, transparent)`
+                  : "var(--color-borde-2)",
+                background: hecho
+                  ? `color-mix(in srgb, ${color} 12%, transparent)`
+                  : "transparent",
+              }}
               onClick={() => alternar(h.id)}
               disabled={pendientes.has(h.id)}
-              title={DIAS_SEMANA.map((d, i) => `${d}${semana[i] ? "✓" : ""}`).join(" ")}
+              aria-pressed={hecho}
             >
-              <IconoTarjeta
-                Icono={Icono}
-                color={hecho ? color : "var(--color-atenuado)"}
-                tamano={36}
+              <Icono
+                size={18}
+                strokeWidth={1.75}
+                className="shrink-0"
+                style={{ color: hecho ? color : "var(--color-atenuado)" }}
               />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between gap-2">
-                  <span className={`text-[14px] ${hecho ? "font-semibold" : "text-texto-2"}`}>
-                    {h.nombre}
-                  </span>
-                  <span className="texto-secundario shrink-0">{diasHechos}/7</span>
-                </div>
-                <div className="barra-capsula mt-1.5">
-                  <div
-                    className="barra-capsula-relleno"
-                    style={{ "--tc": color, width: `${pct}%` } as React.CSSProperties}
-                  />
-                </div>
-              </div>
+              <span
+                className={`text-[12.5px] leading-tight min-w-0 ${
+                  holgado ? "text-center" : ""
+                } ${hecho ? "font-semibold" : "text-texto-2"}`}
+              >
+                {h.nombre}
+              </span>
             </button>
           );
         })}
       </div>
-    </section>
+    </div>
   );
 }

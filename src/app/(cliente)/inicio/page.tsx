@@ -3,11 +3,17 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
-import { Trophy, TrendingUp, UtensilsCrossed, ChevronRight } from "lucide-react";
+import {
+  Bell,
+  Check,
+  ChevronRight,
+  Flame,
+  TrendingUp,
+  Trophy,
+  UtensilsCrossed,
+} from "lucide-react";
 import RegistroPesoRapido from "./RegistroPesoRapido";
-import AvisosActualizacion from "./AvisosActualizacion";
-import RachaInline from "./RachaInline";
-import SemanaEntrenos from "./SemanaEntrenos";
+import MarcarAvisosVistos from "./MarcarAvisosVistos";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
 import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
@@ -15,8 +21,8 @@ import { semanaHabitosCompleta } from "@/lib/habitos";
 import { logrosCumplidos } from "@/lib/logros";
 import { calcularVolumenMuscular, grupoMasDescuidado } from "@/lib/musculos";
 import { INFO_MACRO } from "@/lib/tipos";
-import { IconoTarjeta } from "@/componentes/ui";
-import { calcularRacha } from "@/lib/racha";
+import { IconoTarjeta, type IconoApp } from "@/componentes/ui";
+import { calcularRacha, calcularRachaSemanas } from "@/lib/racha";
 import { fotoEntreno } from "@/lib/fotoEntreno";
 
 export const dynamic = "force-dynamic";
@@ -162,8 +168,19 @@ export default async function PaginaInicio() {
       .gte("fecha", hace7dias.toLocaleDateString("sv-SE")),
   ]);
 
-  const [{ count: totalSesiones }, { count: totalRegistrosHabitos }, { data: logrosPrevios }] =
-    await Promise.all([
+  /* Medio año de fechas, sin series: la racha por semanas necesita ir
+   * más atrás que los 60 días de arriba, y cargar las series de todo
+   * ese tiempo solo para contar días sería tirar datos. */
+  const desde26semanas = new Date();
+  desde26semanas.setDate(desde26semanas.getDate() - 26 * 7);
+  const hace26semanas = desde26semanas.toISOString();
+
+  const [
+    { count: totalSesiones },
+    { count: totalRegistrosHabitos },
+    { data: logrosPrevios },
+    { data: fechasSesiones },
+  ] = await Promise.all([
       supabase
         .from("sesiones")
         .select("id", { count: "exact", head: true })
@@ -174,6 +191,11 @@ export default async function PaginaInicio() {
         .eq("cliente_id", user.id)
         .eq("completado", true),
       supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
+      supabase
+        .from("sesiones")
+        .select("fecha_inicio")
+        .eq("cliente_id", user.id)
+        .gte("fecha_inicio", hace26semanas),
     ]);
 
   /* El aviso de "te han ajustado las kcal" lo llevaba la pestaña
@@ -291,245 +313,324 @@ export default async function PaginaInicio() {
 
   const nombrePila = perfil?.nombre?.split(" ")[0] ?? "";
 
+  /* Días entre dos fechas AAAA-MM-DD. Las dos se leen como medianoche
+   * UTC, así que la resta da días exactos sin sustos de horario de verano. */
+  const hoyISO = new Date().toLocaleDateString("sv-SE");
+  const diasEntre = (desde: string, hasta: string) =>
+    Math.round((new Date(hasta).getTime() - new Date(desde).getTime()) / 86400000);
+
   // listaMedidas viene ordenada de más reciente a más antigua (limit 20)
   const listaMedidas = medidas ?? [];
   const ultimoPeso = listaMedidas[0]?.peso ?? null;
+  const diasDesdeUltimoPeso = listaMedidas[0]
+    ? diasEntre(listaMedidas[0].fecha, hoyISO)
+    : null;
+
+  /* "−1,2 kg este mes": del peso más antiguo de los últimos 30 días al
+   * más reciente. Con un solo registro en ese tiempo no hay variación
+   * que contar, y el mosaico dice qué hay dentro en vez de un cero. */
+  const desde30 = new Date();
+  desde30.setDate(desde30.getDate() - 30);
+  const hace30ISO = desde30.toLocaleDateString("sv-SE");
+  const pesosMes = listaMedidas.filter((m) => m.fecha >= hace30ISO);
+  let resumenProgreso = "Peso, medidas y fotos";
+  if (pesosMes.length >= 2) {
+    const delta = Number(pesosMes[0].peso) - Number(pesosMes[pesosMes.length - 1].peso);
+    resumenProgreso =
+      Math.abs(delta) < 0.05
+        ? "Estable este mes"
+        : `${delta > 0 ? "+" : "−"}${Math.abs(delta).toFixed(1).replace(".", ",")} kg este mes`;
+  }
+
+  const rachaSemanas = calcularRachaSemanas(
+    (fechasSesiones ?? []).map((s) => s.fecha_inicio),
+    objetivoSemana
+  );
+  const hoySemana = (new Date().getDay() + 6) % 7;
+  const hechosSemana = diasEntrenados.filter(Boolean).length;
+
+  const fechaHoy = new Date().toLocaleDateString("es-ES", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    timeZone: "Europe/Madrid",
+  });
+
+  /* Novedades: todo lo que ha cambiado desde la última vez, en un solo
+   * sitio y con un solo formato. Antes cada cosa llegaba a su manera —
+   * una tarjeta para la rutina, texto naranja dentro de una fila para
+   * las kcal, un banner amarillo para el récord, una línea gris al final
+   * para el grupo descuidado— y ninguna parecía importante. */
+  const novedades: {
+    clave: string;
+    Icono: IconoApp;
+    color: string;
+    titulo: string;
+    detalle: string;
+    href?: string;
+  }[] = [];
+  if (avisoRutina) {
+    novedades.push({
+      clave: "rutina",
+      Icono: Bell,
+      color: "var(--color-acento)",
+      titulo: "Tu entrenador ha actualizado tu rutina",
+      detalle: "Échale un vistazo antes de entrenar",
+      href: "/mi-rutina",
+    });
+  }
+  if (avisoDieta) {
+    novedades.push({
+      clave: "dieta",
+      Icono: Bell,
+      color: "var(--color-verde)",
+      titulo: "Tu entrenador ha actualizado tu dieta",
+      detalle: "Mira qué ha cambiado",
+      href: "/mi-dieta",
+    });
+  }
+  if (hayRevisionSinLeer) {
+    novedades.push({
+      clave: "kcal",
+      Icono: Bell,
+      color: "var(--color-aviso)",
+      titulo: "Tu entrenador te ha ajustado las kcal",
+      detalle: "Mira por qué en Mi progreso",
+      href: "/mi-progreso",
+    });
+  }
+  if (prReciente) {
+    const hace = diasEntre(new Date(prReciente.fecha).toLocaleDateString("sv-SE"), hoyISO);
+    const cuando =
+      hace <= 0
+        ? "hoy"
+        : hace === 1
+          ? "ayer"
+          : hace >= 7
+            ? "hace una semana"
+            : `el ${new Date(prReciente.fecha).toLocaleDateString("es-ES", { weekday: "long" })}`;
+    novedades.push({
+      clave: "record",
+      Icono: Trophy,
+      color: "var(--color-dorado)",
+      titulo: `Récord en ${prReciente.ejercicio}`,
+      detalle: `${String(prReciente.kg).replace(".", ",")} kg · ${cuando}`,
+    });
+  }
+  if (avisoMuscular) {
+    novedades.push({
+      clave: "musculo",
+      Icono: IconoMancuerna,
+      color: "var(--color-texto-2)",
+      titulo:
+        avisoMuscular.diasDesdeUltimoEntreno === null
+          ? `Llevas un tiempo sin trabajar ${avisoMuscular.grupo}`
+          : `Llevas ${avisoMuscular.diasDesdeUltimoEntreno} días sin trabajar ${avisoMuscular.grupo}`,
+      detalle: "Y está en tu rutina",
+      href: "/mi-rutina",
+    });
+  }
+
+  /* La foto va arriba, a lo ancho, y el degradado la funde con la
+   * tarjeta justo donde empieza el título. Antes iba apretada en una
+   * franja a la derecha y apenas se veía. */
+  const cabeceraFoto = (foto: string) => ({
+    backgroundImage: `linear-gradient(180deg, transparent 20%, var(--color-panel) 96%), url(${foto})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center 35%",
+  });
 
   return (
     <>
-      {/* 1. Saludo. Sin subtítulo: decía "llevas X de Y entrenos esta
-       * semana", exactamente lo que ahora enseña la tarjeta de la semana
-       * justo debajo y con los días marcados — no hace falta decirlo dos
-       * veces, y esa línea de más empujaba el entreno hacia abajo. */}
-      <h1 className="h1 mb-3">
+      <MarcarAvisosVistos avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
+
+      {/* 1. Saludo, con la fecha: es lo que da sentido a "tu entreno de hoy" */}
+      <div className="text-atenuado text-[13px] first-letter:uppercase">{fechaHoy}</div>
+      <h1 className="h1 !mt-0.5 mb-4">
         {saludoSegunHora()}
         {nombrePila ? `, ${nombrePila}` : ""}
       </h1>
 
-      <AvisosActualizacion avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
-
-      {/* 2. Racha — fila ligera, sin tarjeta, no compite con el entreno */}
-      <RachaInline racha={racha} />
-
-      {/* 3. La semana de un vistazo. Aquí estaba la frase del día, que es
-       * el mejor hueco de la pantalla y lo ocupaba algo que no dice nada
-       * del cliente; la frase se ha ido al final.
-       *
-       * Solo si tiene rutina: a un cliente recién dado de alta esto le
-       * enseñaba siete casillas vacías —seguimiento de algo que todavía
-       * no existe— ANTES de contarle que aún no tiene plan. */}
-      {objetivoSemana > 0 && (
-        <SemanaEntrenos diasEntrenados={diasEntrenados} objetivoSemana={objetivoSemana} />
-      )}
-
-      {/* 4. ENTRENAMIENTO DE HOY — la tarjeta protagonista. Sin eyebrow:
-       * el nombre del día ES el título, y semana/ejercicios/series/
-       * duración se leen en una sola línea en vez de fragmentarse en
-       * chips — todo el bloque de arriba se lee en menos de un segundo,
-       * y el botón queda como el único elemento que pide ser pulsado. */}
+      {/* 2. UNA tarjeta que contesta "qué hago hoy" y "cómo voy". La
+        * semana y la racha iban cada una por su cuenta encima del
+        * entreno y le quitaban el sitio; son su contexto, van dentro. */}
       {proximoDia ? (
-        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-0 !mb-3 overflow-hidden">
-          {/* La foto va SOLO detrás de esta fila, no del botón: "Empezar
-           * sesión" es la única acción de la pantalla y no puede perder
-           * nitidez. Entra por la derecha y el degradado la apaga antes
-           * del nombre del día. La imagen depende de los músculos que se
-           * trabajan, no del nombre del día (ver lib/fotoEntreno.ts). */}
-          <div className="relative flex items-center gap-3.5 p-6 pb-4">
-            <span
-              aria-hidden
-              className="absolute inset-y-0 right-0 w-[46%] pointer-events-none"
-              style={{
-                backgroundImage: `url(${fotoEntreno(
-                  proximoDia.ejercicios.map((e) => e.grupo_muscular)
-                )})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center right",
-              }}
-            />
-            <span
-              aria-hidden
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(90deg, var(--color-panel) 0%, var(--color-panel) 52%, color-mix(in srgb, var(--color-panel) 55%, transparent) 78%, color-mix(in srgb, var(--color-panel) 35%, transparent) 100%)",
-              }}
-            />
-            <span className="relative shrink-0">
-              <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
-            </span>
-            <div className="min-w-0 relative">
-              <div className="font-bold text-[21px] leading-tight truncate">
-                {proximoDia.nombre}
+        <section className="tarjeta tarjeta-acento anim-entrada-1 !p-0 !mb-3 overflow-hidden">
+          <div
+            className="relative h-[150px] flex items-end px-5 pb-3.5"
+            style={cabeceraFoto(
+              fotoEntreno(proximoDia.ejercicios.map((e) => e.grupo_muscular))
+            )}
+          >
+            <div className="min-w-0">
+              <div className="text-acento text-[11.5px] font-bold tracking-[0.08em] uppercase mb-1">
+                Tu entreno de hoy
               </div>
-              {/* Sin `truncate`: en un móvil estrecho la línea se cortaba
-               * justo en la duración ("· 3…"), que es el dato por el que
-               * más se decide si da tiempo a entrenar ahora. Envuelve. */}
-              <div className="text-atenuado text-[13px] mt-1 leading-snug">
-                Semana {rutina?.semana_actual ?? 1} · {proximoDia.ejercicios.length} ejercicios ·{" "}
-                {seriesEfectivasProximo} series · {duracionMin}–{duracionMax} min
+              <div className="font-bold text-[24px] leading-tight break-words">
+                {proximoDia.nombre}
               </div>
             </div>
           </div>
-          <div className="px-6 pb-6">
+          <div className="px-5 pb-5">
+            {/* Sin `truncate`: en un móvil estrecho la línea se cortaba
+              * justo en la duración, que es el dato por el que más se
+              * decide si da tiempo a entrenar ahora. Envuelve. */}
+            <div className="text-atenuado text-[13px] leading-snug mb-4">
+              Semana {rutina?.semana_actual ?? 1} · {proximoDia.ejercicios.length} ejercicios ·{" "}
+              {seriesEfectivasProximo} series · {duracionMin}–{duracionMax} min
+            </div>
             <Link
               href={`/sesion/${proximoDia.id}`}
               className="cta anim-pulsable !mb-0 block text-center"
             >
               Empezar sesión →
             </Link>
+
+            <div className="flex items-center gap-3 pt-3.5 mt-4 border-t border-borde">
+              <div className="flex gap-1.5">
+                {["L", "M", "X", "J", "V", "S", "D"].map((d, i) => (
+                  <span
+                    key={i}
+                    className={`w-[26px] h-[26px] rounded-[8px] flex items-center justify-center text-[10.5px] font-bold border ${
+                      diasEntrenados[i]
+                        ? "bg-acento/15 border-acento/45 text-acento"
+                        : i === hoySemana
+                          ? "border-acento/45 border-dashed text-acento"
+                          : "border-borde-2 text-atenuado"
+                    }`}
+                    aria-label={`${d}${diasEntrenados[i] ? ": entrenado" : ""}${
+                      i === hoySemana ? " (hoy)" : ""
+                    }`}
+                  >
+                    {diasEntrenados[i] ? <Check size={12} strokeWidth={3} /> : d}
+                  </span>
+                ))}
+              </div>
+              <div className="flex-1 min-w-0 text-right text-[12.5px] leading-tight tabular-nums">
+                <b>{hechosSemana}</b>
+                <span className="text-atenuado"> de {objetivoSemana}</span>
+              </div>
+            </div>
+            {rachaSemanas > 0 && (
+              <div className="flex items-center gap-1.5 text-[12.5px] mt-2.5">
+                <Flame size={14} className="text-dorado shrink-0" />
+                <span>
+                  <b className="text-dorado">
+                    {rachaSemanas} {rachaSemanas === 1 ? "semana" : "semanas"}
+                  </b>
+                  <span className="text-atenuado">
+                    {rachaSemanas === 1 ? " cumpliendo" : " seguidas cumpliendo"} tu plan
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </section>
       ) : (
         /* Primer día del cliente: en vez de un aviso de que no hay nada,
          * se le dice qué está pasando y qué puede hacer ya — pesarse y
-         * marcar hábitos son las dos cosas que no dependen de la rutina
-         * y están justo debajo en esta misma pantalla. */
-        <section className="tarjeta tarjeta-acento anim-entrada-2 !p-0 !mb-3 overflow-hidden">
-          {/* Un gimnasio vacío con la luz entrando: dice "todavía no ha
-           * empezado" sin necesidad de escribirlo. Mismo tratamiento que
-           * la tarjeta de entreno de verdad, para que el primer día se
-           * parezca a los que vendrán después. */}
-          <div className="relative flex items-center gap-3.5 p-6 pb-4">
-            <span
-              aria-hidden
-              className="absolute inset-y-0 right-0 w-[46%] pointer-events-none"
-              style={{
-                backgroundImage: "url(/en-camino.webp)",
-                backgroundSize: "cover",
-                backgroundPosition: "center right",
-              }}
-            />
-            <span
-              aria-hidden
-              className="absolute inset-0 pointer-events-none"
-              style={{
-                background:
-                  "linear-gradient(90deg, var(--color-panel) 0%, var(--color-panel) 52%, color-mix(in srgb, var(--color-panel) 55%, transparent) 78%, color-mix(in srgb, var(--color-panel) 35%, transparent) 100%)",
-              }}
-            />
-            <span className="relative shrink-0">
-              <IconoTarjeta Icono={IconoMancuerna} color="var(--color-acento)" tamano={48} />
-            </span>
-            <div className="min-w-0 relative">
-              <div className="font-bold text-[19px] leading-tight">
-                Tu rutina está en camino
+         * marcar hábitos, que no dependen de la rutina y están justo
+         * debajo, en "Tu día". Mismo tratamiento que la tarjeta de
+         * entreno de verdad, para que el primer día se parezca a los que
+         * vendrán después. */
+        <section className="tarjeta tarjeta-acento anim-entrada-1 !p-0 !mb-3 overflow-hidden">
+          <div
+            className="relative h-[150px] flex items-end px-5 pb-3.5"
+            style={cabeceraFoto("/en-camino.webp")}
+          >
+            <div className="min-w-0">
+              <div className="text-acento text-[11.5px] font-bold tracking-[0.08em] uppercase mb-1">
+                Tu entreno
               </div>
-              <div className="text-atenuado text-[13px] mt-1 leading-snug">
-                Tu entrenador la está preparando. Aparecerá aquí en cuanto esté.
-              </div>
+              <div className="font-bold text-[22px] leading-tight">Tu rutina está en camino</div>
             </div>
           </div>
-          <p className="text-texto-2 text-[13.5px] leading-relaxed px-6 pb-6">
-            Mientras tanto puedes apuntar tu peso de hoy y marcar tus hábitos,
-            ahí abajo. Cuanto antes empieces a registrar, antes tendrá tu
-            entrenador con qué ajustarte el plan.
+          <p className="text-texto-2 text-[13.5px] leading-relaxed px-5 pb-5">
+            Tu entrenador la está preparando y aparecerá aquí en cuanto esté.
+            Mientras tanto, apunta tu peso y marca tus hábitos ahí abajo: cuanto
+            antes empieces a registrar, antes tendrá con qué ajustarte el plan.
           </p>
         </section>
       )}
 
-      {/* Récord reciente — celebración breve pegada a la acción, no una
-       * tarjeta aparte que le reste protagonismo al entreno. */}
-      {prReciente && (
-        <div className="banner banner-dorado !mb-3">
-          <Trophy size={14} className="shrink-0 mt-px" />
-          <span>
-            Nuevo récord en <b>{prReciente.ejercicio}</b>: {prReciente.kg} kg — ¡sigue así!
-          </span>
-        </div>
-      )}
-
-      {/* La lista de los otros días vivía aquí debajo, tres filas
-       * siempre abiertas. Ahora tienen su sitio en Mi rutina, donde
-       * además se ven los ejercicios de cada día sin entrar a
-       * entrenarlo; aquí queda solo la puerta, en una línea, porque es
-       * justo el momento en que uno piensa "hoy no me apetece este". */}
-      {rutina && rutina.dias.length > 1 && (
-        <Link href="/mi-rutina" className="fila anim-pulsable">
-          <IconoMancuerna size={17} className="text-atenuado shrink-0" />
-          <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
-            Ver todos mis entrenos
+      {/* 3. Novedades — solo si hay alguna */}
+      {novedades.length > 0 && (
+        <>
+          <div className="titulo-seccion mt-6">Novedades</div>
+          <div className="superficie px-4 mb-6 anim-entrada-2">
+            {novedades.map((n) => {
+              const contenido = (
+                <>
+                  <IconoTarjeta Icono={n.Icono} color={n.color} tamano={34} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-semibold leading-tight break-words">
+                      {n.titulo}
+                    </div>
+                    <div className="text-atenuado text-[12.5px] leading-snug">{n.detalle}</div>
+                  </div>
+                  {n.href && <ChevronRight size={16} className="text-atenuado shrink-0" />}
+                </>
+              );
+              return n.href ? (
+                <Link key={n.clave} href={n.href} className="fila anim-pulsable">
+                  {contenido}
+                </Link>
+              ) : (
+                <div key={n.clave} className="fila">
+                  {contenido}
+                </div>
+              );
+            })}
           </div>
-          <ChevronRight size={16} className="text-atenuado shrink-0" />
-        </Link>
+        </>
       )}
 
-      {/* Progreso salió de la barra inferior al bajarla a cuatro
-        * pestañas: esta es su puerta, y la que hereda el aviso de que el
-        * entrenador ha ajustado las kcal. */}
-      <Link href="/mi-progreso" className="fila anim-pulsable">
-        <TrendingUp size={17} className="text-atenuado shrink-0" />
-        <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
-          Mi progreso
-          {hayRevisionSinLeer && (
-            <span className="text-aviso"> · tu entrenador ha ajustado tus kcal</span>
-          )}
-        </div>
-        {hayRevisionSinLeer && (
-          <span className="w-2 h-2 rounded-full bg-peligro shrink-0" />
+      {/* 4. Tu día: lo que se marca hoy, con un mismo formato */}
+      <div className={`titulo-seccion ${novedades.length > 0 ? "" : "mt-6"}`}>Tu día</div>
+      <div className="superficie px-4 mb-6 anim-entrada-3">
+        <RegistroPesoRapido
+          clienteId={user.id}
+          ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
+          diasDesdeUltimo={diasDesdeUltimoPeso}
+        />
+        <WidgetHabitos
+          clienteId={user.id}
+          habitos={habitos ?? []}
+          registros={registrosHabitos ?? []}
+        />
+        {/* La dieta entera está en su pestaña; aquí basta el objetivo del
+          * día. La proteína lleva su color porque es el macro que más se
+          * persigue; los otros dos van en gris para no hacer un arcoíris. */}
+        {dieta && (
+          <Link href="/mi-dieta" className="fila anim-pulsable">
+            <IconoTarjeta Icono={UtensilsCrossed} color="var(--color-verde)" tamano={34} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] leading-tight">
+                <b style={{ color: "var(--color-verde)" }}>{dieta.kcal_obj}</b>
+                <span className="text-atenuado"> kcal hoy</span>
+              </div>
+              <div className="text-atenuado text-[12.5px]">
+                <span style={{ color: INFO_MACRO.proteina.color }}>{dieta.prot_obj} P</span> ·{" "}
+                {dieta.carb_obj} C · {dieta.gras_obj} G
+              </div>
+            </div>
+            <ChevronRight size={16} className="text-atenuado shrink-0" />
+          </Link>
         )}
-        <ChevronRight size={16} className="text-atenuado shrink-0" />
-      </Link>
+      </div>
 
-      {/* 5. Peso */}
-      <RegistroPesoRapido
-        clienteId={user.id}
-        ultimoPeso={ultimoPeso === null ? null : Number(ultimoPeso)}
-      />
-
-      {/* 6. Hábitos */}
-      <WidgetHabitos
-        clienteId={user.id}
-        habitos={habitos ?? []}
-        registros={registrosHabitos ?? []}
-      />
-
-      {/* 7. Dieta — una sola línea. La tarjeta de antes repetía kcal,
-       * los tres macros en chips y la barra de proporción: exactamente
-       * lo que se ve entero en Mi Dieta, que además es una pestaña de la
-       * barra. Aquí basta con recordar el objetivo del día y el acceso;
-       * el color de cada macro se queda en la letra, que es donde
-       * significa algo. */}
-      {dieta && (
-        <Link href="/mi-dieta" className="fila anim-pulsable anim-entrada-5">
-          <UtensilsCrossed
-            size={17}
-            className="shrink-0"
-            style={{ color: "var(--color-verde)" }}
-          />
-          <div className="flex-1 min-w-0 text-[13.5px] flex items-baseline gap-1.5 flex-wrap">
-            <b style={{ color: "var(--color-verde)" }}>{dieta.kcal_obj}</b>
-            <span className="text-atenuado">kcal</span>
-            <span className="text-atenuado">·</span>
-            <span style={{ color: INFO_MACRO.proteina.color }}>P {dieta.prot_obj}</span>
-            <span style={{ color: INFO_MACRO.carbohidratos.color }}>C {dieta.carb_obj}</span>
-            <span style={{ color: INFO_MACRO.grasas.color }}>G {dieta.gras_obj}</span>
+      {/* 5. Dos puertas en vez de cuatro filas sueltas. "Ver todos mis
+        * entrenos" se ha ido: es la pestaña Entreno, justo debajo. */}
+      <div className="grid grid-cols-2 gap-2.5 mb-5 anim-entrada-4">
+        <Link href="/mi-progreso" className="tarjeta !mb-0 !p-4 anim-pulsable min-w-0">
+          <TrendingUp size={18} className="text-acento mb-2.5" />
+          <div className="font-semibold text-[14px] leading-tight">Mi progreso</div>
+          <div className="text-atenuado text-[12.5px] mt-0.5 leading-snug">
+            {resumenProgreso}
           </div>
-          <span className="texto-secundario shrink-0">Ver →</span>
         </Link>
-      )}
-
-      {/* 8. Logros */}
-      <WidgetLogros
-        desbloqueados={[...clavesDesbloqueadas]}
-        nuevos={nuevosLogros}
-      />
-
-      {/* 9. Cierre: el aviso de grupo descuidado y la frase del día, que
-       * es lo único decorativo de la pantalla y por eso va la última.
-       * Aquí estaba antes un resumen de la semana en siete puntitos sin
-       * etiquetas — la misma información que ahora se ve arriba y mejor,
-       * así que se ha quitado en vez de decirla dos veces. */}
-      {avisoMuscular && (
-        <div className="flex items-center gap-2 text-[13px] text-atenuado mt-3">
-          <IconoMancuerna size={13} className="shrink-0" />
-          <span>
-            {avisoMuscular.diasDesdeUltimoEntreno === null
-              ? "Llevas un tiempo"
-              : `Llevas ${avisoMuscular.diasDesdeUltimoEntreno} días`}{" "}
-            sin trabajar {avisoMuscular.grupo}, y está en tu rutina.
-          </span>
-        </div>
-      )}
+        <WidgetLogros desbloqueados={[...clavesDesbloqueadas]} nuevos={nuevosLogros} />
+      </div>
 
       <p className="text-atenuado text-[13px] italic text-center mt-5 px-4">
         “{fraseDelDia()}”

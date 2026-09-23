@@ -12,12 +12,15 @@ import PanelMedidas from "@/componentes/PanelMedidas";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import GridLogros from "@/componentes/GridLogros";
+import HabitosSemana from "@/componentes/HabitosSemana";
 import CuestionarioSemanal from "./CuestionarioSemanal";
 import type { SemanaRevision } from "@/lib/revision";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
 import type { VolumenMuscular } from "@/lib/musculos";
 import type {
   EntradaFotosProgreso,
+  Habito,
+  HabitoRegistro,
   Medida,
   PreguntaRevision,
   RespuestaRevision,
@@ -48,6 +51,8 @@ export default function MiProgreso({
   preguntas,
   respuestasSemana,
   semanaActualISO,
+  habitos,
+  registrosHabitos,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -62,6 +67,8 @@ export default function MiProgreso({
   preguntas: PreguntaRevision[];
   respuestasSemana: RespuestaRevision[];
   semanaActualISO: string;
+  habitos: Habito[];
+  registrosHabitos: HabitoRegistro[];
 }) {
   const router = useRouter();
   const [pestana, setPestana] = useState<Pestana>("cuerpo");
@@ -228,6 +235,8 @@ export default function MiProgreso({
           </div>
         </section>
       )}
+
+      <HabitosSemana habitos={habitos} registros={registrosHabitos} />
 
       {revisiones.length > 0 && (
         <section className="tarjeta">

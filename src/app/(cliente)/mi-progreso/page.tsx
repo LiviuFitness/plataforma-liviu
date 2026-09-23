@@ -4,7 +4,14 @@ import { calcularRevisionSemanal, lunesDe } from "@/lib/revision";
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
 import MiProgreso from "./MiProgreso";
-import type { Medida, PreguntaRevision, RespuestaRevision, RevisionKcal } from "@/lib/tipos";
+import type {
+  Habito,
+  HabitoRegistro,
+  Medida,
+  PreguntaRevision,
+  RespuestaRevision,
+  RevisionKcal,
+} from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +30,8 @@ export default async function PaginaMiProgreso() {
     { data: revisiones },
     { data: preguntas },
     { data: respuestasSemana },
+    { data: habitos },
+    { data: registrosHabitos },
   ] = await Promise.all([
     supabase
       .from("medidas")
@@ -46,6 +55,14 @@ export default async function PaginaMiProgreso() {
       .select("*")
       .eq("cliente_id", user.id)
       .eq("semana", semanaActualISO),
+    /* Los hábitos de la semana, que salieron de Inicio: allí solo se
+     * marca el de hoy. */
+    supabase.from("habitos").select("*").eq("cliente_id", user.id).order("orden"),
+    supabase
+      .from("habitos_registros")
+      .select("*")
+      .eq("cliente_id", user.id)
+      .gte("fecha", semanaActualISO),
   ]);
 
   const semanas = calcularRevisionSemanal(
@@ -73,6 +90,8 @@ export default async function PaginaMiProgreso() {
       preguntas={(preguntas ?? []) as PreguntaRevision[]}
       respuestasSemana={(respuestasSemana ?? []) as RespuestaRevision[]}
       semanaActualISO={semanaActualISO}
+      habitos={(habitos ?? []) as Habito[]}
+      registrosHabitos={(registrosHabitos ?? []) as HabitoRegistro[]}
     />
   );
 }
