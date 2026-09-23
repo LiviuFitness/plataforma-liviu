@@ -15,6 +15,8 @@ export default async function PaginaClientes() {
     { data: invitaciones },
     { data: sesiones },
     { data: mensajes },
+    { data: rutinasActivas },
+    { data: dietasActivas },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -41,6 +43,15 @@ export default async function PaginaClientes() {
       .select("cliente_id, remitente")
       .order("creado_en", { ascending: false })
       .limit(500),
+    /* Quién tiene ya plan: con el traspaso de clientes, "a quién le
+     * falta la rutina o la dieta" es la pregunta del día. */
+    supabase.from("rutinas").select("cliente_id").eq("activa", true).not("cliente_id", "is", null),
+    supabase
+      .from("dietas")
+      .select("cliente_id")
+      .eq("activa", true)
+      .eq("tipo", "entreno")
+      .not("cliente_id", "is", null),
   ]);
 
   /* Una sola lectura del reloj para toda la pantalla: los días sin
@@ -96,6 +107,8 @@ export default async function PaginaClientes() {
       diasDesdeAlta={Object.fromEntries(diasDesdeAlta)}
       chatSinLeer={Object.fromEntries(chatSinLeer)}
       invitaciones={(invitaciones ?? []) as Invitacion[]}
+      conRutina={[...new Set((rutinasActivas ?? []).map((r) => r.cliente_id as string))]}
+      conDieta={[...new Set((dietasActivas ?? []).map((d) => d.cliente_id as string))]}
       ahora={ahora}
     />
   );

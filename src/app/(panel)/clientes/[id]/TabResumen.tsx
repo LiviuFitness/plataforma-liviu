@@ -4,19 +4,21 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarCheck, ChevronDown } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { Sparkline } from "@/componentes/ui";
+import ResumenPlan from "./ResumenPlan";
+import type { SesionHistorial } from "@/lib/progresoEntreno";
 import {
   OBJETIVOS,
   type Alerta,
+  type Dieta,
   type Estado,
   type Medida,
   type Perfil,
   type Plan,
   type RespuestaAltaConPregunta,
+  type RevisionKcal,
+  type RutinaUI,
 } from "@/lib/tipos";
 import { FACTORES_ACTIVIDAD } from "@/lib/macros";
-
-const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
 /** Pestaña Resumen: peso, adherencia semanal, alertas, notas y datos. */
 export default function TabResumen({
@@ -25,18 +27,28 @@ export default function TabResumen({
   alertas,
   diasEntrenados,
   respuestasAlta,
+  rutina,
+  dieta,
+  dietaDescanso,
+  ultimaSesion,
+  ultimaRevision,
+  ahora,
+  irAPestana,
 }: {
   perfil: Perfil;
   medidas: Medida[];
   alertas: Alerta[];
   diasEntrenados: boolean[];
   respuestasAlta: RespuestaAltaConPregunta[];
+  rutina: RutinaUI | null;
+  dieta: Dieta | null;
+  dietaDescanso: Dieta | null;
+  ultimaSesion: SesionHistorial | null;
+  ultimaRevision: RevisionKcal | null;
+  ahora: number;
+  irAPestana: (p: "entreno" | "dieta" | "progreso") => void;
 }) {
   const router = useRouter();
-  const pesos = medidas
-    .filter((m) => m.peso !== null)
-    .map((m) => Number(m.peso));
-
   /* --- Notas privadas con autoguardado (debounce) --- */
   const [datosAbiertos, setDatosAbiertos] = useState(false);
   const [notas, setNotas] = useState(perfil.notas_entrenador ?? "");
@@ -175,32 +187,17 @@ export default function TabResumen({
         </div>
       )}
 
-      {/* Peso + adherencia agrupados en una sola superficie — dos datos
-       * relacionados de la semana, no necesitan dos cajas separadas. */}
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">Peso — evolución</div>
-        <Sparkline datos={pesos} />
-        {pesos.length >= 2 && (
-          <div className="flex justify-between items-center">
-            <span className="text-atenuado text-[13.5px]">
-              Inicio {pesos[0]} kg
-            </span>
-            <span className="num-grande">{pesos[pesos.length - 1]} kg</span>
-          </div>
-        )}
-        <div className="border-t border-borde my-3.5" />
-        <div className="titulo-tarjeta">Adherencia — esta semana</div>
-        <div className="flex justify-between px-1.5 py-1">
-          {diasEntrenados.map((activo, i) => (
-            <div key={i} className="flex flex-col items-center gap-1.5">
-              <div
-                className={`w-2.5 h-2.5 rounded-full ${activo ? "bg-acento" : "bg-borde-2"}`}
-              />
-              <span className="text-[11px] text-atenuado">{DIAS[i]}</span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <ResumenPlan
+        medidas={medidas}
+        diasEntrenados={diasEntrenados}
+        rutina={rutina}
+        dieta={dieta}
+        dietaDescanso={dietaDescanso}
+        ultimaSesion={ultimaSesion}
+        ultimaRevision={ultimaRevision}
+        ahora={ahora}
+        irAPestana={irAPestana}
+      />
 
       {respuestasAlta.length > 0 && (
         <section className="tarjeta">
@@ -244,6 +241,7 @@ export default function TabResumen({
           <span className="flex-1 min-w-0 font-semibold text-[14.5px]">
             Datos del cliente
           </span>
+          <span className="text-atenuado text-[12px] shrink-0">Editar o dar de baja</span>
           <ChevronDown
             size={16}
             className={`icono-rotable text-atenuado shrink-0 ${datosAbiertos ? "icono-rotable-abierto" : ""}`}
@@ -354,37 +352,42 @@ export default function TabResumen({
         <button className="cta" onClick={guardarDatos} disabled={guardandoDatos}>
           {datosOk ? "Guardado ✓" : guardandoDatos ? "Guardando…" : "Guardar datos"}
         </button>
+
+        {/* Borrar al cliente vive aquí dentro, plegado: a la vista en
+          * cada visita a la ficha era un botón rojo enorme debajo de las
+          * notas, a un despiste de distancia. */}
+        <div className="border-t border-peligro/30 mt-5 pt-4">
+          <div className="titulo-tarjeta !text-peligro">ELIMINAR CLIENTE</div>
+          <p className="text-texto-2 text-[13.5px] mb-3">
+            Borra la cuenta de {perfil.nombre} y todos sus datos (rutina, dieta,
+            medidas, sesiones). No se puede deshacer. Si solo deja de venir,
+            mejor ponle en «Baja» arriba y conservas su historial.
+          </p>
+          <label className="text-[13px] text-texto-2 block mb-1">
+            Escribe «{perfil.nombre}» para confirmar
+          </label>
+          <input
+            className="input"
+            value={confirmacionNombre}
+            onChange={(e) => setConfirmacionNombre(e.target.value)}
+            placeholder="Nombre completo"
+          />
+          {errorEliminar && (
+            <div className="text-peligro text-[13.5px] mb-3">— {errorEliminar}</div>
+          )}
+          <button
+            className="w-full bg-transparent border border-peligro text-peligro rounded-[12px] py-[13px] font-bold text-[15px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+            disabled={confirmacionNombre.trim() !== perfil.nombre.trim() || eliminando}
+            onClick={eliminarCliente}
+          >
+            {eliminando ? "Eliminando…" : "Eliminar cliente definitivamente"}
+          </button>
+        </div>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="tarjeta !border-peligro/40">
-        <div className="titulo-tarjeta !text-peligro">ZONA DE PELIGRO</div>
-        <p className="text-texto-2 text-[13.5px] mb-3">
-          Elimina la cuenta de {perfil.nombre} y todos sus datos (rutina,
-          dieta, medidas, sesiones). Esta acción no se puede deshacer.
-        </p>
-        <label className="text-[13px] text-texto-2 block mb-1">
-          Escribe «{perfil.nombre}» para confirmar
-        </label>
-        <input
-          className="input"
-          value={confirmacionNombre}
-          onChange={(e) => setConfirmacionNombre(e.target.value)}
-          placeholder={perfil.nombre}
-        />
-        {errorEliminar && (
-          <div className="text-peligro text-[13.5px] mb-3">— {errorEliminar}</div>
-        )}
-        <button
-          className="w-full bg-transparent border border-peligro text-peligro rounded-[12px] py-[13px] font-bold text-[15px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-          disabled={confirmacionNombre.trim() !== perfil.nombre.trim() || eliminando}
-          onClick={eliminarCliente}
-        >
-          {eliminando ? "Eliminando…" : "Eliminar cliente definitivamente"}
-        </button>
-      </section>
     </>
   );
 }

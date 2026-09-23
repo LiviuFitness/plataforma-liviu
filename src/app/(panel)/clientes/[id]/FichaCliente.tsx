@@ -63,6 +63,7 @@ export default function FichaCliente({
   revisiones,
   respuestasCuestionario,
   respuestasAlta,
+  ahora,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -86,12 +87,24 @@ export default function FichaCliente({
   revisiones: RevisionKcal[];
   respuestasCuestionario: RespuestaRevisionConPregunta[];
   respuestasAlta: RespuestaAltaConPregunta[];
+  /** Instante del servidor, para que "hace 3 días" diga lo mismo al
+   * pintar allí y al hidratar aquí. */
+  ahora: number;
 }) {
   const [pestana, setPestana] = useState<Pestana>("resumen");
   // Cuando el editor de día está abierto ocultamos cabecera y pestañas
   const [editandoDia, setEditandoDia] = useState(false);
   // Sub-pestaña de la dieta: día de entreno o día de descanso
   const [tipoDieta, setTipoDieta] = useState<"entreno" | "descanso">("entreno");
+
+  /* Punto en la pestaña Chat si el último mensaje es suyo: sin esto,
+   * dentro de la ficha no había forma de saber que te había escrito. */
+  const chatPendiente = mensajes[mensajes.length - 1]?.remitente === "cliente";
+
+  const desde = new Date(perfil.fecha_alta).toLocaleDateString("es-ES", {
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <>
@@ -103,25 +116,50 @@ export default function FichaCliente({
           >
             ← Clientes
           </Link>
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="h1">{perfil.nombre}</h1>
-              <div className="sub">
+          <div className="flex justify-between items-center gap-3">
+            <div className="min-w-0">
+              <h1 className="h1 break-words">{perfil.nombre}</h1>
+              <div className="sub !mb-0 break-words">
                 {perfil.objetivo ?? "Sin objetivo"}
-                {perfil.plan ? ` — plan ${perfil.plan}` : ""}
+                {perfil.plan ? ` · plan ${perfil.plan}` : ""} · desde {desde}
               </div>
+              {perfil.estado !== "activo" && (
+                <span
+                  className={`chip !cursor-default mt-2 inline-flex ${
+                    perfil.estado === "baja" ? "!text-peligro" : "!text-aviso"
+                  }`}
+                >
+                  {perfil.estado === "baja" ? "De baja" : "Pausado"}
+                </span>
+              )}
             </div>
-            <AnilloAdherencia valor={adherencia} tamano={52} />
+            <div className="flex flex-col items-center gap-1 shrink-0">
+              <AnilloAdherencia valor={adherencia} tamano={52} />
+              <span className="text-atenuado text-[10px] font-semibold uppercase tracking-[0.06em]">
+                28 días
+              </span>
+            </div>
           </div>
 
-          <nav className="tabs-texto my-4">
+          {/* Seis pestañas en un móvil: con el hueco de 18 px de las
+            * demás pantallas, "Chat" se salía por la derecha y había que
+            * adivinar que existía. Aquí se reparten el ancho. */}
+          <nav className="tabs-texto !gap-0 justify-between my-4">
             {PESTANAS.map(([clave, etiqueta]) => (
               <button
                 key={clave}
-                className={pestana === clave ? "tab-texto tab-texto-activa" : "tab-texto"}
+                className={`${pestana === clave ? "tab-texto tab-texto-activa" : "tab-texto"} !text-[13px] relative ${
+                  clave === "chat" && chatPendiente ? "!pr-2.5" : ""
+                }`}
                 onClick={() => setPestana(clave)}
               >
                 {etiqueta}
+                {clave === "chat" && chatPendiente && (
+                  <span
+                    className="absolute top-2 right-0 w-1.5 h-1.5 rounded-full bg-acento"
+                    aria-label="Mensaje sin responder"
+                  />
+                )}
               </button>
             ))}
           </nav>
@@ -135,6 +173,13 @@ export default function FichaCliente({
           alertas={alertas}
           diasEntrenados={diasEntrenados}
           respuestasAlta={respuestasAlta}
+          rutina={rutina}
+          dieta={dieta}
+          dietaDescanso={dietaDescanso}
+          ultimaSesion={progresoEntreno.historial[0] ?? null}
+          ultimaRevision={revisiones[0] ?? null}
+          ahora={ahora}
+          irAPestana={setPestana}
         />
       )}
 

@@ -37,6 +37,10 @@ export default async function PaginaFichaCliente({
   inicioSemana.setDate(inicioSemana.getDate() - diaSemana);
   inicioSemana.setHours(0, 0, 0, 0);
 
+  /* Una sola lectura del reloj, que baja a la ficha: así "hace 3 días"
+   * dice lo mismo al pintarse aquí que al hidratarse en el navegador. */
+  const ahora = new Date().getTime();
+
   const hace28dias = new Date();
   hace28dias.setDate(hace28dias.getDate() - 28);
 
@@ -203,6 +207,7 @@ export default async function PaginaFichaCliente({
         (respuestasCuestionario ?? []) as unknown as RespuestaRevisionConPregunta[]
       }
       respuestasAlta={(respuestasAlta ?? []) as unknown as RespuestaAltaConPregunta[]}
+      ahora={ahora}
     />
   );
 }
