@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import GestionPreguntas from "@/componentes/GestionPreguntas";
+import SeccionesPanel from "@/componentes/SeccionesPanel";
 import type { PreguntaRevision } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ export default async function PaginaCuestionario() {
     .order("orden");
 
   return (
+    <>
+    <SeccionesPanel grupo="biblioteca" />
     <GestionPreguntas
       tabla="preguntas_revision"
       titulo="Cuestionario semanal"
@@ -26,5 +29,6 @@ export default async function PaginaCuestionario() {
       notaPie="Solo las preguntas activas se muestran al cliente. Los clientes ven el cuestionario en Mi Progreso y lo responden una vez por semana."
       preguntas={(preguntas ?? []) as PreguntaRevision[]}
     />
+    </>
   );
 }

@@ -2,13 +2,27 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ClipboardList, Settings, Sun, Users } from "lucide-react";
+import { Library, Settings, Sun, Users } from "lucide-react";
 
+/* Cada pestaña es una sección entera, no una pantalla: "Clientes" sigue
+ * encendida en Invitaciones y Leads, y "Biblioteca" en Alimentos y en
+ * los cuestionarios. Antes, al entrar en Alimentos desde Ajustes, la
+ * barra no marcaba nada y no sabías dónde estabas. */
 const PESTANAS = [
-  { ruta: "/hoy", etiqueta: "Hoy", Icono: Sun },
-  { ruta: "/clientes", etiqueta: "Clientes", Icono: Users },
-  { ruta: "/plantillas", etiqueta: "Plantillas", Icono: ClipboardList },
-  { ruta: "/ajustes", etiqueta: "Ajustes", Icono: Settings },
+  { ruta: "/hoy", etiqueta: "Hoy", Icono: Sun, incluye: [] as string[] },
+  {
+    ruta: "/clientes",
+    etiqueta: "Clientes",
+    Icono: Users,
+    incluye: ["/invitaciones", "/leads"],
+  },
+  {
+    ruta: "/plantillas",
+    etiqueta: "Biblioteca",
+    Icono: Library,
+    incluye: ["/alimentos", "/cuestionario", "/cuestionario-alta"],
+  },
+  { ruta: "/ajustes", etiqueta: "Ajustes", Icono: Settings, incluye: [] as string[] },
 ];
 
 /** Navegación inferior fija del panel (estilo prototipo). */
@@ -25,7 +39,9 @@ export default function BarraInferior() {
       }}
     >
       {PESTANAS.map((p) => {
-        const activa = ruta === p.ruta || ruta.startsWith(p.ruta + "/");
+        const activa = [p.ruta, ...p.incluye].some(
+          (r) => ruta === r || ruta.startsWith(r + "/")
+        );
         return (
           <Link
             key={p.ruta}

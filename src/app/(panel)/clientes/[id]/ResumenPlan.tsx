@@ -1,10 +1,11 @@
 "use client";
 
-import { Check, ChevronRight, UtensilsCrossed } from "lucide-react";
+import { Check, ChevronRight, MessageCircle, TrendingUp, UtensilsCrossed } from "lucide-react";
 import { IconoTarjeta, Sparkline } from "@/componentes/ui";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
 import type { SesionHistorial } from "@/lib/progresoEntreno";
-import type { Dieta, Medida, RevisionKcal, RutinaUI } from "@/lib/tipos";
+import type { Dieta, Medida, Mensaje, RevisionKcal, RutinaUI } from "@/lib/tipos";
+import type { Vista } from "./FichaCliente";
 
 const DIAS = ["L", "M", "X", "J", "V", "S", "D"];
 
@@ -43,8 +44,10 @@ export default function ResumenPlan({
   dietaDescanso,
   ultimaSesion,
   ultimaRevision,
+  ultimoMensaje,
+  chatPendiente,
   ahora,
-  irAPestana,
+  abrir,
 }: {
   medidas: Medida[];
   diasEntrenados: boolean[];
@@ -54,8 +57,10 @@ export default function ResumenPlan({
   ultimaSesion: SesionHistorial | null;
   ultimaRevision: RevisionKcal | null;
   /** Instante de referencia, fijado una vez al montar la ficha. */
+  ultimoMensaje: Mensaje | null;
+  chatPendiente: boolean;
   ahora: number;
-  irAPestana: (p: "entreno" | "dieta" | "progreso") => void;
+  abrir: (v: Vista) => void;
 }) {
   const conPeso = medidas.filter((m) => m.peso !== null);
   const pesos = conPeso.map((m) => Number(m.peso));
@@ -150,7 +155,7 @@ export default function ResumenPlan({
       {/* Lo que tiene pautado — cada fila abre su pestaña */}
       <div className="titulo-seccion">Su plan</div>
       <div className="superficie px-4 mb-3.5">
-        <button className="fila w-full text-left anim-pulsable" onClick={() => irAPestana("entreno")}>
+        <button className="fila w-full text-left anim-pulsable" onClick={() => abrir("entreno")}>
           <IconoTarjeta
             Icono={IconoMancuerna}
             color={rutina ? "var(--color-acento)" : "var(--color-aviso)"}
@@ -182,7 +187,7 @@ export default function ResumenPlan({
           <ChevronRight size={16} className="text-atenuado shrink-0" />
         </button>
 
-        <button className="fila w-full text-left anim-pulsable" onClick={() => irAPestana("dieta")}>
+        <button className="fila w-full text-left anim-pulsable" onClick={() => abrir("dieta")}>
           <IconoTarjeta
             Icono={UtensilsCrossed}
             color={dieta ? "var(--color-verde)" : "var(--color-aviso)"}
@@ -222,38 +227,63 @@ export default function ResumenPlan({
         </button>
       </div>
 
-      {/* Peso: la gráfica, con las tres cifras que la explican */}
-      <button
-        className="tarjeta w-full text-left anim-pulsable"
-        onClick={() => irAPestana("progreso")}
-      >
-        <div className="flex items-baseline justify-between mb-1">
-          <span className="titulo-tarjeta !mb-0">Peso</span>
-          <span className="text-atenuado text-[12px]">
-            {pesos.length === 0
-              ? "Sin registros"
-              : `${pesos.length} ${pesos.length === 1 ? "registro" : "registros"}`}
-          </span>
-        </div>
-        {pesos.length >= 2 ? (
-          <>
-            <Sparkline datos={pesos} />
-            <div className="flex justify-between items-baseline text-[12.5px] mt-1">
-              <span className="text-atenuado">
-                Inicio <b className="text-texto-2">{kg(pesos[0])} kg</b>
-              </span>
-              <span className="text-atenuado">
-                Cambio{" "}
-                <b className="text-texto-2">{conSigno(pesos[pesos.length - 1] - pesos[0])} kg</b>
-              </span>
+      {/* Seguimiento: cómo va y qué te ha dicho. La gráfica del peso es
+        * la puerta a Progreso (medidas, fotos, récords, cuestionarios y
+        * hábitos), y el chat enseña el último mensaje sin abrirlo. */}
+      <div className="titulo-seccion">Seguimiento</div>
+      <div className="superficie px-4 mb-3.5">
+        <button className="w-full text-left py-3.5 border-b border-borde anim-pulsable" onClick={() => abrir("progreso")}>
+          <div className="flex items-center gap-3">
+            <IconoTarjeta Icono={TrendingUp} color="var(--color-turquesa)" tamano={34} />
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-semibold leading-tight">Progreso</div>
+              <div className="text-atenuado text-[12.5px] leading-snug">
+                Peso, medidas, fotos, récords y hábitos
+              </div>
             </div>
-          </>
-        ) : (
-          <div className="text-atenuado text-[13px] py-2">
-            Aún no hay dos pesos para dibujar la evolución.
+            <ChevronRight size={16} className="text-atenuado shrink-0" />
           </div>
-        )}
-      </button>
+          {pesos.length >= 2 ? (
+            <div className="mt-2.5">
+              <Sparkline datos={pesos} color="var(--color-turquesa)" />
+              <div className="flex justify-between items-baseline text-[12.5px] mt-1">
+                <span className="text-atenuado">
+                  Inicio <b className="text-texto-2">{kg(pesos[0])} kg</b>
+                </span>
+                <span className="text-atenuado">
+                  Cambio{" "}
+                  <b className="text-texto-2">{conSigno(pesos[pesos.length - 1] - pesos[0])} kg</b>
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="text-atenuado text-[12.5px] mt-2">
+              {pesos.length === 0
+                ? "Todavía no se ha pesado."
+                : "Un solo peso: la gráfica sale a partir del segundo."}
+            </div>
+          )}
+        </button>
+
+        <button className="fila w-full text-left anim-pulsable" onClick={() => abrir("chat")}>
+          <IconoTarjeta Icono={MessageCircle} color="var(--color-acento)" tamano={34} />
+          <div className="flex-1 min-w-0">
+            <div className="text-[14px] font-semibold leading-tight flex items-center gap-2">
+              Chat
+              {chatPendiente && (
+                <span className="text-acento text-[12px] font-semibold">· te ha escrito</span>
+              )}
+            </div>
+            <div className="text-atenuado text-[12.5px] leading-snug break-words line-clamp-2">
+              {ultimoMensaje
+                ? `${ultimoMensaje.remitente === "entrenador" ? "Tú: " : ""}${ultimoMensaje.texto}`
+                : "Sin mensajes todavía"}
+            </div>
+          </div>
+          {chatPendiente && <span className="w-2 h-2 rounded-full bg-acento shrink-0" />}
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </button>
+      </div>
     </>
   );
 }

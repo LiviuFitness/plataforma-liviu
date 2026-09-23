@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { r, r1, type Alimento, type Alternativa } from "@/lib/dietas";
 
@@ -40,12 +39,7 @@ export default function CatalogoAlimentos({
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-1">
-        <Link href="/ajustes" className="mini shrink-0" aria-label="Volver a Ajustes">
-          <ArrowLeft size={14} />
-        </Link>
-        <h1 className="h1 !mb-0">Alimentos</h1>
-      </div>
+      <h1 className="h1 !mb-0">Alimentos</h1>
       <div className="sub mb-4">catálogo y alternativas —</div>
 
       <input

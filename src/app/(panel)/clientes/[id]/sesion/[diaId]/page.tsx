@@ -222,10 +222,10 @@ export default async function PaginaSesionPresencial({
       diaId={dia.id}
       nombreDia={dia.nombre}
       ejerciciosIniciales={ejercicios}
-      volverA={`/clientes/${id}`}
+      volverA={`/clientes/${id}?vista=entreno`}
       nombreCliente={perfil.nombre}
       sesionAnterior={sesionAnterior}
-      analisisHref={`/clientes/${id}`}
+      analisisHref={`/clientes/${id}?vista=progreso`}
       avisarSiDuplicada
     />
   );

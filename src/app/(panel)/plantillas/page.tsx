@@ -1,5 +1,6 @@
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import Plantillas from "./Plantillas";
+import SeccionesPanel from "@/componentes/SeccionesPanel";
 import type { Dieta } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -89,10 +90,13 @@ export default async function PaginaPlantillas() {
   }));
 
   return (
+    <>
+    <SeccionesPanel grupo="biblioteca" />
     <Plantillas
       rutinas={plantillasRutina}
       dietas={(dietas ?? []) as Dieta[]}
       clientes={asignables}
     />
+    </>
   );
 }

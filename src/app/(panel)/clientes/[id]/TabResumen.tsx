@@ -6,12 +6,14 @@ import { AlertTriangle, CalendarCheck, ChevronDown } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import ResumenPlan from "./ResumenPlan";
 import type { SesionHistorial } from "@/lib/progresoEntreno";
+import type { Vista } from "./FichaCliente";
 import {
   OBJETIVOS,
   type Alerta,
   type Dieta,
   type Estado,
   type Medida,
+  type Mensaje,
   type Perfil,
   type Plan,
   type RespuestaAltaConPregunta,
@@ -20,7 +22,7 @@ import {
 } from "@/lib/tipos";
 import { FACTORES_ACTIVIDAD } from "@/lib/macros";
 
-/** Pestaña Resumen: peso, adherencia semanal, alertas, notas y datos. */
+/** Pantalla principal de la ficha: alertas, cómo va, su plan, notas y datos. */
 export default function TabResumen({
   perfil,
   medidas,
@@ -32,8 +34,10 @@ export default function TabResumen({
   dietaDescanso,
   ultimaSesion,
   ultimaRevision,
+  ultimoMensaje,
+  chatPendiente,
   ahora,
-  irAPestana,
+  abrir,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -45,8 +49,10 @@ export default function TabResumen({
   dietaDescanso: Dieta | null;
   ultimaSesion: SesionHistorial | null;
   ultimaRevision: RevisionKcal | null;
+  ultimoMensaje: Mensaje | null;
+  chatPendiente: boolean;
   ahora: number;
-  irAPestana: (p: "entreno" | "dieta" | "progreso") => void;
+  abrir: (v: Vista) => void;
 }) {
   const router = useRouter();
   /* --- Notas privadas con autoguardado (debounce) --- */
@@ -195,8 +201,10 @@ export default function TabResumen({
         dietaDescanso={dietaDescanso}
         ultimaSesion={ultimaSesion}
         ultimaRevision={ultimaRevision}
+        ultimoMensaje={ultimoMensaje}
+        chatPendiente={chatPendiente}
         ahora={ahora}
-        irAPestana={irAPestana}
+        abrir={abrir}
       />
 
       {respuestasAlta.length > 0 && (

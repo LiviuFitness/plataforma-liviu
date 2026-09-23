@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import type { Lead } from "@/lib/planes";
 import Leads from "./Leads";
+import SeccionesPanel from "@/componentes/SeccionesPanel";
+import QrPlanes from "@/componentes/QrPlanes";
+import { contadoresPanel } from "@/lib/contadoresPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +14,19 @@ export default async function PaginaLeads() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const { data } = await supabase
-    .from("leads")
-    .select("*")
-    .order("creado_en", { ascending: false });
+  const [{ data }, contadores] = await Promise.all([
+    supabase.from("leads").select("*").order("creado_en", { ascending: false }),
+    contadoresPanel(supabase),
+  ]);
 
-  return <Leads leads={(data ?? []) as Lead[]} />;
+  return (
+    <>
+      <SeccionesPanel grupo="personas" contadores={contadores} />
+      <Leads leads={(data ?? []) as Lead[]} />
+      {/* El QR vivía en Ajustes, lejos de lo que produce: aquí se genera
+        * el cartel y justo encima se ve quién ha llegado con él. */}
+      <div className="titulo-seccion mt-6">Tu QR de captación</div>
+      <QrPlanes />
+    </>
+  );
 }

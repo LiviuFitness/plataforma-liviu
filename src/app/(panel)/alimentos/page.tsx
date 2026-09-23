@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import CatalogoAlimentos from "./CatalogoAlimentos";
+import SeccionesPanel from "@/componentes/SeccionesPanel";
 import type { Alimento, Alternativa } from "@/lib/dietas";
 
 export const dynamic = "force-dynamic";
@@ -25,9 +26,12 @@ export default async function PaginaAlimentos() {
   ]);
 
   return (
-    <CatalogoAlimentos
-      alimentos={(alimentos ?? []) as Alimento[]}
-      alternativas={(alternativas ?? []) as Alternativa[]}
-    />
+    <>
+      <SeccionesPanel grupo="biblioteca" />
+      <CatalogoAlimentos
+        alimentos={(alimentos ?? []) as Alimento[]}
+        alternativas={(alternativas ?? []) as Alternativa[]}
+      />
+    </>
   );
 }

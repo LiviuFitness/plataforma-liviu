@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { MessageCircle, Search } from "lucide-react";
-import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar, PuntoEstado } from "@/componentes/ui";
 import { estadoCliente } from "@/lib/estadoCliente";
-import { OBJETIVOS, type Invitacion, type Perfil } from "@/lib/tipos";
+import type { Perfil } from "@/lib/tipos";
 
 type Filtro = "todos" | "atencion" | "sin-rutina" | "sin-dieta" | "inactivos";
 
-/** Listado de clientes con buscador, filtros e invitaciones. */
+/** Listado de clientes con buscador y filtros. Las invitaciones tienen
+ * su propia pantalla, en la segunda fila de navegación. */
 export default function ListaClientes({
   clientes,
   adherencias,
@@ -19,8 +18,6 @@ export default function ListaClientes({
   diasSinEntrenar,
   diasDesdeAlta,
   chatSinLeer,
-  invitaciones,
-  ahora,
   conRutina,
   conDieta,
 }: {
@@ -32,25 +29,11 @@ export default function ListaClientes({
   diasDesdeAlta: Record<string, number>;
   /** true si el último mensaje del hilo lo mandó el cliente (pendiente de responder) */
   chatSinLeer: Record<string, boolean>;
-  invitaciones: Invitacion[];
-  /** Marca de tiempo del servidor, para que los días que le quedan a una
-   * invitación se calculen igual aquí y allí. */
-  ahora: number;
   /** Clientes con rutina activa / con dieta de entreno activa. */
   conRutina: string[];
   conDieta: string[];
 }) {
-  const router = useRouter();
   const [busqueda, setBusqueda] = useState("");
-  const [mostrarNueva, setMostrarNueva] = useState(false);
-  const [nombre, setNombre] = useState("");
-  const [email, setEmail] = useState("");
-  const [objetivo, setObjetivo] = useState(OBJETIVOS[0]);
-  const [plan, setPlan] = useState<"mensual" | "trimestral">("mensual");
-  const [error, setError] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [copiada, setCopiada] = useState<string | null>(null);
-  const [renovando, setRenovando] = useState<string | null>(null);
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
 
@@ -108,61 +91,6 @@ export default function ListaClientes({
     }
   });
 
-  async function crearInvitacion(e: React.FormEvent) {
-    e.preventDefault();
-    setError("");
-    if (!nombre.trim() || !email.trim()) {
-      setError("Rellena nombre y email.");
-      return;
-    }
-    setCargando(true);
-    const supabase = crearClienteNavegador();
-    const { error } = await supabase.from("invitaciones").insert({
-      nombre: nombre.trim(),
-      email: email.trim().toLowerCase(),
-      objetivo,
-      plan,
-    });
-    setCargando(false);
-    if (error) {
-      setError("No se pudo crear la invitación. Inténtalo de nuevo.");
-      return;
-    }
-    setNombre("");
-    setEmail("");
-    setMostrarNueva(false);
-    router.refresh();
-  }
-
-  /* Renovar en vez de borrar y volver a escribir nombre y correo: el
-   * enlace es el mismo, solo se le corre la fecha de caducidad. */
-  async function renovarInvitacion(id: string) {
-    setRenovando(id);
-    const supabase = crearClienteNavegador();
-    await supabase
-      .from("invitaciones")
-      // eslint-disable-next-line react-hooks/purity -- va en un manejador de clic, no en el render
-      .update({ expira: new Date(Date.now() + 7 * 24 * 3600 * 1000).toISOString() })
-      .eq("id", id);
-    setRenovando(null);
-    router.refresh();
-  }
-
-  async function borrarInvitacion(id: string) {
-    const supabase = crearClienteNavegador();
-    await supabase.from("invitaciones").delete().eq("id", id);
-    router.refresh();
-  }
-
-  function enlaceAlta(token: string) {
-    return `${window.location.origin}/alta/${token}`;
-  }
-
-  async function copiarEnlace(inv: Invitacion) {
-    await navigator.clipboard.writeText(enlaceAlta(inv.token));
-    setCopiada(inv.id);
-    setTimeout(() => setCopiada(null), 2000);
-  }
 
   return (
     <>
@@ -174,118 +102,11 @@ export default function ListaClientes({
             {FILTROS[4].n > 0 ? ` · ${FILTROS[4].n} pausados o de baja` : ""}
           </div>
         </div>
-        <button
-          className="cta cta-mini"
-          onClick={() => setMostrarNueva((v) => !v)}
-        >
-          {mostrarNueva ? "Cerrar" : "+ Invitar"}
-        </button>
+        <Link href="/invitaciones" className="cta cta-mini shrink-0">
+          + Invitar
+        </Link>
       </div>
 
-      {/* Alta por invitación (§3: no hay registro público) */}
-      {mostrarNueva && (
-        <form onSubmit={crearInvitacion} className="tarjeta mt-3.5">
-          <div className="titulo-tarjeta">INVITAR CLIENTE</div>
-          <input
-            className="input"
-            placeholder="Nombre y apellido"
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-          />
-          <input
-            className="input"
-            type="email"
-            placeholder="Email del cliente"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-          <div className="grid grid-cols-2 gap-2">
-            <select
-              className="input"
-              value={objetivo}
-              onChange={(e) => setObjetivo(e.target.value)}
-            >
-              {OBJETIVOS.map((o) => (
-                <option key={o}>{o}</option>
-              ))}
-            </select>
-            <select
-              className="input"
-              value={plan}
-              onChange={(e) =>
-                setPlan(e.target.value as "mensual" | "trimestral")
-              }
-            >
-              <option value="mensual">Plan mensual</option>
-              <option value="trimestral">Plan trimestral</option>
-            </select>
-          </div>
-          {error && (
-            <div className="text-peligro text-[13.5px] mb-3">— {error}</div>
-          )}
-          <button className="cta" type="submit" disabled={cargando}>
-            {cargando ? "Creando…" : "Crear invitación"}
-          </button>
-          <p className="text-atenuado text-[12.5px] -mt-2">
-            Se genera un enlace de alta para enviárselo por WhatsApp o email.
-            Caduca en 7 días.
-          </p>
-        </form>
-      )}
-
-      {/* Invitaciones pendientes */}
-      {invitaciones.length > 0 && (
-        <section className="tarjeta mt-3.5">
-          <div className="titulo-tarjeta">INVITACIONES PENDIENTES</div>
-          {invitaciones.map((inv) => {
-            const dias = Math.ceil(
-              (new Date(inv.expira).getTime() - ahora) / 86400000
-            );
-            const caducada = dias <= 0;
-            return (
-            <div key={inv.id} className="fila">
-
-              <div className="flex-1 min-w-0">
-                <div className="font-bold text-[14px]">{inv.nombre}</div>
-                <div className="text-atenuado text-[12.5px] break-all">
-                  {inv.email}
-                </div>
-                {/* Cuánto le queda al enlace. Sin esto, el cliente decía
-                 * "no me funciona" y aquí no había forma de saber que era
-                 * porque habían pasado más de siete días. */}
-                <div
-                  className={`text-[12px] mt-0.5 ${caducada ? "text-peligro" : "text-atenuado"}`}
-                >
-                  {caducada
-                    ? `Enlace caducado hace ${Math.abs(dias)} ${Math.abs(dias) === 1 ? "día" : "días"}`
-                    : `Caduca en ${dias} ${dias === 1 ? "día" : "días"}`}
-                </div>
-              </div>
-              {caducada ? (
-                <button
-                  className="ghost"
-                  onClick={() => renovarInvitacion(inv.id)}
-                  disabled={renovando === inv.id}
-                >
-                  {renovando === inv.id ? "…" : "Renovar"}
-                </button>
-              ) : (
-                <button className="ghost" onClick={() => copiarEnlace(inv)}>
-                  {copiada === inv.id ? "¡Copiado!" : "Copiar enlace"}
-                </button>
-              )}
-              <button
-                className="mini mini-peligro"
-                onClick={() => borrarInvitacion(inv.id)}
-                aria-label={`Borrar invitación de ${inv.nombre}`}
-              >
-                ✕
-              </button>
-            </div>
-            );
-          })}
-        </section>
-      )}
 
       <div className="relative mt-3.5 mb-2.5">
         <Search
@@ -317,7 +138,7 @@ export default function ListaClientes({
 
       {clientes.length === 0 && (
         <div className="tarjeta text-atenuado text-[13.5px]">
-          Sin clientes todavía. Crea la primera invitación con «+ Invitar».
+          Sin clientes todavía. Invita al primero con «+ Invitar».
         </div>
       )}
 

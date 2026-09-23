@@ -336,7 +336,11 @@ export default function EditorRutina({
   return (
     <>
       {/* Selector de semanas (microciclos) */}
-      <div className="flex gap-1.5 overflow-x-auto scroll-sin-barra pb-2 mb-1">
+      {/* Semanas arriba, acciones debajo, y nada deslizándose: en una
+        * sola fila que se deslizaba, "Duplicar" salía cortado y "Igualar
+        * las demás" quedaba fuera de la pantalla del móvil sin que nada
+        * indicara que existía. */}
+      <div className="flex flex-wrap gap-1.5 mb-2">
         {semanas.map((s) => (
           <button
             key={s}
@@ -350,17 +354,19 @@ export default function EditorRutina({
             {clienteId && s === semanaActual ? " ●" : ""}
           </button>
         ))}
+      </div>
+      <div className="flex gap-2 mb-3">
         <button
-          className="chip !border-acento/40 !text-acento"
+          className="tab !text-[13px] !text-acento !border-acento/40"
           onClick={duplicarSemana}
           disabled={cargando}
           title="Copia la semana en vista como semana nueva"
         >
-          ⧉ Duplicar semana
+          ⧉ Duplicar semana {semanaVista}
         </button>
         {semanas.length > 1 && (
           <button
-            className="chip !border-acento/40 !text-acento"
+            className="tab !text-[13px] !text-acento !border-acento/40"
             onClick={() => setMostrarIgualar(true)}
             disabled={cargando}
             title="Deja las demás semanas igual que esta"

@@ -365,7 +365,7 @@ export default async function PaginaHoy() {
               <div className="titulo-seccion">Te han escrito</div>
               <div className="superficie px-4 mb-6">
                 {esperandoRespuesta.map((c) => (
-                  <Link key={c.id} href={`/clientes/${c.id}`} className="fila">
+                  <Link key={c.id} href={`/clientes/${c.id}?vista=chat`} className="fila">
                     <Avatar nombre={c.nombre} tamano={34} />
                     <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight">
                       {c.nombre}
@@ -387,7 +387,7 @@ export default async function PaginaHoy() {
           <div className="superficie px-4 mb-6">
             {listaClientes.length === 0 ? (
               <div className="text-atenuado text-[13.5px] py-3">
-                Sin clientes todavía. Crea la primera invitación desde «Clientes».
+                Sin clientes todavía. Crea la primera desde Clientes › Invitaciones.
               </div>
             ) : (
               <>
@@ -436,7 +436,7 @@ export default async function PaginaHoy() {
               <div className="titulo-seccion">Récords de la semana</div>
               <div className="superficie px-4 mb-6">
                 {recordsSemana.slice(0, 5).map((rec, i) => (
-                  <Link key={i} href={`/clientes/${rec.cliente_id}`} className="fila">
+                  <Link key={i} href={`/clientes/${rec.cliente_id}?vista=progreso`} className="fila">
                     <Trophy size={15} className="text-dorado shrink-0" />
                     <span className="flex-1 min-w-0 text-[13px] leading-snug">
                       <b>{rec.nombre.split(" ")[0]}</b>

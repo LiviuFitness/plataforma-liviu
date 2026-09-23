@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import GestionPreguntas from "@/componentes/GestionPreguntas";
+import SeccionesPanel from "@/componentes/SeccionesPanel";
 import type { PreguntaAlta } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,8 @@ export default async function PaginaCuestionarioAlta() {
     .order("orden");
 
   return (
+    <>
+    <SeccionesPanel grupo="biblioteca" />
     <GestionPreguntas
       tabla="preguntas_alta"
       titulo="Cuestionario de alta"
@@ -25,5 +28,6 @@ export default async function PaginaCuestionarioAlta() {
       notaPie="Solo las preguntas activas se muestran. El cliente las responde una sola vez, al final del onboarding, antes de entrar por primera vez a la app."
       preguntas={(preguntas ?? []) as PreguntaAlta[]}
     />
+    </>
   );
 }

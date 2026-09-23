@@ -1,10 +1,12 @@
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import ListaClientes from "./ListaClientes";
-import type { Invitacion, Perfil } from "@/lib/tipos";
+import SeccionesPanel from "@/componentes/SeccionesPanel";
+import { contadoresPanel } from "@/lib/contadoresPanel";
+import type { Perfil } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
 
-/** Pantalla "Clientes": listado, buscador e invitaciones. */
+/** Pantalla "Clientes": listado con buscador y filtros. */
 export default async function PaginaClientes() {
   const supabase = await crearClienteServidor();
 
@@ -12,11 +14,11 @@ export default async function PaginaClientes() {
     { data: clientes },
     { data: adherencias },
     { data: alertas },
-    { data: invitaciones },
     { data: sesiones },
     { data: mensajes },
     { data: rutinasActivas },
     { data: dietasActivas },
+    contadores,
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -25,14 +27,6 @@ export default async function PaginaClientes() {
       .order("nombre"),
     supabase.from("v_adherencia").select("cliente_id, adherencia"),
     supabase.from("v_alertas").select("cliente_id"),
-    /* Sin filtrar por fecha: una invitación caducada desaparecía de la
-     * pantalla sin dejar rastro. El cliente veía "enlace no válido" y
-     * aquí no había nada pendiente que explicara por qué. */
-    supabase
-      .from("invitaciones")
-      .select("*")
-      .eq("usada", false)
-      .order("creada_en", { ascending: false }),
     supabase
       .from("sesiones")
       .select("cliente_id, fecha_inicio")
@@ -52,13 +46,13 @@ export default async function PaginaClientes() {
       .eq("activa", true)
       .eq("tipo", "entreno")
       .not("cliente_id", "is", null),
+    contadoresPanel(supabase),
   ]);
 
   /* Una sola lectura del reloj para toda la pantalla: los días sin
-   * entrenar, los días desde el alta y lo que le queda a cada invitación
-   * se cuentan contra el mismo instante. Además baja como dato al
-   * componente de cliente, para que el navegador no vuelva a mirar la
-   * hora al hidratar y diga "5 días" donde el servidor dijo "6". */
+   * entrenar y los días desde el alta se cuentan contra el mismo
+   * instante, y bajan ya calculados al componente de cliente para que el
+   * navegador no vuelva a mirar la hora al hidratar. */
   const ahora = new Date().getTime();
 
   const mapaAdh = new Map(
@@ -99,6 +93,8 @@ export default async function PaginaClientes() {
   }
 
   return (
+    <>
+    <SeccionesPanel grupo="personas" contadores={contadores} />
     <ListaClientes
       clientes={(clientes ?? []) as Perfil[]}
       adherencias={Object.fromEntries(mapaAdh)}
@@ -106,10 +102,9 @@ export default async function PaginaClientes() {
       diasSinEntrenar={Object.fromEntries(diasSinEntrenar)}
       diasDesdeAlta={Object.fromEntries(diasDesdeAlta)}
       chatSinLeer={Object.fromEntries(chatSinLeer)}
-      invitaciones={(invitaciones ?? []) as Invitacion[]}
       conRutina={[...new Set((rutinasActivas ?? []).map((r) => r.cliente_id as string))]}
       conDieta={[...new Set((dietasActivas ?? []).map((d) => d.cliente_id as string))]}
-      ahora={ahora}
     />
+    </>
   );
 }

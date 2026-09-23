@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import { AnilloAdherencia } from "@/componentes/ui";
 import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
@@ -28,18 +30,33 @@ import type {
   RutinaUI,
 } from "@/lib/tipos";
 
-const PESTANAS = [
-  ["resumen", "Resumen"],
-  ["entreno", "Entreno"],
-  ["dieta", "Dieta"],
-  ["progreso", "Progreso"],
-  ["habitos", "Hábitos"],
-  ["chat", "Chat"],
-] as const;
+export type Vista = "entreno" | "dieta" | "progreso" | "chat";
 
-type Pestana = (typeof PESTANAS)[number][0];
+const TITULOS: Record<Vista, string> = {
+  entreno: "Entreno",
+  dieta: "Dieta",
+  progreso: "Progreso",
+  chat: "Chat",
+};
 
-/** Ficha de cliente con pestañas (prototipo v1/v2). */
+function esVista(v: string | null): v is Vista {
+  return v === "entreno" || v === "dieta" || v === "progreso" || v === "chat";
+}
+
+/**
+ * Ficha de cliente: una pantalla principal y cuatro secciones.
+ *
+ * Antes eran seis pestañas en fila (Resumen, Entreno, Dieta, Progreso,
+ * Hábitos, Chat) más dos subpestañas dentro de Dieta, y en el móvil la
+ * última se salía de la pantalla. Ahora la ficha ES el resumen: se abre
+ * con lo que hay que saber de la persona, y Entreno, Dieta, Progreso y
+ * Chat se abren desde ahí a pantalla completa, con "← Nombre" para
+ * volver. Hábitos vive dentro de Progreso, que es donde se mira cómo va.
+ *
+ * La sección va en la URL (?vista=dieta) con history.pushState: así el
+ * gesto de atrás del iPhone vuelve a la ficha y no a la lista de
+ * clientes, y no se vuelven a pedir los datos al servidor al cambiar.
+ */
 export default function FichaCliente({
   perfil,
   medidas,
@@ -91,82 +108,62 @@ export default function FichaCliente({
    * pintar allí y al hidratar aquí. */
   ahora: number;
 }) {
-  const [pestana, setPestana] = useState<Pestana>("resumen");
-  // Cuando el editor de día está abierto ocultamos cabecera y pestañas
+  const parametros = useSearchParams();
+  const crudo = parametros.get("vista");
+  const vista: Vista | null = esVista(crudo) ? crudo : null;
+
+  // Cuando el editor de día está abierto ocultamos la cabecera
   const [editandoDia, setEditandoDia] = useState(false);
-  // Sub-pestaña de la dieta: día de entreno o día de descanso
+  // Dieta: día de entreno o día de descanso
   const [tipoDieta, setTipoDieta] = useState<"entreno" | "descanso">("entreno");
 
-  /* Punto en la pestaña Chat si el último mensaje es suyo: sin esto,
-   * dentro de la ficha no había forma de saber que te había escrito. */
-  const chatPendiente = mensajes[mensajes.length - 1]?.remitente === "cliente";
+  const nombrePila = perfil.nombre.split(" ")[0];
+  const ultimoMensaje = mensajes[mensajes.length - 1] ?? null;
+  const chatPendiente = ultimoMensaje?.remitente === "cliente";
 
   const desde = new Date(perfil.fecha_alta).toLocaleDateString("es-ES", {
     month: "long",
     year: "numeric",
   });
 
-  return (
-    <>
-      {!editandoDia && (
-        <>
-          <Link
-            href="/clientes"
-            className="text-atenuado text-[13.5px] inline-block mb-2"
-          >
-            ← Clientes
-          </Link>
-          <div className="flex justify-between items-center gap-3">
-            <div className="min-w-0">
-              <h1 className="h1 break-words">{perfil.nombre}</h1>
-              <div className="sub !mb-0 break-words">
-                {perfil.objetivo ?? "Sin objetivo"}
-                {perfil.plan ? ` · plan ${perfil.plan}` : ""} · desde {desde}
-              </div>
-              {perfil.estado !== "activo" && (
-                <span
-                  className={`chip !cursor-default mt-2 inline-flex ${
-                    perfil.estado === "baja" ? "!text-peligro" : "!text-aviso"
-                  }`}
-                >
-                  {perfil.estado === "baja" ? "De baja" : "Pausado"}
-                </span>
-              )}
-            </div>
-            <div className="flex flex-col items-center gap-1 shrink-0">
-              <AnilloAdherencia valor={adherencia} tamano={52} />
-              <span className="text-atenuado text-[10px] font-semibold uppercase tracking-[0.06em]">
-                28 días
-              </span>
-            </div>
-          </div>
+  function abrir(v: Vista | null) {
+    setEditandoDia(false);
+    window.history.pushState(null, "", v ? `?vista=${v}` : window.location.pathname);
+    window.scrollTo(0, 0);
+  }
 
-          {/* Seis pestañas en un móvil: con el hueco de 18 px de las
-            * demás pantallas, "Chat" se salía por la derecha y había que
-            * adivinar que existía. Aquí se reparten el ancho. */}
-          <nav className="tabs-texto !gap-0 justify-between my-4">
-            {PESTANAS.map(([clave, etiqueta]) => (
-              <button
-                key={clave}
-                className={`${pestana === clave ? "tab-texto tab-texto-activa" : "tab-texto"} !text-[13px] relative ${
-                  clave === "chat" && chatPendiente ? "!pr-2.5" : ""
+  /* ------------------------------------------------ pantalla principal */
+  if (vista === null) {
+    return (
+      <>
+        <Link href="/clientes" className="text-atenuado text-[13.5px] inline-flex items-center gap-1 mb-2">
+          <ArrowLeft size={14} /> Clientes
+        </Link>
+        <div className="flex justify-between items-center gap-3 mb-4">
+          <div className="min-w-0">
+            <h1 className="h1 break-words">{perfil.nombre}</h1>
+            <div className="sub !mb-0 break-words">
+              {perfil.objetivo ?? "Sin objetivo"}
+              {perfil.plan ? ` · plan ${perfil.plan}` : ""} · desde {desde}
+            </div>
+            {perfil.estado !== "activo" && (
+              <span
+                className={`chip !cursor-default mt-2 inline-flex ${
+                  perfil.estado === "baja" ? "!text-peligro" : "!text-aviso"
                 }`}
-                onClick={() => setPestana(clave)}
               >
-                {etiqueta}
-                {clave === "chat" && chatPendiente && (
-                  <span
-                    className="absolute top-2 right-0 w-1.5 h-1.5 rounded-full bg-acento"
-                    aria-label="Mensaje sin responder"
-                  />
-                )}
-              </button>
-            ))}
-          </nav>
-        </>
-      )}
+                {perfil.estado === "baja" ? "De baja" : "Pausado"}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-col items-center gap-1 shrink-0">
+            <AnilloAdherencia valor={adherencia} tamano={52} />
+            <span className="text-atenuado text-[10px] font-semibold uppercase tracking-[0.06em]">
+              28 días
+            </span>
+          </div>
+        </div>
 
-      {pestana === "resumen" && (
         <TabResumen
           perfil={perfil}
           medidas={medidas}
@@ -178,12 +175,37 @@ export default function FichaCliente({
           dietaDescanso={dietaDescanso}
           ultimaSesion={progresoEntreno.historial[0] ?? null}
           ultimaRevision={revisiones[0] ?? null}
+          ultimoMensaje={ultimoMensaje}
+          chatPendiente={chatPendiente}
           ahora={ahora}
-          irAPestana={setPestana}
+          abrir={abrir}
         />
+      </>
+    );
+  }
+
+  /* ------------------------------------------------------- una sección */
+  return (
+    <>
+      {/* Solo Entreno oculta la cabecera, y solo con un día abierto: si
+        * se sale con el gesto de atrás a mitad de edición, el aviso se
+        * queda en true y no debe esconder la de otra sección. */}
+      {!(editandoDia && vista === "entreno") && (
+        <div className="mb-4">
+          <button
+            className="text-atenuado text-[13.5px] inline-flex items-center gap-1 mb-2 cursor-pointer"
+            onClick={() => abrir(null)}
+          >
+            <ArrowLeft size={14} /> {nombrePila}
+          </button>
+          <h1 className="h1 break-words">
+            {TITULOS[vista]}
+            <span className="text-atenuado font-semibold text-[15px]"> · {perfil.nombre}</span>
+          </h1>
+        </div>
       )}
 
-      {pestana === "entreno" && (
+      {vista === "entreno" && (
         <EditorRutina
           rutina={rutina}
           plantillas={plantillasRutina}
@@ -195,20 +217,19 @@ export default function FichaCliente({
         />
       )}
 
-      {pestana === "dieta" && (
+      {vista === "dieta" && (
         <>
-          {/* Sub-pestaña: dieta de día de entreno vs. día de descanso —
-           * mismo lenguaje de subrayado que las pestañas principales,
-           * en vez de mezclar con el estilo de chip. */}
-          <div className="tabs-texto mb-3.5">
+          {/* Dos botones de igual peso en vez de una segunda fila de
+            * pestañas subrayadas debajo de la primera. */}
+          <div className="flex gap-2 mb-4">
             <button
-              className={tipoDieta === "entreno" ? "tab-texto tab-texto-activa" : "tab-texto"}
+              className={`tab ${tipoDieta === "entreno" ? "tab-activa" : ""}`}
               onClick={() => setTipoDieta("entreno")}
             >
               Día de entreno
             </button>
             <button
-              className={tipoDieta === "descanso" ? "tab-texto tab-texto-activa" : "tab-texto"}
+              className={`tab ${tipoDieta === "descanso" ? "tab-activa" : ""}`}
               onClick={() => setTipoDieta("descanso")}
             >
               Día de descanso
@@ -241,25 +262,25 @@ export default function FichaCliente({
         </>
       )}
 
-      {pestana === "progreso" && (
-        <TabProgreso
-          clienteId={perfil.id}
-          medidas={medidas}
-          perfil={perfil}
-          dietaId={dieta?.id ?? null}
-          dietaKcal={dieta?.kcal_obj ?? null}
-          entradasFotos={entradasFotos}
-          progresoEntreno={progresoEntreno}
-          revisiones={revisiones}
-          respuestasCuestionario={respuestasCuestionario}
-        />
+      {vista === "progreso" && (
+        <>
+          <TabProgreso
+            clienteId={perfil.id}
+            medidas={medidas}
+            perfil={perfil}
+            dietaId={dieta?.id ?? null}
+            dietaKcal={dieta?.kcal_obj ?? null}
+            entradasFotos={entradasFotos}
+            progresoEntreno={progresoEntreno}
+            revisiones={revisiones}
+            respuestasCuestionario={respuestasCuestionario}
+          />
+          <div className="titulo-seccion mt-6">Hábitos</div>
+          <TabHabitos habitos={habitos} registros={registrosHabitos} />
+        </>
       )}
 
-      {pestana === "habitos" && (
-        <TabHabitos habitos={habitos} registros={registrosHabitos} />
-      )}
-
-      {pestana === "chat" && (
+      {vista === "chat" && (
         <HiloChat
           clienteId={perfil.id}
           mensajesIniciales={mensajes}

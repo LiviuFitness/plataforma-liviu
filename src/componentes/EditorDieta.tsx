@@ -17,6 +17,8 @@ import {
   type ComidaEstructurada,
 } from "@/lib/dietas";
 import { Sparkles } from "lucide-react";
+import { infoComida } from "@/lib/infoComida";
+import { IconoTarjeta } from "@/componentes/ui";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
 import AsignarPlantilla, { type PlantillaResumen } from "@/componentes/AsignarPlantilla";
@@ -434,20 +436,73 @@ export default function EditorDieta({
             macrosDe(i.alimento, Number(i.gramos.replace(",", ".")) || 0)
           )
         );
+        const sugerido = COMIDAS_SUGERIDAS[ci % COMIDAS_SUGERIDAS.length];
+        const { Icono, color, foto } = infoComida(c.nombre.trim() || sugerido);
+        const velo = `color-mix(in srgb, ${color} 13%, var(--color-panel))`;
         return (
-          <section className="tarjeta" key={ci}>
-            <div className="flex gap-2 items-center mb-2">
-              <input
-                className="input !mb-0 font-bold"
-                placeholder={COMIDAS_SUGERIDAS[ci % COMIDAS_SUGERIDAS.length]}
-                value={c.nombre}
-                onChange={(e) => {
-                  setComidas(comidas.map((x, j) => (j === ci ? { ...x, nombre: e.target.value } : x)));
-                  tocar();
-                }}
-              />
+          <section className="tarjeta !p-0 overflow-hidden" key={ci}>
+            {/* Misma cabecera que ve el cliente: velo del color de la
+              * comida, su icono y la foto entrando por la derecha. Antes
+              * era un campo de texto gris igual en todas, y con cinco
+              * comidas seguidas no se veía dónde empezaba cada una. El
+              * nombre sigue siendo editable: es el mismo campo, sin caja. */}
+            <div
+              className="relative overflow-hidden flex items-center gap-3 px-4 pt-3.5 pb-3 border-b border-borde"
+              style={{ background: velo }}
+            >
+              {foto && (
+                <>
+                  <span
+                    aria-hidden
+                    className="absolute inset-y-0 right-0 w-[50%] pointer-events-none"
+                    style={{
+                      backgroundImage: `url(${foto})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center right",
+                    }}
+                  />
+                  <span
+                    aria-hidden
+                    className="absolute inset-0 pointer-events-none"
+                    style={{
+                      background: `linear-gradient(90deg, ${velo} 0%, ${velo} 48%, color-mix(in srgb, ${velo} 60%, transparent) 72%, color-mix(in srgb, ${velo} 45%, transparent) 100%)`,
+                    }}
+                  />
+                </>
+              )}
+              <span className="relative shrink-0">
+                <IconoTarjeta Icono={Icono} color={color} tamano={36} />
+              </span>
+              <div className="relative flex-1 min-w-0">
+                <input
+                  className="w-full bg-transparent border-0 border-b border-dashed border-transparent focus:border-borde-2 outline-none font-bold text-[15.5px] leading-tight text-white placeholder:text-atenuado py-0.5"
+                  placeholder={sugerido}
+                  value={c.nombre}
+                  onChange={(e) => {
+                    setComidas(comidas.map((x, j) => (j === ci ? { ...x, nombre: e.target.value } : x)));
+                    tocar();
+                  }}
+                  aria-label="Nombre de la comida"
+                />
+                <div className="text-atenuado text-[11.5px]">
+                  {c.items.length === 0
+                    ? "Sin alimentos"
+                    : `${c.items.length} ${c.items.length === 1 ? "alimento" : "alimentos"}`}
+                </div>
+              </div>
+              {c.items.length > 0 && (
+                <span
+                  className="relative shrink-0 text-[12px] font-bold rounded-full px-2.5 py-1"
+                  style={{
+                    color,
+                    background: `color-mix(in srgb, ${color} 14%, ${foto ? "var(--color-fondo)" : "transparent"})`,
+                  }}
+                >
+                  {r(totales.kcal)} kcal
+                </span>
+              )}
               <button
-                className="mini mini-peligro shrink-0"
+                className="mini mini-peligro shrink-0 relative"
                 onClick={() => {
                   if (c.items.length > 0 && !confirm(`¿Quitar «${c.nombre || "esta comida"}» con sus alimentos?`)) return;
                   setComidas(comidas.filter((_, j) => j !== ci));
@@ -458,6 +513,8 @@ export default function EditorDieta({
                 ✕
               </button>
             </div>
+
+            <div className="px-4 pt-2 pb-4">
 
             {c.items.map((it, ii) => {
               const m = macrosDe(it.alimento, Number(it.gramos.replace(",", ".")) || 0);
@@ -540,6 +597,7 @@ export default function EditorDieta({
                 tocar();
               }}
             />
+            </div>
           </section>
         );
       })}

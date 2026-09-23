@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import Switch from "@/componentes/Switch";
 
@@ -104,12 +104,23 @@ export default function GestionPreguntas({
 
   return (
     <>
-      <div className="flex items-center gap-2 mb-1">
-        <Link href="/ajustes" className="mini shrink-0" aria-label="Volver a Ajustes">
-          <ArrowLeft size={14} />
+      {/* Los dos cuestionarios comparten entrada en Biblioteca: se
+        * cambia de uno a otro aquí, sin volver atrás. */}
+      <div className="flex gap-2 mb-3">
+        <Link
+          href="/cuestionario"
+          className={`chip ${tabla === "preguntas_revision" ? "chip-activo" : ""}`}
+        >
+          Semanal
         </Link>
-        <h1 className="h1 !mb-0">{titulo}</h1>
+        <Link
+          href="/cuestionario-alta"
+          className={`chip ${tabla === "preguntas_alta" ? "chip-activo" : ""}`}
+        >
+          De alta
+        </Link>
       </div>
+      <h1 className="h1 !mb-0">{titulo}</h1>
       <div className="sub mb-4">{subtitulo} —</div>
 
       {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}

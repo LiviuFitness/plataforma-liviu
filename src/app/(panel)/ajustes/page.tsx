@@ -19,16 +19,10 @@ export default async function PaginaAjustes() {
 
   if (!perfil) redirect("/login");
 
-  const { count } = await supabase
-    .from("leads")
-    .select("id", { count: "exact", head: true })
-    .eq("estado", "nuevo");
-
   return (
     <Ajustes
       perfil={perfil as Perfil}
       email={user.email ?? perfil.email}
-      leadsNuevos={count ?? 0}
     />
   );
 }
