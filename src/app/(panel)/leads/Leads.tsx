@@ -67,7 +67,7 @@ export default function Leads({ leads }: { leads: Lead[] }) {
       <div className="sub mb-4">quien ha dejado sus datos en /planes —</div>
 
       {leads.length > 0 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
+        <div className="flex flex-wrap gap-2 mb-4">
           <button
             className={`chip shrink-0 ${filtro === "todos" ? "chip-activo" : ""}`}
             onClick={() => setFiltro("todos")}
@@ -101,7 +101,7 @@ export default function Leads({ leads }: { leads: Lead[] }) {
       {visibles.map((lead) => (
         <section key={lead.id} className="tarjeta !p-5 mb-2.5">
           <div className="flex items-start justify-between gap-3 mb-1">
-            <div className="font-bold text-[16px] text-white">{lead.nombre}</div>
+            <div className="font-bold text-[16px] text-white min-w-0 break-words">{lead.nombre}</div>
             <div className="text-atenuado text-[12px] shrink-0 mt-0.5">
               {fechaCorta(lead.creado_en)}
             </div>
@@ -113,8 +113,12 @@ export default function Leads({ leads }: { leads: Lead[] }) {
           </div>
 
           <div className="flex flex-wrap gap-2 mb-3">
-            <a href={`mailto:${lead.email}`} className="chip !gap-1.5 flex items-center">
-              <Mail size={14} /> {lead.email}
+            <a
+              href={`mailto:${lead.email}`}
+              className="chip !gap-1.5 flex items-center max-w-full min-w-0"
+            >
+              <Mail size={14} className="shrink-0" />
+              <span className="break-all">{lead.email}</span>
             </a>
             {lead.telefono && (
               <>
