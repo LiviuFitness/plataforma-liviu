@@ -153,7 +153,7 @@ export default function MiRutina({
 
               <span className="relative flex-1 min-w-0">
                 <span className="flex items-center gap-2">
-                  <span className="font-bold text-[15.5px] leading-tight truncate">
+                  <span className="font-bold text-[15.5px] leading-tight break-words min-w-0">
                     {dia.nombre}
                   </span>
                   {esSiguiente && !hecho && (

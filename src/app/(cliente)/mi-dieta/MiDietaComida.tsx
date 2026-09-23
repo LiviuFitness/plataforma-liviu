@@ -155,7 +155,7 @@ export default function MiDietaComida({
             <IconoTarjeta Icono={Icono} color={color} tamano={36} />
           </span>
           <div className="flex-1 min-w-0 relative">
-            <div className="font-bold text-[15.5px] leading-tight truncate">
+            <div className="font-bold text-[15.5px] leading-tight break-words">
               {comida.nombre}
             </div>
             {items.length > 0 && (
@@ -213,7 +213,7 @@ export default function MiDietaComida({
                         <span className="text-[16.5px] font-bold">{r(g)}</span>
                         <span className="text-[11px] text-atenuado ml-0.5">g</span>
                       </span>
-                      <span className="flex-1 min-w-0 text-[14.5px] text-texto-2 leading-tight truncate">
+                      <span className="flex-1 min-w-0 text-[14.5px] text-texto-2 leading-tight break-words">
                         {nombre}
                       </span>
                       {tieneAlternativas && (
@@ -304,7 +304,7 @@ export default function MiDietaComida({
                 <div className="titulo-tarjeta !m-0 flex items-center gap-1.5">
                   <ArrowLeftRight size={12} /> EQUIVALENCIAS
                 </div>
-                <div className="font-bold text-[17px] mt-1 truncate">{sustitucion.nombre}</div>
+                <div className="font-bold text-[17px] mt-1 leading-tight break-words">{sustitucion.nombre}</div>
                 <div className="text-atenuado text-[12.5px] mt-0.5">
                   {r(sustitucion.gramos)} g · mismos macros
                 </div>

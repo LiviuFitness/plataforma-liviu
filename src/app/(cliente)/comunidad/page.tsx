@@ -61,7 +61,7 @@ export default async function PaginaComunidad() {
                 <span className="text-atenuado text-[13px] w-4 shrink-0 tabular-nums">
                   {i + 1}
                 </span>
-                <span className="flex-1 text-[14px] font-semibold truncate">
+                <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight break-words">
                   {r.cliente_id === user.id ? "Tú" : r.nombre}
                 </span>
                 <AnilloAdherencia valor={r.adherencia} tamano={32} />

@@ -96,49 +96,56 @@ export default function Ajustes({
       <h1 className="h1">Ajustes</h1>
       <div className="sub mb-4">tu cuenta de entrenador —</div>
 
-      <Link href="/leads" className="fila !py-3 !px-4 mb-2.5 superficie">
-        <Inbox size={18} className="text-atenuado shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-[14.5px]">Leads</div>
-          <div className="text-atenuado text-[12px]">quien deja sus datos desde el QR</div>
-        </div>
-        {leadsNuevos > 0 && (
-          <span className="bg-acento text-fondo font-bold text-[11.5px] rounded-full px-2 py-0.5 shrink-0">
-            {leadsNuevos}
-          </span>
-        )}
-        <ChevronRight size={16} className="text-atenuado shrink-0" />
-      </Link>
+      {/* Herramientas en una sola superficie, como Su plan en la ficha:
+        * eran cuatro cajas sueltas con márgenes distintos. */}
+      <div className="titulo-seccion">Herramientas</div>
+      <div className="superficie px-4 mb-6">
+        <Link href="/leads" className="fila anim-pulsable">
+          <Inbox size={18} className="text-atenuado shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[14.5px]">Leads</div>
+            <div className="text-atenuado text-[12px]">quien deja sus datos desde el QR</div>
+          </div>
+          {leadsNuevos > 0 && (
+            <span className="bg-acento text-fondo font-bold text-[11.5px] rounded-full px-2 py-0.5 shrink-0">
+              {leadsNuevos}
+            </span>
+          )}
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
 
-      <Link href="/alimentos" className="fila !py-3 !px-4 mb-2.5 superficie">
-        <Apple size={18} className="text-atenuado shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-[14.5px]">Catálogo de alimentos</div>
-          <div className="text-atenuado text-[12px]">edita las alternativas de cada alimento</div>
-        </div>
-        <ChevronRight size={16} className="text-atenuado shrink-0" />
-      </Link>
+        <Link href="/alimentos" className="fila anim-pulsable">
+          <Apple size={18} className="text-atenuado shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[14.5px]">Catálogo de alimentos</div>
+            <div className="text-atenuado text-[12px]">edita las alternativas de cada alimento</div>
+          </div>
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
 
-      <Link href="/cuestionario" className="fila !py-3 !px-4 mb-2.5 superficie">
-        <ClipboardCheck size={18} className="text-atenuado shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-[14.5px]">Cuestionario semanal</div>
-          <div className="text-atenuado text-[12px]">preguntas que responde el cliente cada semana</div>
-        </div>
-        <ChevronRight size={16} className="text-atenuado shrink-0" />
-      </Link>
+        <Link href="/cuestionario" className="fila anim-pulsable">
+          <ClipboardCheck size={18} className="text-atenuado shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[14.5px]">Cuestionario semanal</div>
+            <div className="text-atenuado text-[12px]">preguntas que responde el cliente cada semana</div>
+          </div>
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
 
-      <Link href="/cuestionario-alta" className="fila !py-3 !px-4 mb-4 superficie">
-        <ClipboardList size={18} className="text-atenuado shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-[14.5px]">Cuestionario de alta</div>
-          <div className="text-atenuado text-[12px]">preguntas para un cliente nuevo en el onboarding</div>
-        </div>
-        <ChevronRight size={16} className="text-atenuado shrink-0" />
-      </Link>
+        <Link href="/cuestionario-alta" className="fila anim-pulsable">
+          <ClipboardList size={18} className="text-atenuado shrink-0" />
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[14.5px]">Cuestionario de alta</div>
+            <div className="text-atenuado text-[12px]">preguntas para un cliente nuevo en el onboarding</div>
+          </div>
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
+
+      </div>
 
       <QrPlanes />
 
+      <div className="titulo-seccion mt-6">Tu cuenta</div>
       {/* Una sola superficie con 3 secciones internas — sin espacio
        * muerto entre tarjetas idénticas, estilo Stripe/Vercel. */}
       <div className="superficie">
