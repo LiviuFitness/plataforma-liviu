@@ -42,6 +42,7 @@ export default function TabHabitos({
   const activos = habitos.filter((h) => h.activo).sort((a, b) => a.orden - b.orden);
   const dias = ultimosDias();
   const global = consistencia(habitos, registros, SEMANAS);
+  const hoy = dias[dias.length - 1];
 
   if (activos.length === 0) {
     return (
@@ -78,19 +79,38 @@ export default function TabHabitos({
                 <span className="font-bold text-[14px] flex-1">{h.nombre}</span>
                 <span className="text-atenuado text-[12.5px]">{pct}%</span>
               </div>
-              <div className="grid grid-cols-[repeat(28,minmax(0,1fr))] gap-[3px]">
-                {dias.map((f) => (
-                  <div
-                    key={f}
-                    title={f}
-                    className="aspect-square rounded-[2px]"
-                    style={{ background: marcados.has(f) ? color : "var(--color-borde-2)" }}
-                  />
+              {/* Cuatro bloques de siete, uno por semana: 28 casillas
+                * seguidas no dejaban ver dónde empezaba cada semana. La
+                * última casilla es hoy y va recuadrada. */}
+              <div className="grid grid-cols-4 gap-2">
+                {[0, 1, 2, 3].map((w) => (
+                  <div key={w} className="grid grid-cols-7 gap-[2px]">
+                    {dias.slice(w * 7, w * 7 + 7).map((f) => (
+                      <div
+                        key={f}
+                        title={f}
+                        className="aspect-square rounded-[2px]"
+                        style={{
+                          background: marcados.has(f) ? color : "var(--color-borde-2)",
+                          outline: f === hoy ? "1px solid var(--color-texto-2)" : undefined,
+                          outlineOffset: 1,
+                        }}
+                      />
+                    ))}
+                  </div>
                 ))}
               </div>
             </div>
           );
         })}
+      </div>
+      <div className="grid grid-cols-4 gap-2 mt-2 text-atenuado text-[10.5px] font-semibold">
+        {/* Son tramos de siete días hacia atrás desde hoy, no semanas de
+          * lunes a domingo: las etiquetas lo dicen así. */}
+        <span>Hace 4 sem.</span>
+        <span>Hace 3 sem.</span>
+        <span>Hace 2 sem.</span>
+        <span className="text-right">Últimos 7 días</span>
       </div>
     </section>
   );

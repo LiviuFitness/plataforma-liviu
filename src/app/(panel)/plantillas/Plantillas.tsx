@@ -3,15 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Search, Trash2 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
-import type { PlantillaRutina } from "./page";
-
-interface ClienteMin {
-  id: string;
-  nombre: string;
-}
+import type { ClienteAsignable, PlantillaRutina } from "./page";
 
 /** Listado de plantillas: crear, editar, asignar (copia) y borrar. */
 export default function Plantillas({
@@ -21,7 +16,7 @@ export default function Plantillas({
 }: {
   rutinas: PlantillaRutina[];
   dietas: Dieta[];
-  clientes: ClienteMin[];
+  clientes: ClienteAsignable[];
 }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -33,6 +28,7 @@ export default function Plantillas({
     nombre: string;
   } | null>(null);
   const [asignadaOk, setAsignadaOk] = useState("");
+  const [buscaCliente, setBuscaCliente] = useState("");
 
   async function nuevaPlantillaEntreno() {
     setCargando(true);
@@ -93,6 +89,21 @@ export default function Plantillas({
 
   async function asignar(clienteId: string) {
     if (!asignando) return;
+    const cliente = clientes.find((c) => c.id === clienteId);
+    /* Asignar SUSTITUYE lo que tenga activo: la anterior se guarda pero
+     * deja de ser la que ve el cliente. Antes pasaba sin preguntar, y un
+     * toque en la fila de al lado le cambiaba la rutina a otra persona. */
+    const actual =
+      asignando.tipo === "rutina"
+        ? cliente?.rutinaActual && `la rutina «${cliente.rutinaActual}»`
+        : cliente?.dietaActualKcal != null && `una dieta de ${cliente.dietaActualKcal} kcal`;
+    if (
+      actual &&
+      !confirm(
+        `${cliente?.nombre} ya tiene ${actual}. Si le asignas «${asignando.nombre}», la sustituye y deja de ver la anterior. ¿Seguir?`
+      )
+    )
+      return;
     setCargando(true);
     setError("");
     const supabase = crearClienteNavegador();
@@ -107,11 +118,11 @@ export default function Plantillas({
       setError("No se pudo asignar la plantilla. Inténtalo de nuevo.");
       return;
     }
-    const cliente = clientes.find((c) => c.id === clienteId);
     setAsignadaOk(
       `«${asignando.nombre}» asignada a ${cliente?.nombre ?? "cliente"} ✓`
     );
     setAsignando(null);
+    setBuscaCliente("");
     setTimeout(() => setAsignadaOk(""), 3500);
     router.refresh();
   }
@@ -136,7 +147,8 @@ export default function Plantillas({
           <div className="flex-1 min-w-0">
             <div className="font-bold text-[15px] leading-tight break-words">{p.nombre}</div>
             <div className="text-atenuado text-[12.5px] break-words">
-              {p.num_dias} {p.num_dias === 1 ? "día" : "días"}
+              {p.dias_semana} {p.dias_semana === 1 ? "día" : "días"} por semana
+              {p.semanas > 1 ? ` · ${p.semanas} semanas` : ""}
               {p.notas ? ` · ${p.notas}` : ""}
             </div>
           </div>
@@ -223,7 +235,10 @@ export default function Plantillas({
       {asignando && (
         <div
           className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-40 flex items-end justify-center"
-          onClick={() => setAsignando(null)}
+          onClick={() => {
+            setAsignando(null);
+            setBuscaCliente("");
+          }}
         >
           <div
             className="w-full max-w-[480px] max-h-[70vh] bg-panel border border-borde rounded-t-[20px] p-[18px] flex flex-col"
@@ -231,31 +246,81 @@ export default function Plantillas({
           >
             <div className="flex justify-between items-center mb-3">
               <div className="titulo-seccion !mb-0">Asignar «{asignando.nombre}»</div>
-              <button className="ghost" onClick={() => setAsignando(null)}>
+              <button
+                className="ghost"
+                onClick={() => {
+                  setAsignando(null);
+                  setBuscaCliente("");
+                }}
+              >
                 Cerrar
               </button>
             </div>
             <p className="text-atenuado text-[12.5px] mb-3">
               Se copia a la ficha del cliente: los cambios posteriores en la
-              plantilla no le afectan.
+              plantilla no le afectan. Si ya tiene una, te pregunto antes de
+              sustituirla.
             </p>
+            {clientes.length > 6 && (
+              <div className="relative mb-2">
+                <Search
+                  size={15}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-atenuado pointer-events-none"
+                />
+                <input
+                  className="input !pl-10 !mb-0"
+                  placeholder="Buscar cliente…"
+                  value={buscaCliente}
+                  onChange={(e) => setBuscaCliente(e.target.value)}
+                />
+              </div>
+            )}
             <div className="overflow-y-auto flex-1">
               {clientes.length === 0 && (
                 <div className="text-atenuado text-[13.5px]">
                   Sin clientes activos todavía.
                 </div>
               )}
-              {clientes.map((c) => (
-                <button
-                  key={c.id}
-                  className="fila w-full text-left cursor-pointer"
-                  onClick={() => asignar(c.id)}
-                  disabled={cargando}
-                >
-                  <span className="font-bold text-[15px] flex-1 min-w-0 leading-tight">{c.nombre}</span>
-                  <span className="text-acento text-[13.5px] shrink-0">Asignar →</span>
-                </button>
-              ))}
+              {clientes
+                .filter((c) =>
+                  c.nombre.toLowerCase().includes(buscaCliente.trim().toLowerCase())
+                )
+                .map((c) => {
+                  const actual =
+                    asignando.tipo === "rutina"
+                      ? c.rutinaActual
+                      : c.dietaActualKcal != null
+                        ? `${c.dietaActualKcal} kcal`
+                        : null;
+                  return (
+                    <button
+                      key={c.id}
+                      className="fila w-full text-left cursor-pointer anim-pulsable"
+                      onClick={() => asignar(c.id)}
+                      disabled={cargando}
+                    >
+                      <span className="flex-1 min-w-0">
+                        <span className="block font-bold text-[14.5px] leading-tight break-words">
+                          {c.nombre}
+                        </span>
+                        <span
+                          className={`block text-[12.5px] leading-snug break-words ${
+                            actual ? "text-atenuado" : "text-aviso"
+                          }`}
+                        >
+                          {actual
+                            ? `Ahora: ${actual}`
+                            : asignando.tipo === "rutina"
+                              ? "Sin rutina"
+                              : "Sin dieta"}
+                        </span>
+                      </span>
+                      <span className="text-acento text-[13.5px] shrink-0">
+                        {actual ? "Sustituir →" : "Asignar →"}
+                      </span>
+                    </button>
+                  );
+                })}
             </div>
           </div>
         </div>
