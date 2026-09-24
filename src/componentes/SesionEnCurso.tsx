@@ -158,7 +158,6 @@ function FilaSerie({
   onCambiarReps: (v: string) => void;
   onCambiarRir: (v: string) => void;
 }) {
-  const [editandoRir, setEditandoRir] = useState(false);
   const info = INFO_TIPO_SERIE[serie.tipo];
   const referenciaRir = (serie.rir || serie.rirPrescrito).trim();
   const hayRir = referenciaRir !== "";
@@ -171,127 +170,115 @@ function FilaSerie({
   const kgMostrado = serie.kg || serie.kgPrescrito;
   const repsMostrado = serie.reps || serie.repsPrescrito;
 
+  /* Las tres casillas (kg, reps, RIR) son la misma caja: mismo alto que
+   * el check, mismo fondo y borde, y una etiqueta mínima encima del
+   * valor. Antes, según el dato, el peso salía como texto suelto, las
+   * reps en una caja y el RIR en una cápsula diminuta: tres formas para
+   * tres cosas que se leen igual. */
+  const caja =
+    "relative h-10 w-full min-w-0 rounded-[10px] border border-borde-2 bg-campo flex flex-col items-center justify-center focus-within:outline focus-within:outline-2 focus-within:outline-acento focus-within:outline-offset-1";
+  const etiqueta =
+    "text-[8.5px] font-bold uppercase tracking-[0.08em] text-atenuado leading-none";
+  const valor = `text-[15px] font-bold tabular-nums leading-tight ${
+    serie.completada ? "text-texto-2" : ""
+  }`;
+  /* Campo de texto dentro de la caja: transparente, la caja pone el
+   * aspecto. El padding de arriba deja sitio a la etiqueta. */
+  const campo =
+    "absolute inset-0 w-full h-full bg-transparent border-0 outline-none text-center pt-3 text-[15px] font-bold tabular-nums text-white placeholder:text-atenuado/45 placeholder:font-semibold placeholder:text-[13px]";
+
   return (
     <div
-      // El espacio sobrante se lo quedan las repeticiones, no el RIR:
-      // antes la columna del RIR era `1fr` y dejaba un vacío raro entre
-      // las reps y la cápsula, que quedaba desterrada contra el check.
-      className={`fila-serie grid grid-cols-[78px_1fr_auto_40px] items-center gap-1.5 rounded-[10px] py-2 pl-2.5 pr-2 border-l-[3px] ${
+      className={`fila-serie grid grid-cols-[1fr_1fr_1fr_40px] items-center gap-1.5 rounded-[10px] py-2 pl-2.5 pr-2 border-l-[3px] ${
         activa ? "bg-acento/[0.06]" : ""
       }`}
       style={{ borderLeftColor: colorBarra }}
     >
-      {/* Peso — el protagonista de la fila: la cifra más grande, la que
-       * más se toca durante el entreno. Columna algo más ancha que el
-       * resto para que ningún valor (137.5 kg…) llegue a solaparse. */}
+      {/* Peso */}
       {esSteppeable(serie.kgPrescrito) ? (
         <button
           type="button"
-          className="text-left anim-pulsable min-w-0"
+          className={`${caja} anim-pulsable`}
           onClick={() => onAbrirEditor("kg")}
           aria-label={`Editar peso: ${kgMostrado || "sin registrar"} kg`}
         >
-          <span
-            className={`text-[19px] font-bold tabular-nums ${
-              serie.completada ? "text-texto-2" : ""
-            }`}
+          <span className={etiqueta}>kg</span>
+          <span className={valor}>{kgMostrado || "—"}</span>
+        </button>
+      ) : (
+        <label className={caja}>
+          <span className={`${etiqueta} absolute top-[7px]`}>kg</span>
+          <input
+            className={campo}
+            placeholder={serie.kgPrescrito || "—"}
+            inputMode="decimal"
+            value={serie.kg}
+            onChange={(e) => onCambiarKg(e.target.value)}
+            aria-label="Carga"
+          />
+        </label>
+      )}
+
+      {/* Repeticiones. La flechita de evaluación (serie ya hecha:
+       * prescrito vs. realizado) va en la esquina de esta caja: azul si
+       * se superó el objetivo, ámbar si se quedó corto, nada si salió
+       * tal cual. */}
+      <div className="relative min-w-0">
+        {esSteppeable(serie.repsPrescrito) ? (
+          <button
+            type="button"
+            className={`${caja} anim-pulsable`}
+            onClick={() => onAbrirEditor("reps")}
+            aria-label={`Editar repeticiones: ${repsMostrado || "sin registrar"}`}
           >
-            {kgMostrado || "—"}
-          </span>
-          <span className="text-atenuado text-[11px] ml-1">kg</span>
-        </button>
-      ) : (
-        <input
-          className="campo-serie !w-[74px] !text-[15px] !font-bold placeholder:text-atenuado/45"
-          placeholder={serie.kgPrescrito || "kg"}
-          inputMode="decimal"
-          value={serie.kg}
-          onChange={(e) => onCambiarKg(e.target.value)}
-          aria-label="Carga"
-        />
-      )}
-
-      {/* Repeticiones */}
-      {esSteppeable(serie.repsPrescrito) ? (
-        <button
-          type="button"
-          className="text-left anim-pulsable min-w-0"
-          onClick={() => onAbrirEditor("reps")}
-          aria-label={`Editar repeticiones: ${repsMostrado || "sin registrar"}`}
-        >
-          <span className="text-atenuado text-[13px]">×</span>{" "}
-          <span className="text-[15px] font-semibold tabular-nums">
-            {repsMostrado || "—"}
-          </span>
-        </button>
-      ) : (
-        <input
-          // Ocupa la columna en vez de quedarse en 56 px fijos: así el
-          // hueco muerto entre las reps y el RIR desaparece y de paso hay
-          // más sitio donde pinchar con los dedos sudados.
-          className="campo-serie !w-full !max-w-[112px] placeholder:text-atenuado/45"
-          placeholder={serie.repsPrescrito || "reps"}
-          value={serie.reps}
-          onChange={(e) => onCambiarReps(e.target.value)}
-          aria-label="Repeticiones (admite 8+3)"
-        />
-      )}
-
-      {/* RIR — dato secundario a propósito: cápsula mínima y siempre en
-       * gris neutro (ni la variante de técnica lleva ya acento — ese
-       * azul se reserva para el peso, el check y los iconos de
-       * evaluación, así no compite por atención). Antes del RIR, un
-       * triangulito minúsculo evalúa la serie ya completada (prescrito
-       * vs. realizado): azul si se superó el objetivo (peso probablemente
-       * ligero), ámbar si se quedó corto. Sin icono cuando salió tal cual
-       * estaba previsto — no hace falta destacar lo normal. */}
-      <div className="flex items-center justify-end gap-1.5">
+            <span className={etiqueta}>reps</span>
+            <span className={valor}>{repsMostrado || "—"}</span>
+          </button>
+        ) : (
+          <label className={caja}>
+            <span className={`${etiqueta} absolute top-[7px]`}>reps</span>
+            <input
+              className={campo}
+              placeholder={serie.repsPrescrito || "—"}
+              value={serie.reps}
+              onChange={(e) => onCambiarReps(e.target.value)}
+              aria-label="Repeticiones (admite 8+3)"
+            />
+          </label>
+        )}
         {evaluacion === "superado" && (
           <ArrowUp
-            size={13}
+            size={11}
             strokeWidth={3}
             role="img"
             aria-label="Has superado el objetivo de esta serie"
-            className="text-acento shrink-0"
+            className="text-acento absolute top-1 right-1 pointer-events-none"
           />
         )}
         {evaluacion === "no_alcanzado" && (
           <ArrowDown
-            size={13}
+            size={11}
             strokeWidth={3}
             role="img"
             aria-label="Por debajo del objetivo de esta serie"
-            className="text-aviso shrink-0"
+            className="text-aviso absolute top-1 right-1 pointer-events-none"
           />
         )}
-        {hayRir &&
-          (editandoRir ? (
-            <input
-              className="campo-serie !w-[56px] !py-1 !text-[11px] placeholder:text-atenuado/45"
-              autoFocus
-              value={serie.rir}
-              placeholder={serie.rirPrescrito}
-              onChange={(e) => onCambiarRir(e.target.value)}
-              onBlur={() => setEditandoRir(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-              }}
-              aria-label={esTecnica ? "Técnica" : "RIR"}
-            />
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEditandoRir(true)}
-              className={`shrink-0 rounded-md px-1.5 py-1 text-[10px] font-bold anim-pulsable max-w-[92px] leading-tight text-center break-words ${
-                esTecnica
-                  ? "text-texto-2 bg-borde-2/60"
-                  : "text-atenuado bg-campo border border-borde-2"
-              }`}
-            >
-              {esTecnica ? referenciaRir : `RIR ${referenciaRir}`}
-            </button>
-          ))}
       </div>
+
+      {/* RIR (o la técnica: "P", "Myo"…). Siempre hay caja, aunque la
+       * serie no lleve nada pautado: si no, esa fila quedaba descuadrada
+       * respecto a las de arriba. */}
+      <label className={caja}>
+        <span className={`${etiqueta} absolute top-[7px]`}>{esTecnica ? "técnica" : "rir"}</span>
+        <input
+          className={campo}
+          placeholder={serie.rirPrescrito || "—"}
+          value={serie.rir}
+          onChange={(e) => onCambiarRir(e.target.value)}
+          aria-label={esTecnica ? "Técnica" : "RIR"}
+        />
+      </label>
 
       <button
         type="button"
