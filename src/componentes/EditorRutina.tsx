@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { ArrowLeftRight, Check, GripVertical, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -48,6 +48,16 @@ export default function EditorRutina({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const [mostrarIgualar, setMostrarIgualar] = useState(false);
+  /* Cambiar el orden de los días: se toca uno y luego aquel con el que
+   * se intercambia. */
+  const [ordenando, setOrdenando] = useState(false);
+  const [elegido, setElegido] = useState<DiaUI | null>(null);
+  const [ultimoCambio, setUltimoCambio] = useState<{
+    ordenA: number;
+    ordenB: number;
+    nombreA: string;
+    nombreB: string;
+  } | null>(null);
 
   /* Semanas existentes (siempre al menos la 1) */
   const semanas = useMemo(() => {
@@ -183,6 +193,79 @@ export default function EditorRutina({
     const nuevo: DiaUI = { ...data, ejercicios: [] };
     setDias((d) => [...d, nuevo]);
     abrirDia(dias.length); // índice dentro de `dias` (se añade al final)
+  }
+
+  /**
+   * Intercambia dos posiciones de día en TODAS las semanas.
+   *
+   * Los días de semanas distintas se emparejan por su posición (así
+   * funcionan "Igualar las demás", borrar en todas las semanas y el
+   * próximo entreno del cliente): cambiar el orden solo en una semana
+   * dejaría "el día 1" de la semana 2 emparejado con otro distinto en la
+   * semana 3. Las sesiones ya hechas no se tocan: van con el id del día,
+   * no con su posición.
+   *
+   * No hay restricción de orden único en la tabla, así que bastan dos
+   * actualizaciones; si falla la segunda se deshace la primera para no
+   * dejar dos días con la misma posición.
+   */
+  async function intercambiarOrdenes(ordenA: number, ordenB: number) {
+    const supabase = crearClienteNavegador();
+    const idsA = dias.filter((d) => d.orden === ordenA).map((d) => d.id);
+    const idsB = dias.filter((d) => d.orden === ordenB).map((d) => d.id);
+    const primero = await supabase.from("rutina_dias").update({ orden: ordenB }).in("id", idsA);
+    if (primero.error) return false;
+    const segundo = await supabase.from("rutina_dias").update({ orden: ordenA }).in("id", idsB);
+    if (segundo.error) {
+      await supabase.from("rutina_dias").update({ orden: ordenA }).in("id", idsA);
+      return false;
+    }
+    return true;
+  }
+
+  async function tocarParaOrdenar(dia: DiaUI) {
+    if (!elegido) {
+      setElegido(dia);
+      return;
+    }
+    if (elegido.id === dia.id) {
+      setElegido(null);
+      return;
+    }
+    setCargando(true);
+    setError("");
+    const ok = await intercambiarOrdenes(elegido.orden, dia.orden);
+    if (!ok) {
+      setCargando(false);
+      setError("No se pudo cambiar el orden. Inténtalo de nuevo.");
+      return;
+    }
+    await recargarDias();
+    setUltimoCambio({
+      ordenA: elegido.orden,
+      ordenB: dia.orden,
+      nombreA: elegido.nombre,
+      nombreB: dia.nombre,
+    });
+    setElegido(null);
+    setOrdenando(false);
+    setCargando(false);
+  }
+
+  async function deshacerCambio() {
+    if (!ultimoCambio) return;
+    setCargando(true);
+    setError("");
+    const ok = await intercambiarOrdenes(ultimoCambio.ordenA, ultimoCambio.ordenB);
+    if (ok) await recargarDias();
+    else setError("No se pudo deshacer. Inténtalo de nuevo.");
+    setUltimoCambio(null);
+    setCargando(false);
+  }
+
+  function salirDeOrdenar() {
+    setOrdenando(false);
+    setElegido(null);
   }
 
   async function eliminarDia(dia: DiaUI) {
@@ -348,6 +431,8 @@ export default function EditorRutina({
             onClick={() => {
               setSemanaVista(s);
               setError("");
+              // Un día elegido de otra semana ya no está en pantalla
+              setElegido(null);
             }}
           >
             Semana {s}
@@ -355,26 +440,81 @@ export default function EditorRutina({
           </button>
         ))}
       </div>
-      <div className="flex gap-2 mb-3">
-        <button
-          className="tab !text-[13px] !text-acento !border-acento/40"
-          onClick={duplicarSemana}
-          disabled={cargando}
-          title="Copia la semana en vista como semana nueva"
-        >
-          ⧉ Duplicar semana {semanaVista}
-        </button>
-        {semanas.length > 1 && (
+      {/* Tres acciones cortas en una fila. Mientras se ordena se ocultan:
+        * la pantalla solo pide una cosa, tocar días. */}
+      {!ordenando && (
+        <div className="flex gap-2 mb-3">
           <button
-            className="tab !text-[13px] !text-acento !border-acento/40"
-            onClick={() => setMostrarIgualar(true)}
+            className="tab !text-[12.5px] !px-1 !text-acento !border-acento/40"
+            onClick={duplicarSemana}
             disabled={cargando}
-            title="Deja las demás semanas igual que esta"
+            title={`Copia la semana ${semanaVista} como semana nueva`}
           >
-            ⇄ Igualar las demás
+            ⧉ Duplicar
           </button>
-        )}
-      </div>
+          {semanas.length > 1 && (
+            <button
+              className="tab !text-[12.5px] !px-1 !text-acento !border-acento/40"
+              onClick={() => setMostrarIgualar(true)}
+              disabled={cargando}
+              title="Deja las demás semanas igual que esta"
+            >
+              ⇄ Igualar
+            </button>
+          )}
+          {diasSemana.length > 1 && (
+            <button
+              className="tab !text-[12.5px] !px-1 !text-acento !border-acento/40 flex items-center justify-center gap-1"
+              onClick={() => {
+                setOrdenando(true);
+                setElegido(null);
+                setUltimoCambio(null);
+                setError("");
+              }}
+              disabled={cargando}
+              title="Cambia el orden de los días"
+            >
+              <GripVertical size={13} /> Ordenar
+            </button>
+          )}
+        </div>
+      )}
+
+      {ordenando && (
+        <div className="superficie px-4 py-3 mb-3 flex items-center gap-3 !border-acento/40">
+          <ArrowLeftRight size={18} className="text-acento shrink-0" />
+          <div className="flex-1 min-w-0 text-[13px] leading-snug">
+            {elegido ? (
+              <>
+                <b>{elegido.nombre}</b> elegido. Ahora toca el día con el que quieres
+                cambiarlo.
+              </>
+            ) : (
+              "Toca el día que quieres mover."
+            )}
+          </div>
+          <button className="ghost shrink-0" onClick={salirDeOrdenar} disabled={cargando}>
+            Cancelar
+          </button>
+        </div>
+      )}
+
+      {ultimoCambio && !ordenando && (
+        <div className="banner banner-accion mb-3 items-center">
+          <Check size={15} className="shrink-0" />
+          <span className="flex-1 min-w-0">
+            <b>{ultimoCambio.nombreA}</b> y <b>{ultimoCambio.nombreB}</b> intercambiados
+            {semanas.length > 1 ? ` en las ${semanas.length} semanas` : ""}.
+          </span>
+          <button
+            className="underline underline-offset-2 shrink-0 font-semibold cursor-pointer"
+            onClick={deshacerCambio}
+            disabled={cargando}
+          >
+            Deshacer
+          </button>
+        </div>
+      )}
 
       {mostrarIgualar && rutina && (
         <HojaIgualarSemanas
@@ -410,14 +550,67 @@ export default function EditorRutina({
         </section>
       )}
 
-      {diasSemana.map((dia) => {
+      {diasSemana.map((dia, posicion) => {
         const indiceGlobal = dias.findIndex((d) => d.id === dia.id);
         const efectivas = dia.ejercicios.reduce(
           (a, e) => a + e.series.filter((s) => s.tipo !== "calentamiento").length,
           0
         );
+        const esElegido = ordenando && elegido?.id === dia.id;
+        const recienMovido =
+          !ordenando &&
+          ultimoCambio !== null &&
+          (dia.orden === ultimoCambio.ordenA || dia.orden === ultimoCambio.ordenB);
+        /* El número de sesión, siempre a la vista: es el orden en que el
+         * cliente los va a hacer y lo que cambia "Ordenar". */
+        const numero = (
+          <span
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold shrink-0 border ${
+              esElegido || recienMovido
+                ? "bg-acento text-fondo border-acento"
+                : "bg-campo text-texto-2 border-borde-2"
+            }`}
+          >
+            {posicion + 1}
+          </span>
+        );
+
+        if (ordenando) {
+          return (
+            <button
+              key={dia.id}
+              className={`tarjeta !mb-2.5 w-full text-left flex items-center gap-3 anim-pulsable ${
+                esElegido ? "!border-acento !bg-acento/[0.08]" : ""
+              }`}
+              onClick={() => tocarParaOrdenar(dia)}
+              disabled={cargando}
+            >
+              {numero}
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[15.5px] leading-tight break-words">{dia.nombre}</div>
+                <div className="text-atenuado text-[12.5px]">
+                  {dia.ejercicios.length} ejercicios · {efectivas} series efectivas
+                </div>
+              </div>
+              {esElegido ? (
+                <span className="text-acento text-[12.5px] font-semibold shrink-0">Elegido</span>
+              ) : elegido ? (
+                <span className="tab !flex-none !px-3 !py-2 !text-[12.5px] shrink-0 flex items-center gap-1 !text-acento !border-acento/40">
+                  <ArrowLeftRight size={13} /> Cambiar
+                </span>
+              ) : (
+                <GripVertical size={16} className="text-atenuado shrink-0" />
+              )}
+            </button>
+          );
+        }
+
         return (
-          <div key={dia.id} className="tarjeta !mb-2.5 flex items-center gap-3.5">
+          <div
+            key={dia.id}
+            className={`tarjeta !mb-2.5 flex items-center gap-3 ${recienMovido ? "!border-acento/50" : ""}`}
+          >
+            {numero}
             <button
               className="flex-1 min-w-0 text-left cursor-pointer"
               onClick={() => abrirDia(indiceGlobal)}
@@ -447,9 +640,11 @@ export default function EditorRutina({
       })}
 
       {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
-      <button className="cta" onClick={anadirDia} disabled={cargando}>
-        + Añadir día a la semana {semanaVista}
-      </button>
+      {!ordenando && (
+        <button className="cta" onClick={anadirDia} disabled={cargando}>
+          + Añadir día a la semana {semanaVista}
+        </button>
+      )}
 
       {/* Volumen semanal por músculo (calculado automáticamente) */}
       {volumen.length > 0 && (
