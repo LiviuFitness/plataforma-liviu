@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Copy, Link2, Unlink } from "lucide-react";
+import { AlertTriangle, Copy, Link2, Plus, Unlink } from "lucide-react";
 
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -44,6 +44,7 @@ export default function EditorDia({
   onVolver,
   onEliminar,
   onCopiado,
+  onDuplicar,
 }: {
   dia: DiaUI;
   biblioteca: Ejercicio[];
@@ -57,6 +58,8 @@ export default function EditorDia({
   onEliminar: () => void;
   /** Tras copiar a otras semanas hay que releer la rutina de la base. */
   onCopiado?: () => void;
+  /** Abre la hoja de duplicar este día (la pinta el editor de rutina). */
+  onDuplicar?: () => void;
 }) {
   const [borrador, setBorrador] = useState<DiaUI>(() =>
     JSON.parse(JSON.stringify(dia))
@@ -216,20 +219,41 @@ export default function EditorDia({
       {/* Corregir un día y tener que repetirlo semana por semana era el
        * precio de que las semanas sean copias independientes. Esto lo
        * quita sin renunciar a que cada semana lleve sus propias cargas. */}
-      {otrasSemanas.length > 0 && (
-        <button
-          className="ghost mb-3.5 flex items-center gap-1.5"
-          onClick={() => {
-            if (sucio) {
-              alert("Guarda primero los cambios del día y luego cópialo.");
-              return;
-            }
-            setMostrarCopiar(true);
-          }}
-          title="Llevar este día a las demás semanas de la rutina"
-        >
-          <Copy size={13} /> Copiar a otras semanas
-        </button>
+      {(otrasSemanas.length > 0 || onDuplicar) && (
+        <div className="flex gap-2 mb-4">
+          {otrasSemanas.length > 0 && (
+            <button
+              className="tab !text-[12.5px] !px-1 !text-acento !border-acento/40 flex items-center justify-center gap-1.5"
+              onClick={() => {
+                if (sucio) {
+                  alert("Guarda primero los cambios del día y luego cópialo.");
+                  return;
+                }
+                setMostrarCopiar(true);
+              }}
+              title="Llevar este día a las demás semanas de la rutina"
+            >
+              <Copy size={13} /> Copiar a otras semanas
+            </button>
+          )}
+          {/* Duplicar lee el día guardado, no el borrador: con cambios sin
+            * guardar, el día nuevo no los llevaría. */}
+          {onDuplicar && (
+            <button
+              className="tab !text-[12.5px] !px-1 !text-acento !border-acento/40 flex items-center justify-center gap-1.5"
+              onClick={() => {
+                if (sucio) {
+                  alert("Guarda primero los cambios del día y luego duplícalo.");
+                  return;
+                }
+                onDuplicar();
+              }}
+              title="Crear un día nuevo a partir de este"
+            >
+              <Plus size={14} /> Duplicar día
+            </button>
+          )}
+        </div>
       )}
 
       {grupos.map((grupo, gi) => {

@@ -16,6 +16,8 @@ import {
 import EditorDia from "./EditorDia";
 import type { DiaUI, Ejercicio, RutinaUI } from "@/lib/tipos";
 import AsignarPlantilla, { type PlantillaResumen } from "@/componentes/AsignarPlantilla";
+import HojaDuplicarSemana from "@/componentes/HojaDuplicarSemana";
+import HojaDuplicarDia from "@/componentes/HojaDuplicarDia";
 
 /**
  * Editor de rutina: semanas (microciclos) duplicables, lista de días,
@@ -48,6 +50,8 @@ export default function EditorRutina({
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
   const [mostrarIgualar, setMostrarIgualar] = useState(false);
+  const [mostrarDuplicar, setMostrarDuplicar] = useState(false);
+  const [duplicandoDia, setDuplicandoDia] = useState<DiaUI | null>(null);
   /* Cambiar el orden de los días: se toca uno y luego aquel con el que
    * se intercambia. */
   const [ordenando, setOrdenando] = useState(false);
@@ -128,31 +132,6 @@ export default function EditorRutina({
   }
 
   /* --- Semanas --- */
-  async function duplicarSemana() {
-    if (!rutina) return;
-    if (
-      !confirm(
-        `¿Duplicar la semana ${semanaVista} como semana nueva? Se copia tal cual para que ajustes las progresiones.`
-      )
-    )
-      return;
-    setCargando(true);
-    setError("");
-    const supabase = crearClienteNavegador();
-    const { data, error } = await supabase.rpc("duplicar_semana", {
-      p_rutina: rutina.id,
-      p_semana: semanaVista,
-    });
-    if (error) {
-      setCargando(false);
-      setError("No se pudo duplicar la semana. Inténtalo de nuevo.");
-      return;
-    }
-    const ui = await recargarDias();
-    setCargando(false);
-    if (ui && typeof data === "number") setSemanaVista(data);
-  }
-
   async function activarSemana() {
     if (!rutina || !clienteId) return;
     setCargando(true);
@@ -397,6 +376,7 @@ export default function EditorRutina({
   /* --- Editor de un día abierto --- */
   if (indiceAbierto !== null && dias[indiceAbierto]) {
     return (
+      <>
       <EditorDia
         dia={dias[indiceAbierto]}
         biblioteca={biblioteca}
@@ -411,7 +391,25 @@ export default function EditorRutina({
           recargarDias();
           abrirDia(null);
         }}
+        onDuplicar={rutina ? () => setDuplicandoDia(dias[indiceAbierto]) : undefined}
       />
+      {duplicandoDia && rutina && (
+        <HojaDuplicarDia
+          rutinaId={rutina.id}
+          dia={duplicandoDia}
+          dias={dias}
+          onCerrar={() => setDuplicandoDia(null)}
+          onHecho={async (aviso) => {
+            const semana = duplicandoDia.semana;
+            setDuplicandoDia(null);
+            await recargarDias();
+            abrirDia(null);
+            setSemanaVista(semana);
+            setError(aviso ?? "");
+          }}
+        />
+      )}
+      </>
     );
   }
 
@@ -446,7 +444,10 @@ export default function EditorRutina({
         <div className="flex gap-2 mb-3">
           <button
             className="tab !text-[12.5px] !px-1 !text-acento !border-acento/40"
-            onClick={duplicarSemana}
+            onClick={() => {
+              setError("");
+              setMostrarDuplicar(true);
+            }}
             disabled={cargando}
             title={`Copia la semana ${semanaVista} como semana nueva`}
           >
@@ -514,6 +515,23 @@ export default function EditorRutina({
             Deshacer
           </button>
         </div>
+      )}
+
+      {mostrarDuplicar && rutina && (
+        <HojaDuplicarSemana
+          rutinaId={rutina.id}
+          semanaOrigen={semanaVista}
+          semanaNueva={Math.max(...semanas) + 1}
+          diasOrigen={diasSemana}
+          nombreCliente={clienteId ? nombreCliente : undefined}
+          onCerrar={() => setMostrarDuplicar(false)}
+          onHecho={async (nueva, aviso) => {
+            setMostrarDuplicar(false);
+            await recargarDias();
+            setSemanaVista(nueva);
+            setError(aviso ?? "");
+          }}
+        />
       )}
 
       {mostrarIgualar && rutina && (
