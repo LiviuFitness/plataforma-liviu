@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeft, Eye } from "lucide-react";
 import { AnilloAdherencia } from "@/componentes/ui";
 import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
@@ -11,7 +11,8 @@ import TabResumen from "./TabResumen";
 import TabProgreso from "./TabProgreso";
 import TabHabitos from "./TabHabitos";
 import HiloChat from "@/componentes/HiloChat";
-import type { Alimento } from "@/lib/dietas";
+import VistaComoCliente from "@/componentes/VistaComoCliente";
+import type { Alimento, Alternativa } from "@/lib/dietas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
 import type {
@@ -81,6 +82,9 @@ export default function FichaCliente({
   respuestasCuestionario,
   respuestasAlta,
   ahora,
+  diasHechosSemana,
+  ultimoDiaId,
+  alternativas,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -107,7 +111,12 @@ export default function FichaCliente({
   /** Instante del servidor, para que "hace 3 días" diga lo mismo al
    * pintar allí y al hidratar aquí. */
   ahora: number;
+  /** Para "Ver como el cliente" */
+  diasHechosSemana: string[];
+  ultimoDiaId: string | null;
+  alternativas: Alternativa[];
 }) {
+  const router = useRouter();
   const parametros = useSearchParams();
   const crudo = parametros.get("vista");
   const vista: Vista | null = esVista(crudo) ? crudo : null;
@@ -116,6 +125,7 @@ export default function FichaCliente({
   const [editandoDia, setEditandoDia] = useState(false);
   // Dieta: día de entreno o día de descanso
   const [tipoDieta, setTipoDieta] = useState<"entreno" | "descanso">("entreno");
+  const [viendoComoCliente, setViendoComoCliente] = useState(false);
 
   const nombrePila = perfil.nombre.split(" ")[0];
   const ultimoMensaje = mensajes[mensajes.length - 1] ?? null;
@@ -198,11 +208,41 @@ export default function FichaCliente({
           >
             <ArrowLeft size={14} /> {nombrePila}
           </button>
-          <h1 className="h1 break-words">
-            {TITULOS[vista]}
-            <span className="text-atenuado font-semibold text-[15px]"> · {perfil.nombre}</span>
-          </h1>
+          {/* La sección de título y el nombre completo debajo: con el
+            * botón "Ver como" al lado, "Entreno · Lucía Fernández de
+            * Córdoba" en una sola línea se partía por la mitad. */}
+          <div className="flex items-center justify-between gap-2">
+            <h1 className="h1 !mb-0 break-words min-w-0">{TITULOS[vista]}</h1>
+            {(vista === "entreno" || vista === "dieta") && (
+              <button
+                className="chip !text-acento !border-acento/40 flex items-center gap-1.5 shrink-0"
+                onClick={() => {
+                  /* Lo guardado en el editor no está aún en los datos de
+                   * la página: se piden de nuevo antes de enseñarlo. */
+                  router.refresh();
+                  setViendoComoCliente(true);
+                }}
+              >
+                <Eye size={14} /> Ver como {nombrePila}
+              </button>
+            )}
+          </div>
+          <div className="sub !mb-0 mt-0.5 break-words">{perfil.nombre}</div>
         </div>
+      )}
+
+      {viendoComoCliente && (vista === "entreno" || vista === "dieta") && (
+        <VistaComoCliente
+          que={vista}
+          nombreCliente={perfil.nombre}
+          rutina={rutina}
+          diasHechosSemana={diasHechosSemana}
+          ultimoDiaId={ultimoDiaId}
+          dieta={dieta}
+          dietaDescanso={dietaDescanso}
+          alternativas={alternativas}
+          onSalir={() => setViendoComoCliente(false)}
+        />
       )}
 
       {vista === "entreno" && (
@@ -241,6 +281,15 @@ export default function FichaCliente({
             plantillas={plantillasDieta}
             tipoDieta={tipoDieta}
             puedeCopiarDeEntreno={!!dieta}
+            otraDieta={
+              tipoDieta === "entreno"
+                ? dietaDescanso
+                  ? { id: dietaDescanso.id, tipo: "descanso" }
+                  : null
+                : dieta
+                  ? { id: dieta.id, tipo: "entreno" }
+                  : null
+            }
             clienteId={perfil.id}
             alimentos={alimentos}
             excluidos={excluidos}

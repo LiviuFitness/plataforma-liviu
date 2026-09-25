@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   CalendarCheck,
+  CalendarClock,
   ChevronRight,
   Inbox,
   MessageCircle,
@@ -11,6 +12,7 @@ import {
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar, PuntoEstado } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
+import { calcularRevisionSemanal } from "@/lib/revision";
 
 interface RecordSemana {
   cliente_id: string;
@@ -44,10 +46,13 @@ export default async function PaginaHoy() {
     { data: records },
     { count: leadsNuevos },
     { data: mensajes },
+    { data: dietasActivas },
+    { data: revisiones },
+    { data: pesosRecientes },
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nombre, fecha_alta")
+      .select("id, nombre, fecha_alta, objetivo")
       .eq("rol", "cliente")
       .eq("estado", "activo")
       .order("nombre"),
@@ -77,6 +82,24 @@ export default async function PaginaHoy() {
       .select("cliente_id, remitente")
       .order("creado_en", { ascending: false })
       .limit(500),
+    /* "Toca revisar la dieta": la dieta de entreno activa de cada uno,
+     * sus ajustes de kcal y los pesos de las últimas semanas. */
+    supabase
+      .from("dietas")
+      .select("cliente_id, kcal_obj, creada_en")
+      .eq("activa", true)
+      .eq("tipo", "entreno")
+      .not("cliente_id", "is", null),
+    supabase
+      .from("revisiones_kcal")
+      .select("cliente_id, creado_en")
+      .order("creado_en", { ascending: false }),
+    supabase
+      .from("medidas")
+      .select("cliente_id, fecha, peso")
+      .not("peso", "is", null)
+      .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 42)).toLocaleDateString("sv-SE"))
+      .limit(3000),
   ]);
 
   const listaClientes = clientes ?? [];
@@ -233,6 +256,56 @@ export default async function PaginaHoy() {
 
   const DIAS_SEMANA = ["L", "M", "X", "J", "V", "S", "D"];
 
+  /* Toca revisar la dieta: 4 semanas o más desde el último ajuste de
+   * kcal. Si nunca se ha ajustado, cuenta desde que se le puso la dieta:
+   * así un cliente recién llegado no sale aquí el primer día. */
+  const ahora = new Date().getTime();
+  const ultimoAjuste = new Map<string, string>();
+  for (const r of revisiones ?? []) {
+    if (!ultimoAjuste.has(r.cliente_id)) ultimoAjuste.set(r.cliente_id, r.creado_en);
+  }
+  const pesosDe = new Map<string, { fecha: string; peso: number }[]>();
+  for (const m of pesosRecientes ?? []) {
+    const arr = pesosDe.get(m.cliente_id) ?? [];
+    arr.push({ fecha: m.fecha, peso: Number(m.peso) });
+    pesosDe.set(m.cliente_id, arr);
+  }
+  const nombreDe = new Map(listaClientes.map((c) => [c.id, c.nombre as string]));
+  const objetivoDe = new Map(
+    listaClientes.map((c) => [c.id, ((c.objetivo as string | null) ?? "").toLowerCase()])
+  );
+  const tocaRevisar = (dietasActivas ?? [])
+    .filter((d) => nombreDe.has(d.cliente_id))
+    .map((d) => {
+      const ajuste = ultimoAjuste.get(d.cliente_id) ?? null;
+      const desde = ajuste ?? d.creada_en;
+      const dias = Math.floor((ahora - new Date(desde).getTime()) / DIA_MS);
+      /* Estancado: las medias de las 3 últimas semanas con peso se
+       * mueven menos de 0,2 kg de la primera a la última. Solo importa
+       * si busca perder o ganar: en salud general o recomposición, que
+       * el peso no se mueva es lo esperado. */
+      const objetivo = objetivoDe.get(d.cliente_id) ?? "";
+      const buscaCambio = objetivo.includes("pérdida") || objetivo.includes("ganancia");
+      const semanas = calcularRevisionSemanal(pesosDe.get(d.cliente_id) ?? []);
+      const ultimas = semanas.slice(-3);
+      const estancadoSemanas =
+        buscaCambio &&
+        ultimas.length === 3 &&
+        Math.abs(ultimas[2].mediaPeso - ultimas[0].mediaPeso) < 0.2
+          ? 3
+          : 0;
+      return {
+        clienteId: d.cliente_id as string,
+        nombre: nombreDe.get(d.cliente_id)!,
+        kcal: d.kcal_obj as number,
+        dias,
+        nuncaAjustada: ajuste === null,
+        estancadoSemanas,
+      };
+    })
+    .filter((r) => r.dias >= 28)
+    .sort((a, b) => b.dias - a.dias);
+
   return (
     <>
       <h1 className="h1">Hoy</h1>
@@ -359,6 +432,43 @@ export default async function PaginaHoy() {
               </Link>
             ))}
           </div>
+
+          {tocaRevisar.length > 0 && (
+            <>
+              <div className="flex items-baseline justify-between">
+                <div className="titulo-seccion">Toca revisar la dieta</div>
+                <span className="text-atenuado text-[12px]">4 semanas o más</span>
+              </div>
+              <div className="superficie px-4 mb-6">
+                {tocaRevisar.map((r) => (
+                  <Link
+                    key={r.clienteId}
+                    href={`/clientes/${r.clienteId}?vista=progreso`}
+                    className="fila"
+                  >
+                    <Avatar nombre={r.nombre} tamano={34} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-[14.5px] leading-tight break-words">
+                        {r.nombre}
+                      </div>
+                      <div className="text-texto-2 text-[12.5px] leading-snug break-words">
+                        {r.nuncaAjustada
+                          ? `Sin ajustes desde que empezó, hace ${r.dias} días`
+                          : `Último ajuste hace ${r.dias} días`}{" "}
+                        · {r.kcal.toLocaleString("es-ES")} kcal
+                      </div>
+                      {r.estancadoSemanas > 0 && (
+                        <div className="text-aviso text-[12px] font-semibold">
+                          Peso estancado {r.estancadoSemanas} semanas
+                        </div>
+                      )}
+                    </div>
+                    <CalendarClock size={17} className="text-aviso shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
 
           {esperandoRespuesta.length > 0 && (
             <>

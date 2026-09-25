@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
-import { SELECT_DIETA_COMPLETA, type Alimento } from "@/lib/dietas";
+import { SELECT_DIETA_COMPLETA, type Alimento, type Alternativa } from "@/lib/dietas";
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
 import FichaCliente from "./FichaCliente";
@@ -65,6 +65,8 @@ export default async function PaginaFichaCliente({
     { data: respuestasAlta },
     { data: plantillasRutinaBruto },
     { data: plantillasDietaBruto },
+    { data: ultimaConDia },
+    { data: alternativas },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -80,7 +82,7 @@ export default async function PaginaFichaCliente({
       .maybeSingle(),
     supabase
       .from("sesiones")
-      .select("fecha_inicio")
+      .select("fecha_inicio, dia_id")
       .eq("cliente_id", id)
       .gte("fecha_inicio", inicioSemana.toISOString()),
     supabase
@@ -155,6 +157,17 @@ export default async function PaginaFichaCliente({
       .eq("es_plantilla", true)
       .eq("tipo", "entreno")
       .order("creada_en", { ascending: false }),
+    /* "Ver como el cliente": el día que le toca sale del último que
+     * entrenó, y las equivalencias son las mismas que ve en Mi dieta. */
+    supabase
+      .from("sesiones")
+      .select("dia_id")
+      .eq("cliente_id", id)
+      .not("dia_id", "is", null)
+      .order("fecha_inicio", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("alimento_alternativas").select("alimento_id, nombre, gramos, orden").order("orden"),
   ]);
 
   if (!perfil) notFound();
@@ -208,6 +221,11 @@ export default async function PaginaFichaCliente({
       }
       respuestasAlta={(respuestasAlta ?? []) as unknown as RespuestaAltaConPregunta[]}
       ahora={ahora}
+      diasHechosSemana={(sesionesSemana ?? [])
+        .map((s) => s.dia_id as string | null)
+        .filter((d): d is string => !!d)}
+      ultimoDiaId={(ultimaConDia?.dia_id as string | undefined) ?? null}
+      alternativas={(alternativas ?? []) as Alternativa[]}
     />
   );
 }

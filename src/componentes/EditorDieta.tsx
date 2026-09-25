@@ -16,7 +16,7 @@ import {
   type Alimento,
   type ComidaEstructurada,
 } from "@/lib/dietas";
-import { Sparkles } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, CopyPlus, MoreHorizontal, Sparkles, X } from "lucide-react";
 import { infoComida } from "@/lib/infoComida";
 import { IconoTarjeta } from "@/componentes/ui";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
@@ -50,6 +50,7 @@ export default function EditorDieta({
   tipoDieta = "entreno",
   puedeCopiarDeEntreno = false,
   plantillas,
+  otraDieta = null,
 }: {
   dieta: Dieta | null;
   clienteId?: string | null; // null => plantilla
@@ -61,6 +62,10 @@ export default function EditorDieta({
   puedeCopiarDeEntreno?: boolean;
   /** Plantillas de dieta, para aplicar una sin salir de la ficha. */
   plantillas?: PlantillaResumen[];
+  /** La otra dieta del cliente (descanso si esta es la de entreno, o al
+   * revés), para "Copiar a la dieta de descanso" desde el menú de una
+   * comida. null si no existe todavía o si es una plantilla. */
+  otraDieta?: { id: string; tipo: "entreno" | "descanso" } | null;
 }) {
   const router = useRouter();
   const [kcal, setKcal] = useState(dieta?.kcal_obj ?? 2000);
@@ -92,6 +97,88 @@ export default function EditorDieta({
   const [notaCalculo, setNotaCalculo] = useState("");
   const [avisoGeneracion, setAvisoGeneracion] = useState<Record<number, string>>({});
   const [reduccion, setReduccion] = useState(75); // g de hidratos a recortar en descanso
+
+  /* Menú "⋯" de cada comida: mover, duplicar, copiar a la otra dieta
+   * y quitar, en una hoja en vez de cuatro botones en la cabecera. */
+  const [menuComida, setMenuComida] = useState<number | null>(null);
+  const [copiandoComida, setCopiandoComida] = useState(false);
+  const [avisoComida, setAvisoComida] = useState("");
+
+  function moverComida(ci: number, delta: -1 | 1) {
+    const destino = ci + delta;
+    if (destino < 0 || destino >= comidas.length) return;
+    const copia = comidas.slice();
+    [copia[ci], copia[destino]] = [copia[destino], copia[ci]];
+    setComidas(copia);
+    setMenuComida(destino);
+    tocar();
+  }
+
+  function duplicarComida(ci: number) {
+    const c = comidas[ci];
+    const copia = comidas.slice();
+    copia.splice(ci + 1, 0, {
+      nombre: c.nombre ? `${c.nombre} (copia)` : "",
+      notas: c.notas,
+      items: c.items.map((it) => ({ ...it })),
+    });
+    setComidas(copia);
+    setMenuComida(null);
+    tocar();
+  }
+
+  function quitarComida(ci: number) {
+    const c = comidas[ci];
+    if (c.items.length > 0 && !confirm(`¿Quitar «${c.nombre || "esta comida"}» con sus alimentos?`)) return;
+    setComidas(comidas.filter((_, j) => j !== ci));
+    setMenuComida(null);
+    tocar();
+  }
+
+  /* Copiar una comida a la otra dieta se escribe al momento: esa dieta
+   * no está abierta en este editor. Va tal como se ve aquí (aunque haya
+   * cambios sin guardar), al final de la otra dieta. */
+  async function copiarComidaAOtraDieta(ci: number) {
+    if (!otraDieta) return;
+    const c = comidas[ci];
+    setCopiandoComida(true);
+    setAvisoComida("");
+    const supabase = crearClienteNavegador();
+    const { count } = await supabase
+      .from("dieta_comidas")
+      .select("id", { count: "exact", head: true })
+      .eq("dieta_id", otraDieta.id);
+    const { data: nueva, error: e1 } = await supabase
+      .from("dieta_comidas")
+      .insert({
+        dieta_id: otraDieta.id,
+        orden: count ?? 99,
+        nombre: c.nombre.trim() || "Comida",
+        descripcion_libre: c.notas.trim() || null,
+      })
+      .select("id")
+      .single();
+    let fallo = !!e1 || !nueva;
+    if (!fallo && nueva && c.items.length > 0) {
+      const { error: e2 } = await supabase.from("dieta_comida_alimentos").insert(
+        c.items.map((it, i) => ({
+          comida_id: nueva.id,
+          alimento_id: it.alimento.id,
+          gramos: Number(it.gramos.replace(",", ".")) || 0,
+          orden: i,
+        }))
+      );
+      fallo = !!e2;
+    }
+    setCopiandoComida(false);
+    setMenuComida(null);
+    setAvisoComida(
+      fallo
+        ? "No se pudo copiar la comida. Inténtalo de nuevo."
+        : `«${c.nombre || "Comida"}» copiada a la dieta de ${otraDieta.tipo === "descanso" ? "descanso" : "entreno"}.`
+    );
+    router.refresh();
+  }
 
   function tocar() {
     setSucio(true);
@@ -502,15 +589,11 @@ export default function EditorDieta({
                 </span>
               )}
               <button
-                className="mini mini-peligro shrink-0 relative"
-                onClick={() => {
-                  if (c.items.length > 0 && !confirm(`¿Quitar «${c.nombre || "esta comida"}» con sus alimentos?`)) return;
-                  setComidas(comidas.filter((_, j) => j !== ci));
-                  tocar();
-                }}
-                aria-label="Quitar comida"
+                className="mini shrink-0 relative !text-acento"
+                onClick={() => setMenuComida(ci)}
+                aria-label={`Opciones de ${c.nombre || "esta comida"}`}
               >
-                ✕
+                <MoreHorizontal size={16} />
               </button>
             </div>
 
@@ -601,6 +684,77 @@ export default function EditorDieta({
           </section>
         );
       })}
+
+      {avisoComida && (
+        <div
+          className={`banner mb-3 ${avisoComida.startsWith("No se pudo") ? "banner-peligro" : "banner-accion"}`}
+        >
+          {avisoComida}
+        </div>
+      )}
+
+      {menuComida !== null && comidas[menuComida] && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-40 flex items-end justify-center anim-fondo-aparece"
+          onClick={() => setMenuComida(null)}
+        >
+          <div
+            className="w-full max-w-[480px] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] pb-7"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <div className="titulo-seccion !mb-0 break-words min-w-0">
+                {comidas[menuComida].nombre ||
+                  COMIDAS_SUGERIDAS[menuComida % COMIDAS_SUGERIDAS.length]}
+              </div>
+              <button className="ghost shrink-0" onClick={() => setMenuComida(null)}>
+                Cerrar
+              </button>
+            </div>
+            {(
+              [
+                [ArrowUp, "Subir", () => moverComida(menuComida, -1), menuComida === 0],
+                [ArrowDown, "Bajar", () => moverComida(menuComida, 1), menuComida === comidas.length - 1],
+                [CopyPlus, "Duplicar comida", () => duplicarComida(menuComida), false],
+              ] as const
+            ).map(([Icono, texto, accion, desactivado]) => (
+              <button
+                key={texto}
+                className="fila w-full text-left cursor-pointer disabled:opacity-35"
+                onClick={accion}
+                disabled={desactivado}
+              >
+                <Icono size={17} className="text-acento shrink-0" />
+                <span className="flex-1 text-[14px]">{texto}</span>
+              </button>
+            ))}
+            {otraDieta && (
+              <button
+                className="fila w-full text-left cursor-pointer"
+                onClick={() => copiarComidaAOtraDieta(menuComida)}
+                disabled={copiandoComida}
+              >
+                <Copy size={17} className="text-acento shrink-0" />
+                <span className="flex-1 text-[14px]">
+                  {copiandoComida
+                    ? "Copiando…"
+                    : `Copiar a la dieta de ${otraDieta.tipo === "descanso" ? "descanso" : "entreno"}`}
+                </span>
+              </button>
+            )}
+            <button
+              className="fila w-full text-left cursor-pointer"
+              onClick={() => quitarComida(menuComida)}
+            >
+              <X size={17} className="text-peligro shrink-0" />
+              <span className="flex-1 text-[14px] text-peligro">Quitar comida</span>
+            </button>
+            <p className="text-atenuado text-[12px] mt-2">
+              Mover, duplicar y quitar se guardan con «Guardar dieta».
+            </p>
+          </div>
+        </div>
+      )}
 
       <button
         className="w-full bg-transparent border border-dashed border-[#2A333B] text-atenuado rounded-[10px] py-2.5 text-[13.5px] cursor-pointer mb-3"

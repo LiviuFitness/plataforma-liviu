@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, Check, GripVertical, Play } from "lucide-react";
+import { ArrowLeftRight, BookmarkPlus, Check, GripVertical, Play } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -18,6 +18,7 @@ import type { DiaUI, Ejercicio, RutinaUI } from "@/lib/tipos";
 import AsignarPlantilla, { type PlantillaResumen } from "@/componentes/AsignarPlantilla";
 import HojaDuplicarSemana from "@/componentes/HojaDuplicarSemana";
 import HojaDuplicarDia from "@/componentes/HojaDuplicarDia";
+import HojaGuardarPlantilla from "@/componentes/HojaGuardarPlantilla";
 
 /**
  * Editor de rutina: semanas (microciclos) duplicables, lista de días,
@@ -52,6 +53,8 @@ export default function EditorRutina({
   const [mostrarIgualar, setMostrarIgualar] = useState(false);
   const [mostrarDuplicar, setMostrarDuplicar] = useState(false);
   const [duplicandoDia, setDuplicandoDia] = useState<DiaUI | null>(null);
+  const [guardandoPlantilla, setGuardandoPlantilla] = useState(false);
+  const [plantillaGuardada, setPlantillaGuardada] = useState("");
   /* Cambiar el orden de los días: se toca uno y luego aquel con el que
    * se intercambia. */
   const [ordenando, setOrdenando] = useState(false);
@@ -662,6 +665,46 @@ export default function EditorRutina({
         <button className="cta" onClick={anadirDia} disabled={cargando}>
           + Añadir día a la semana {semanaVista}
         </button>
+      )}
+
+      {/* De cliente a Biblioteca: solo en la ficha de un cliente (en una
+        * plantilla ya estás en la Biblioteca). */}
+      {clienteId && rutina && dias.length > 0 && !ordenando && (
+        <>
+          {plantillaGuardada && (
+            <div className="banner banner-accion mb-3 items-center">
+              <Check size={15} className="shrink-0" />
+              <span className="flex-1 min-w-0">
+                Guardada en Biblioteca › Plantillas como <b>{plantillaGuardada}</b>.
+              </span>
+              <Link href="/plantillas" className="underline underline-offset-2 shrink-0 font-semibold">
+                Ver
+              </Link>
+            </div>
+          )}
+          <button
+            className="w-full bg-transparent border border-dashed border-acento/40 text-acento rounded-[10px] py-2.5 text-[13px] cursor-pointer flex items-center justify-center gap-1.5 mb-3"
+            onClick={() => {
+              setPlantillaGuardada("");
+              setGuardandoPlantilla(true);
+            }}
+          >
+            <BookmarkPlus size={15} /> Guardar esta rutina como plantilla
+          </button>
+        </>
+      )}
+      {guardandoPlantilla && rutina && (
+        <HojaGuardarPlantilla
+          rutinaId={rutina.id}
+          nombreRutina={rutina.nombre}
+          nombreCliente={nombreCliente ?? ""}
+          semanas={semanas.length}
+          onCerrar={() => setGuardandoPlantilla(false)}
+          onHecho={(nombre) => {
+            setGuardandoPlantilla(false);
+            setPlantillaGuardada(nombre);
+          }}
+        />
       )}
 
       {/* Volumen semanal por músculo (calculado automáticamente) */}

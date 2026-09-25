@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Pencil, Search, Trash2 } from "lucide-react";
+import { Copy, Pencil, Search, Trash2 } from "lucide-react";
+import { copiarDieta, copiarRutina } from "@/lib/copiarPlan";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
 import type { ClienteAsignable, PlantillaRutina } from "./page";
@@ -29,6 +30,7 @@ export default function Plantillas({
   } | null>(null);
   const [asignadaOk, setAsignadaOk] = useState("");
   const [buscaCliente, setBuscaCliente] = useState("");
+  const [recienCopiada, setRecienCopiada] = useState<string | null>(null);
 
   async function nuevaPlantillaEntreno() {
     setCargando(true);
@@ -78,6 +80,28 @@ export default function Plantillas({
      * el segundo que tarda la navegación, y otra pulsación crearía una
      * segunda plantilla vacía. */
     router.push(`/plantillas/dieta/${data.id}`);
+  }
+
+  /* Duplicar para sacar variantes ("4 días" → su versión de 3) sin
+   * empezar en blanco. La copia sale arriba del todo (van por fecha) con
+   * la marca "nueva", y el nombre pide a gritos que lo cambies. */
+  async function duplicarPlantilla(tipo: "rutina" | "dieta", id: string, nombre: string) {
+    setCargando(true);
+    setError("");
+    setAsignadaOk("");
+    const supabase = crearClienteNavegador();
+    const destino = { nombre: `${nombre} (copia)`, cliente_id: null, es_plantilla: true, activa: false };
+    const nueva =
+      tipo === "rutina"
+        ? await copiarRutina(supabase, id, destino)
+        : await copiarDieta(supabase, id, destino);
+    setCargando(false);
+    if (!nueva) {
+      setError("No se pudo duplicar la plantilla. Inténtalo de nuevo.");
+      return;
+    }
+    setRecienCopiada(nueva);
+    router.refresh();
   }
 
   async function borrarPlantilla(tipo: "rutina" | "dieta", id: string, nombre: string) {
@@ -133,6 +157,11 @@ export default function Plantillas({
       <div className="sub mb-4">tu método, listo para asignar —</div>
 
       {asignadaOk && <div className="banner banner-accion mb-3.5">{asignadaOk}</div>}
+      {recienCopiada && (
+        <div className="banner banner-accion mb-3.5">
+          Copia creada arriba de su lista. Cámbiale el nombre y ajústala.
+        </div>
+      )}
       {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
 
       {/* ---- Entreno ---- */}
@@ -143,36 +172,53 @@ export default function Plantillas({
         </div>
       )}
       {rutinas.map((p) => (
-        <div key={p.id} className="fila">
-          <div className="flex-1 min-w-0">
-            <div className="font-bold text-[15px] leading-tight break-words">{p.nombre}</div>
+        <div key={p.id} className="py-3 border-b border-borde last:border-b-0">
+          <div className="min-w-0">
+            <div className="font-bold text-[15px] leading-tight break-words">
+              {p.nombre}
+              {p.id === recienCopiada && (
+                <span className="text-acento text-[12px] font-semibold"> · nueva</span>
+              )}
+            </div>
             <div className="text-atenuado text-[12.5px] break-words">
               {p.dias_semana} {p.dias_semana === 1 ? "día" : "días"} por semana
               {p.semanas > 1 ? ` · ${p.semanas} semanas` : ""}
               {p.notas ? ` · ${p.notas}` : ""}
             </div>
           </div>
-          {/* Acción principal destacada; editar/borrar quedan discretos */}
-          <button
-            className="cta cta-mini !mb-0 shrink-0"
-            onClick={() => setAsignando({ id: p.id, tipo: "rutina", nombre: p.nombre })}
-          >
-            Asignar
-          </button>
-          <Link
-            href={`/plantillas/entreno/${p.id}`}
-            className="mini shrink-0"
-            aria-label={`Editar ${p.nombre}`}
-          >
-            <Pencil size={14} />
-          </Link>
-          <button
-            className="mini shrink-0"
-            onClick={() => borrarPlantilla("rutina", p.id, p.nombre)}
-            aria-label={`Borrar plantilla ${p.nombre}`}
-          >
-            <Trash2 size={14} />
-          </button>
+          {/* Acciones en su propia línea: con cuatro botones al lado,
+            * el nombre de la plantilla se quedaba en un tercio del ancho. */}
+          <div className="flex items-center gap-2 mt-2.5">
+            <button
+              className="cta cta-mini !mb-0 flex-1"
+              onClick={() => setAsignando({ id: p.id, tipo: "rutina", nombre: p.nombre })}
+            >
+              Asignar
+            </button>
+            <button
+              className="mini shrink-0"
+              onClick={() => duplicarPlantilla("rutina", p.id, p.nombre)}
+              disabled={cargando}
+              aria-label={`Duplicar ${p.nombre}`}
+              title="Duplicar plantilla"
+            >
+              <Copy size={14} />
+            </button>
+            <Link
+              href={`/plantillas/entreno/${p.id}`}
+              className="mini shrink-0"
+              aria-label={`Editar ${p.nombre}`}
+            >
+              <Pencil size={14} />
+            </Link>
+            <button
+              className="mini shrink-0"
+              onClick={() => borrarPlantilla("rutina", p.id, p.nombre)}
+              aria-label={`Borrar plantilla ${p.nombre}`}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       ))}
       <button className="cta mt-3" onClick={nuevaPlantillaEntreno} disabled={cargando}>
@@ -187,10 +233,13 @@ export default function Plantillas({
         </div>
       )}
       {dietas.map((p) => (
-        <div key={p.id} className="fila">
-          <div className="flex-1 min-w-0">
+        <div key={p.id} className="py-3 border-b border-borde last:border-b-0">
+          <div className="min-w-0">
             <div className="font-bold text-[15px] leading-tight break-words">
               {p.nombre ?? "Plantilla de dieta"}
+              {p.id === recienCopiada && (
+                <span className="text-acento text-[12px] font-semibold"> · nueva</span>
+              )}
             </div>
             <div className="text-atenuado text-[12.5px] break-words">
               {p.kcal_obj} kcal ·{" "}
@@ -199,32 +248,45 @@ export default function Plantillas({
               / <span style={{ color: INFO_MACRO.grasas.color }}>G{p.gras_obj}</span>
             </div>
           </div>
-          <button
-            className="cta cta-mini !mb-0 shrink-0"
-            onClick={() =>
-              setAsignando({
-                id: p.id,
-                tipo: "dieta",
-                nombre: p.nombre ?? "Plantilla de dieta",
-              })
-            }
-          >
-            Asignar
-          </button>
-          <Link
-            href={`/plantillas/dieta/${p.id}`}
-            className="mini shrink-0"
-            aria-label={`Editar ${p.nombre ?? "plantilla de dieta"}`}
-          >
-            <Pencil size={14} />
-          </Link>
-          <button
-            className="mini shrink-0"
-            onClick={() => borrarPlantilla("dieta", p.id, p.nombre ?? "Plantilla de dieta")}
-            aria-label={`Borrar plantilla ${p.nombre}`}
-          >
-            <Trash2 size={14} />
-          </button>
+          {/* Acciones en su propia línea: con cuatro botones al lado,
+            * el nombre de la plantilla se quedaba en un tercio del ancho. */}
+          <div className="flex items-center gap-2 mt-2.5">
+            <button
+              className="cta cta-mini !mb-0 flex-1"
+              onClick={() =>
+                setAsignando({
+                  id: p.id,
+                  tipo: "dieta",
+                  nombre: p.nombre ?? "Plantilla de dieta",
+                })
+              }
+            >
+              Asignar
+            </button>
+            <button
+              className="mini shrink-0"
+              onClick={() => duplicarPlantilla("dieta", p.id, p.nombre ?? "Plantilla de dieta")}
+              disabled={cargando}
+              aria-label={`Duplicar ${p.nombre ?? "plantilla de dieta"}`}
+              title="Duplicar plantilla"
+            >
+              <Copy size={14} />
+            </button>
+            <Link
+              href={`/plantillas/dieta/${p.id}`}
+              className="mini shrink-0"
+              aria-label={`Editar ${p.nombre ?? "plantilla de dieta"}`}
+            >
+              <Pencil size={14} />
+            </Link>
+            <button
+              className="mini shrink-0"
+              onClick={() => borrarPlantilla("dieta", p.id, p.nombre ?? "Plantilla de dieta")}
+              aria-label={`Borrar plantilla ${p.nombre}`}
+            >
+              <Trash2 size={14} />
+            </button>
+          </div>
         </div>
       ))}
       <button className="cta mt-3" onClick={nuevaPlantillaDieta} disabled={cargando}>
