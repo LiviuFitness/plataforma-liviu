@@ -18,13 +18,17 @@ export interface DatosTarjeta {
 
 const ANCHO = 1080;
 const ALTO = 1920;
-const FUENTE = '"Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif';
-const ACENTO = "#29abe2";
-const DORADO = "#e2b429";
+export const FUENTE = '"Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif';
+export const ACENTO = "#29abe2";
+export const DORADO = "#e2b429";
 
-function cargarImagen(src: string): Promise<HTMLImageElement | null> {
+/** Con `cors`, para imágenes de otro dominio (las fotos de Supabase):
+ * sin él, el canvas queda "manchado" y no se puede exportar. Si el
+ * servidor no lo permite, la imagen no carga y se dibuja sin ella. */
+export function cargarImagen(src: string, cors = false): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
+    if (cors) img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;
@@ -34,7 +38,7 @@ function cargarImagen(src: string): Promise<HTMLImageElement | null> {
 /** Parte un texto en líneas que caben en `ancho`, como mucho `max`. La
  * última, si no cabe, se acorta con "…" (en una imagen no puede bajar
  * de línea sin fin). */
-function lineas(ctx: CanvasRenderingContext2D, texto: string, ancho: number, max: number): string[] {
+export function lineas(ctx: CanvasRenderingContext2D, texto: string, ancho: number, max: number): string[] {
   const palabras = texto.split(/\s+/);
   const res: string[] = [];
   let actual = "";
@@ -57,7 +61,7 @@ function lineas(ctx: CanvasRenderingContext2D, texto: string, ancho: number, max
   return res;
 }
 
-function redondeado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+export function redondeado(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
   ctx.arcTo(x + w, y, x + w, y + h, r);

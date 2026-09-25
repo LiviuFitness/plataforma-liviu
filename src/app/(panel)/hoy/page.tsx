@@ -4,18 +4,24 @@ import {
   CalendarClock,
   ChevronRight,
   Inbox,
-  Repeat,
+  Wallet,
   MessageCircle,
   TrendingDown,
   TrendingUp,
   Trophy,
 } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
-import { Avatar, PuntoEstado } from "@/componentes/ui";
+import { Avatar, IconoTarjeta, PuntoEstado } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
 import { calcularRevisionSemanal } from "@/lib/revision";
 import { cuandoRenueva, proximaRenovacion } from "@/lib/renovaciones";
 import type { Plan } from "@/lib/tipos";
+import { listosParaSubir, type RutinaParaSubir, type SesionParaSubir } from "@/lib/listosSubir";
+import { calcularSugerencias } from "@/lib/sugerencias";
+import RenuevanSemana, { type FilaRenovacion } from "./RenuevanSemana";
+import ListosSubir from "./ListosSubir";
+import MensajesSugeridos from "./MensajesSugeridos";
+import Recordatorios, { type Recordatorio } from "./Recordatorios";
 
 interface RecordSemana {
   cliente_id: string;
@@ -52,6 +58,10 @@ export default async function PaginaHoy() {
     { data: dietasActivas },
     { data: revisiones },
     { data: pesosRecientes },
+    { data: pagos },
+    { data: notas },
+    { data: rutinasActivas },
+    { data: sesionesSeries },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -82,7 +92,7 @@ export default async function PaginaHoy() {
       .eq("estado", "nuevo"),
     supabase
       .from("mensajes")
-      .select("cliente_id, remitente")
+      .select("cliente_id, remitente, creado_en")
       .order("creado_en", { ascending: false })
       .limit(500),
     /* "Toca revisar la dieta": la dieta de entreno activa de cada uno,
@@ -103,6 +113,40 @@ export default async function PaginaHoy() {
       .not("peso", "is", null)
       .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 42)).toLocaleDateString("sv-SE"))
       .limit(3000),
+    /* Cobros: los de los últimos meses bastan para el mes, el anterior y
+     * lo último que pagó cada uno. */
+    supabase
+      .from("pagos")
+      .select("id, cliente_id, importe, fecha")
+      .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 400)).toLocaleDateString("sv-SE"))
+      .order("fecha", { ascending: false }),
+    /* Recordatorios que ya tocan */
+    supabase
+      .from("notas_cliente")
+      .select("id, cliente_id, texto, recordar_en, creada_en")
+      .eq("hecha", false)
+      .lte("recordar_en", new Date().toLocaleDateString("sv-SE"))
+      .order("recordar_en"),
+    /* Listos para subir: lo pautado de cada rutina activa… */
+    supabase
+      .from("rutinas")
+      .select(
+        `cliente_id, semana_actual,
+         rutina_dias ( semana, orden,
+           rutina_ejercicios ( id, ejercicio_id, ejercicios ( nombre ),
+             series_prescritas ( tipo, kg, reps, reps_max, rir ) ) )`
+      )
+      .eq("activa", true)
+      .not("cliente_id", "is", null),
+    /* …y lo hecho en las últimas cuatro semanas */
+    supabase
+      .from("sesiones")
+      .select(
+        `cliente_id, fecha_inicio,
+         series_realizadas ( kg, reps, rir, completada, tipo, ejercicio_sustituto_id,
+           rutina_ejercicios ( ejercicio_id ) )`
+      )
+      .gte("fecha_inicio", new Date(new Date().setDate(new Date().getDate() - 28)).toISOString()),
   ]);
 
   const listaClientes = clientes ?? [];
@@ -225,9 +269,13 @@ export default async function PaginaHoy() {
    * Mismo criterio que la lista de clientes, para que no digan cosas
    * distintas. */
   const chatSinResponder = new Map<string, boolean>();
+  const ultimoMensajeTuyo = new Map<string, number>();
   for (const m of mensajes ?? []) {
     if (!chatSinResponder.has(m.cliente_id)) {
       chatSinResponder.set(m.cliente_id, m.remitente === "cliente");
+    }
+    if (m.remitente === "entrenador" && !ultimoMensajeTuyo.has(m.cliente_id)) {
+      ultimoMensajeTuyo.set(m.cliente_id, new Date(m.creado_en).getTime());
     }
   }
   const esperandoRespuesta = listaClientes.filter((c) => chatSinResponder.get(c.id));
@@ -322,6 +370,101 @@ export default async function PaginaHoy() {
     .filter((x) => x.r !== null && x.r.enDias <= 6)
     .sort((a, b) => a.r!.enDias - b.r!.enDias);
 
+  /* Cobros. Un pago cuenta para la renovación que viene si se apuntó en
+   * los 10 días anteriores a ella (hay quien paga unos días antes). */
+  const listaPagos = (pagos ?? []).map((p) => ({
+    id: p.id as string,
+    clienteId: p.cliente_id as string,
+    importe: Number(p.importe),
+    fecha: p.fecha as string,
+  }));
+  const hoyISO = hoyFecha.toLocaleDateString("sv-SE");
+  const mesActual = hoyISO.slice(0, 7);
+  const mesAnteriorFecha = new Date(hoyFecha.getFullYear(), hoyFecha.getMonth() - 1, 1);
+  const mesAnterior = mesAnteriorFecha.toLocaleDateString("sv-SE").slice(0, 7);
+  const cobradoMes = listaPagos.filter((p) => p.fecha.startsWith(mesActual)).reduce((a, p) => a + p.importe, 0);
+  const cobradoAnterior = listaPagos
+    .filter((p) => p.fecha.startsWith(mesAnterior))
+    .reduce((a, p) => a + p.importe, 0);
+  const filasRenovacion: FilaRenovacion[] = renuevan.map(({ clienteId, nombre, plan, r }) => {
+    const limite = new Date(r!.fecha);
+    limite.setDate(limite.getDate() - 10);
+    const limiteISO = limite.toLocaleDateString("sv-SE");
+    const suyos = listaPagos.filter((p) => p.clienteId === clienteId);
+    const pago = suyos.find((p) => p.fecha >= limiteISO) ?? null;
+    return {
+      clienteId,
+      nombre,
+      plan,
+      cuando: cuandoRenueva(r!),
+      pronto: r!.enDias <= 1,
+      meses: r!.meses,
+      pagoId: pago?.id ?? null,
+      pagoImporte: pago?.importe ?? null,
+      ultimoImporte: suyos[0]?.importe ?? null,
+    };
+  });
+  const sinCobrar = filasRenovacion.filter((f) => !f.pagoId);
+  const pendienteImporte = sinCobrar.reduce((a, f) => a + (f.ultimoImporte ?? 0), 0);
+  const euros = (n: number) => `${n.toLocaleString("es-ES", { maximumFractionDigits: 0 })} €`;
+  const nombreMes = hoyFecha.toLocaleDateString("es-ES", { month: "long" });
+
+  /* Objetivo semanal de cada uno (días de su semana actual de rutina) */
+  const rutinasSubir = (rutinasActivas ?? []) as unknown as RutinaParaSubir[];
+  const objetivoCliente = new Map(
+    rutinasSubir.map((r) => [
+      r.cliente_id,
+      (r.rutina_dias ?? []).filter((d) => d.semana === r.semana_actual).length,
+    ])
+  );
+  const listos = listosParaSubir(
+    rutinasSubir,
+    (sesionesSeries ?? []) as unknown as SesionParaSubir[],
+    new Map(listaClientes.map((c) => [c.id as string, c.nombre as string]))
+  );
+
+  const sugerencias = calcularSugerencias({
+    ahora: hoyFecha.getTime(),
+    clientes: listaClientes.map((c) => ({ id: c.id, nombre: c.nombre, fechaAlta: c.fecha_alta })),
+    records: recordsSemana.map((r) => ({
+      cliente_id: r.cliente_id,
+      ejercicio: r.ejercicio,
+      kg_nuevo: Number(r.kg_nuevo),
+    })),
+    sesiones: new Map(
+      [...sesionesPorCliente.entries()].map(([id, lista]) => [id, lista.map((x) => x.fecha)])
+    ),
+    ultimoMensajeTuyo,
+    objetivo: objetivoCliente,
+    lunes,
+    lunesPasado,
+  });
+
+  /* Recordatorios que ya tocan (o se pasaron) */
+  const recordatorios: Recordatorio[] = (notas ?? [])
+    .filter((n) => nombreDe.has(n.cliente_id))
+    .map((n) => {
+      const dias = Math.floor((ahora - new Date(n.creada_en).getTime()) / DIA_MS);
+      const cuando =
+        dias <= 0
+          ? "lo apuntaste hoy"
+          : dias === 1
+            ? "lo apuntaste ayer"
+            : dias < 7
+              ? `lo apuntaste el ${new Date(n.creada_en).toLocaleDateString("es-ES", { weekday: "long" })}`
+              : dias < 14
+                ? "lo apuntaste hace una semana"
+                : `lo apuntaste hace ${Math.floor(dias / 7)} semanas`;
+      return {
+        id: n.id as string,
+        clienteId: n.cliente_id as string,
+        nombre: nombreDe.get(n.cliente_id)!,
+        texto: n.texto as string,
+        cuando,
+        atrasado: (n.recordar_en as string) < hoyISO,
+      };
+    });
+
   return (
     <>
       <h1 className="h1">Hoy</h1>
@@ -395,6 +538,39 @@ export default async function PaginaHoy() {
         </div>
       </div>
 
+      {(listaPagos.length > 0 || filasRenovacion.length > 0) && (
+        <section className="tarjeta tarjeta-verde !p-4 !mb-5">
+          <div className="flex items-center gap-3">
+            <IconoTarjeta Icono={Wallet} color="var(--color-verde)" tamano={38} />
+            <div className="flex-1 min-w-0">
+              <div className="titulo-tarjeta !mb-0.5">{nombreMes.toUpperCase()}</div>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="num-grande !text-[26px]" style={{ color: "var(--color-verde)" }}>
+                  {euros(cobradoMes)}
+                </span>
+                <span className="text-atenuado text-[12.5px]">cobrados</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex justify-between gap-3 flex-wrap text-[12.5px] mt-3 pt-3 border-t border-borde">
+            <span className="text-atenuado">
+              {sinCobrar.length === 0 ? (
+                "Nada pendiente esta semana"
+              ) : (
+                <>
+                  Pendiente{" "}
+                  {pendienteImporte > 0 && <b className="text-aviso">{euros(pendienteImporte)} </b>}·{" "}
+                  {sinCobrar.length} {sinCobrar.length === 1 ? "cliente" : "clientes"}
+                </>
+              )}
+            </span>
+            <span className="text-atenuado first-letter:uppercase">
+              {mesAnteriorFecha.toLocaleDateString("es-ES", { month: "long" })}: {euros(cobradoAnterior)}
+            </span>
+          </div>
+        </section>
+      )}
+
       {/* Un lead sin contestar es lo único que caduca de verdad */}
       {(leadsNuevos ?? 0) > 0 && (
         <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-5 flex items-center gap-3">
@@ -449,30 +625,27 @@ export default async function PaginaHoy() {
             ))}
           </div>
 
-          {renuevan.length > 0 && (
+          <Recordatorios items={recordatorios} />
+
+          <MensajesSugeridos items={sugerencias} />
+
+          {filasRenovacion.length > 0 && (
             <>
               <div className="flex items-baseline justify-between">
                 <div className="titulo-seccion">Renuevan esta semana</div>
                 <span className="text-atenuado text-[12px]">próximos 7 días</span>
               </div>
-              <div className="superficie px-4 mb-6">
-                {renuevan.map(({ clienteId, nombre, plan, r }) => (
-                  <Link key={clienteId} href={`/clientes/${clienteId}`} className="fila">
-                    <Avatar nombre={nombre} tamano={34} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-[14.5px] leading-tight break-words">{nombre}</div>
-                      <div className="text-texto-2 text-[12.5px] leading-snug break-words">
-                        Plan {plan} · renueva{" "}
-                        <b className={r!.enDias <= 1 ? "text-acento" : "text-texto-2"}>{cuandoRenueva(r!)}</b>
-                      </div>
-                      <div className="text-atenuado text-[12px]">
-                        {r!.meses === 1 ? "Cumple su primer mes" : `Cumple ${r!.meses} meses contigo`}
-                      </div>
-                    </div>
-                    <Repeat size={17} className="text-acento shrink-0" />
-                  </Link>
-                ))}
+              <RenuevanSemana filas={filasRenovacion} />
+            </>
+          )}
+
+          {listos.length > 0 && (
+            <>
+              <div className="flex items-baseline justify-between">
+                <div className="titulo-seccion">Listos para subir</div>
+                <span className="text-atenuado text-[12px]">tope del rango 2 veces</span>
               </div>
+              <ListosSubir items={listos} />
             </>
           )}
 

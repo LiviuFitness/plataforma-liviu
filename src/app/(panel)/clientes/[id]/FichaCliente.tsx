@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Eye } from "lucide-react";
+import { ArrowLeft, ChevronRight, Eye, FileText } from "lucide-react";
 import { AnilloAdherencia } from "@/componentes/ui";
 import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
@@ -12,6 +12,8 @@ import TabProgreso from "./TabProgreso";
 import TabHabitos from "./TabHabitos";
 import HiloChat from "@/componentes/HiloChat";
 import VistaComoCliente from "@/componentes/VistaComoCliente";
+import NotasCliente, { type NotaCliente } from "@/componentes/NotasCliente";
+import HojaInforme from "@/componentes/HojaInforme";
 import type { Alimento, Alternativa } from "@/lib/dietas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
@@ -86,6 +88,7 @@ export default function FichaCliente({
   ultimoDiaId,
   alternativas,
   respuestasRapidas,
+  notas,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -117,6 +120,7 @@ export default function FichaCliente({
   ultimoDiaId: string | null;
   alternativas: Alternativa[];
   respuestasRapidas: string[];
+  notas: NotaCliente[];
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -128,6 +132,7 @@ export default function FichaCliente({
   // Dieta: día de entreno o día de descanso
   const [tipoDieta, setTipoDieta] = useState<"entreno" | "descanso">("entreno");
   const [viendoComoCliente, setViendoComoCliente] = useState(false);
+  const [informeAbierto, setInformeAbierto] = useState(false);
 
   const nombrePila = perfil.nombre.split(" ")[0];
   const ultimoMensaje = mensajes[mensajes.length - 1] ?? null;
@@ -192,6 +197,8 @@ export default function FichaCliente({
           ahora={ahora}
           abrir={abrir}
         />
+
+        <NotasCliente clienteId={perfil.id} nombre={perfil.nombre} notas={notas} />
       </>
     );
   }
@@ -315,6 +322,25 @@ export default function FichaCliente({
 
       {vista === "progreso" && (
         <>
+          {/* El informe para mandarle: lo mismo que sale en Hoy cuando
+            * renueva, pero a mano, cuando quieras */}
+          <button
+            className="fila w-full text-left cursor-pointer anim-pulsable !py-3 mb-3"
+            onClick={() => setInformeAbierto(true)}
+          >
+            <FileText size={17} className="text-acento shrink-0" />
+            <span className="flex-1 min-w-0 text-[13.5px] text-texto-2">
+              Crear informe de progreso para {nombrePila}
+            </span>
+            <ChevronRight size={16} className="text-atenuado shrink-0" />
+          </button>
+          {informeAbierto && (
+            <HojaInforme
+              clienteId={perfil.id}
+              nombre={perfil.nombre}
+              onCerrar={() => setInformeAbierto(false)}
+            />
+          )}
           <TabProgreso
             clienteId={perfil.id}
             medidas={medidas}

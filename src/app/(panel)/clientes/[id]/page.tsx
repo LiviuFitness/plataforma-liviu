@@ -4,6 +4,7 @@ import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutina
 import { SELECT_DIETA_COMPLETA, type Alimento, type Alternativa } from "@/lib/dietas";
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
+import type { NotaCliente } from "@/componentes/NotasCliente";
 import FichaCliente from "./FichaCliente";
 import type {
   Alerta,
@@ -68,6 +69,7 @@ export default async function PaginaFichaCliente({
     { data: ultimaConDia },
     { data: alternativas },
     { data: respuestasRapidas },
+    { data: notas },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -172,6 +174,12 @@ export default async function PaginaFichaCliente({
     /* Si la tabla aún no existe (migración sin aplicar) esto devuelve
      * error y data null: el chat sale sin respuestas rápidas, sin más. */
     supabase.from("respuestas_rapidas").select("texto").order("orden"),
+    supabase
+      .from("notas_cliente")
+      .select("id, texto, recordar_en, hecha, creada_en")
+      .eq("cliente_id", id)
+      .order("creada_en", { ascending: false })
+      .limit(50),
   ]);
 
   if (!perfil) notFound();
@@ -231,6 +239,7 @@ export default async function PaginaFichaCliente({
       ultimoDiaId={(ultimaConDia?.dia_id as string | undefined) ?? null}
       alternativas={(alternativas ?? []) as Alternativa[]}
       respuestasRapidas={(respuestasRapidas ?? []).map((r) => r.texto as string)}
+      notas={(notas ?? []) as NotaCliente[]}
     />
   );
 }
