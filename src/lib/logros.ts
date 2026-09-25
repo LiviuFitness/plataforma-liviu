@@ -37,16 +37,20 @@ export const CATALOGO_LOGROS: Logro[] = [
     descripcion: "Completa 50 sesiones de entrenamiento.",
     Icono: Trophy,
   },
+  /* Las claves siguen siendo racha_7 y racha_30 para no perder los ya
+   * desbloqueados, pero ahora se cuentan en semanas cumpliendo el plan:
+   * con una rutina de 4 días, "7 días seguidos" pedía entrenar en los
+   * días de descanso. */
   {
     clave: "racha_7",
-    etiqueta: "Racha de 7 días",
-    descripcion: "Entrena 7 días seguidos.",
+    etiqueta: "Un mes cumpliendo",
+    descripcion: "Cumple tus entrenos 4 semanas seguidas.",
     Icono: Flame,
   },
   {
     clave: "racha_30",
-    etiqueta: "Racha de 30 días",
-    descripcion: "Entrena 30 días seguidos.",
+    etiqueta: "Tres meses cumpliendo",
+    descripcion: "Cumple tus entrenos 12 semanas seguidas.",
     Icono: Flame,
   },
   {
@@ -65,7 +69,8 @@ export const CATALOGO_LOGROS: Logro[] = [
 
 export interface DatosParaLogros {
   totalSesiones: number;
-  racha: number;
+  /** Semanas seguidas cumpliendo los días de su rutina. */
+  rachaSemanas: number;
   totalRegistrosHabitos: number;
   semanaHabitosCompleta: boolean;
 }
@@ -77,8 +82,8 @@ export function logrosCumplidos(datos: DatosParaLogros): string[] {
   if (datos.totalSesiones >= 1) claves.push("primera_sesion");
   if (datos.totalSesiones >= 10) claves.push("diez_sesiones");
   if (datos.totalSesiones >= 50) claves.push("cincuenta_sesiones");
-  if (datos.racha >= 7) claves.push("racha_7");
-  if (datos.racha >= 30) claves.push("racha_30");
+  if (datos.rachaSemanas >= 4) claves.push("racha_7");
+  if (datos.rachaSemanas >= 12) claves.push("racha_30");
   if (datos.totalRegistrosHabitos >= 1) claves.push("primer_habito");
   if (datos.semanaHabitosCompleta) claves.push("semana_habitos");
   return claves;

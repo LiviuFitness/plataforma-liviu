@@ -17,12 +17,14 @@ import MarcarAvisosVistos from "./MarcarAvisosVistos";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
 import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
+import TarjetaSemanaPasada from "./TarjetaSemanaPasada";
+import { resumenSemanaPasada, type SesionResumen } from "@/lib/resumenSemana";
 import { semanaHabitosCompleta } from "@/lib/habitos";
 import { logrosCumplidos } from "@/lib/logros";
 import { calcularVolumenMuscular, grupoMasDescuidado } from "@/lib/musculos";
 import { INFO_MACRO } from "@/lib/tipos";
 import { IconoTarjeta, type IconoApp } from "@/componentes/ui";
-import { calcularRacha, calcularRachaSemanas } from "@/lib/racha";
+import { calcularRachaSemanas } from "@/lib/racha";
 import { fotoEntreno } from "@/lib/fotoEntreno";
 
 export const dynamic = "force-dynamic";
@@ -110,7 +112,7 @@ export default async function PaginaInicio() {
       .from("sesiones")
       .select(
         `fecha_inicio, dia_id,
-         series_realizadas ( kg, completada, tipo,
+         series_realizadas ( kg, reps, reps_extra, completada, tipo,
            rutina_ejercicios ( ejercicios ( nombre, grupo_muscular ) ) )`
       )
       .eq("cliente_id", user.id)
@@ -246,7 +248,10 @@ export default async function PaginaInicio() {
   }
   const objetivoSemana = rutina?.dias.length ?? 0;
 
-  const racha = calcularRacha(listaSesiones.map((s) => s.fecha_inicio));
+  const rachaSemanas = calcularRachaSemanas(
+    (fechasSesiones ?? []).map((s) => s.fecha_inicio),
+    objetivoSemana
+  );
   const prReciente = calcularPrReciente(listaSesiones as unknown as FilaSesionParaPR[]);
 
   // Logros: se calculan y desbloquean aquí (idempotente, unique en la
@@ -255,7 +260,7 @@ export default async function PaginaInicio() {
   const clavesPrevias = new Set((logrosPrevios ?? []).map((l) => l.clave));
   const cumplidos = logrosCumplidos({
     totalSesiones: totalSesiones ?? 0,
-    racha,
+    rachaSemanas,
     totalRegistrosHabitos: totalRegistrosHabitos ?? 0,
     semanaHabitosCompleta: semanaHabitosCompleta(habitos ?? [], registrosHabitos ?? []),
   });
@@ -342,12 +347,19 @@ export default async function PaginaInicio() {
         : `${delta > 0 ? "+" : "−"}${Math.abs(delta).toFixed(1).replace(".", ",")} kg este mes`;
   }
 
-  const rachaSemanas = calcularRachaSemanas(
-    (fechasSesiones ?? []).map((s) => s.fecha_inicio),
-    objetivoSemana
-  );
   const hoySemana = (new Date().getDay() + 6) % 7;
   const hechosSemana = diasEntrenados.filter(Boolean).length;
+
+  /* Lunes y martes: el cierre de la semana anterior */
+  const semanaPasada =
+    hoySemana <= 1
+      ? resumenSemanaPasada(
+          listaSesiones as unknown as SesionResumen[],
+          listaMedidas,
+          objetivoSemana,
+          new Date()
+        )
+      : null;
 
   const fechaHoy = new Date().toLocaleDateString("es-ES", {
     weekday: "long",
@@ -552,6 +564,8 @@ export default async function PaginaInicio() {
           </p>
         </section>
       )}
+
+      {semanaPasada && <TarjetaSemanaPasada r={semanaPasada} />}
 
       {/* 3. Novedades — solo si hay alguna */}
       {novedades.length > 0 && (

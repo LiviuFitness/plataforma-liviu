@@ -22,6 +22,8 @@ export default async function PaginaMiProgreso() {
   if (!user) redirect("/login");
 
   const semanaActualISO = lunesDe(new Date().toLocaleDateString("sv-SE"));
+  const hace17semanas = new Date();
+  hace17semanas.setDate(hace17semanas.getDate() - 17 * 7);
 
   const [
     { data: medidas },
@@ -32,6 +34,8 @@ export default async function PaginaMiProgreso() {
     { data: respuestasSemana },
     { data: habitos },
     { data: registrosHabitos },
+    { data: fechasSesiones },
+    { data: rutina },
   ] = await Promise.all([
     supabase
       .from("medidas")
@@ -63,7 +67,33 @@ export default async function PaginaMiProgreso() {
       .select("*")
       .eq("cliente_id", user.id)
       .gte("fecha", semanaActualISO),
+    /* Calendario de constancia: solo fechas, 17 semanas atrás */
+    supabase
+      .from("sesiones")
+      .select("fecha_inicio")
+      .eq("cliente_id", user.id)
+      .gte("fecha_inicio", hace17semanas.toISOString()),
+    supabase
+      .from("rutinas")
+      .select("semana_actual, rutina_dias ( semana )")
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  /* En hora de Madrid: un entreno a las 00:30 es de ese día, no del
+   * anterior (el servidor va en UTC). */
+  const enMadrid = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+  const diasEntrenados = [
+    ...new Set((fechasSesiones ?? []).map((s) => enMadrid(new Date(s.fecha_inicio)))),
+  ];
+  const objetivoSemana = rutina
+    ? ((rutina.rutina_dias ?? []) as { semana: number }[]).filter(
+        (d) => d.semana === rutina.semana_actual
+      ).length
+    : 0;
 
   const semanas = calcularRevisionSemanal(
     (medidas ?? []).map((m) => ({ fecha: m.fecha, peso: m.peso }))
@@ -92,6 +122,7 @@ export default async function PaginaMiProgreso() {
       semanaActualISO={semanaActualISO}
       habitos={(habitos ?? []) as Habito[]}
       registrosHabitos={(registrosHabitos ?? []) as HabitoRegistro[]}
+      constancia={{ diasEntrenados, hoyISO: enMadrid(new Date()), objetivo: objetivoSemana }}
     />
   );
 }

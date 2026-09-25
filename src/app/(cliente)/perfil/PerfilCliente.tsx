@@ -17,21 +17,22 @@ export default function PerfilCliente({
   perfil,
   biblioteca,
   ejerciciosExcluidos,
-  racha,
+  rachaSemanas,
   totalSesiones,
   ultimoPeso,
 }: {
   perfil: Perfil;
   biblioteca: Ejercicio[];
   ejerciciosExcluidos: string[];
-  racha: number;
+  /** Semanas seguidas cumpliendo los días de su rutina. */
+  rachaSemanas: number;
   totalSesiones: number;
   ultimoPeso: number | null;
 }) {
   const [visibleComunidad, setVisibleComunidad] = useState(perfil.visible_en_comunidad);
   const [guardandoComunidad, setGuardandoComunidad] = useState(false);
 
-  const rachaAnimada = useCountUp(racha);
+  const rachaAnimada = useCountUp(rachaSemanas);
   const sesionesAnimadas = useCountUp(totalSesiones);
   const pesoAnimado = useCountUp(ultimoPeso ?? 0, 1);
 
@@ -131,7 +132,7 @@ export default function PerfilCliente({
           <IconoTarjeta Icono={Flame} color="var(--color-dorado)" tamano={34} />
           <span className="num-grande !text-[19px]">{rachaAnimada}</span>
           <span className="text-atenuado text-[10.5px] leading-tight">
-            {racha === 1 ? "día de racha" : "días de racha"}
+            {rachaSemanas === 1 ? "semana cumpliendo" : "semanas cumpliendo"}
           </span>
         </div>
         <div className="tarjeta tarjeta-acento !mb-0 !p-3.5 flex flex-col items-center text-center gap-1.5">

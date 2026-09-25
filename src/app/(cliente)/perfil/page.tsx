@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
-import { calcularRacha } from "@/lib/racha";
+import { calcularRachaSemanas } from "@/lib/racha";
 import PerfilCliente from "./PerfilCliente";
 import type { Ejercicio, Perfil } from "@/lib/tipos";
 
@@ -13,8 +13,9 @@ export default async function PaginaPerfil() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const hace60dias = new Date();
-  hace60dias.setDate(hace60dias.getDate() - 60);
+  /* Medio año: lo mismo que mira Inicio para la racha por semanas */
+  const hace26semanas = new Date();
+  hace26semanas.setDate(hace26semanas.getDate() - 26 * 7);
 
   const [
     { data: perfil },
@@ -23,6 +24,7 @@ export default async function PaginaPerfil() {
     { data: sesionesRecientes },
     { count: totalSesiones },
     { data: ultimaMedida },
+    { data: rutina },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase
@@ -37,7 +39,7 @@ export default async function PaginaPerfil() {
       .from("sesiones")
       .select("fecha_inicio")
       .eq("cliente_id", user.id)
-      .gte("fecha_inicio", hace60dias.toISOString()),
+      .gte("fecha_inicio", hace26semanas.toISOString()),
     supabase.from("sesiones").select("id", { count: "exact", head: true }).eq("cliente_id", user.id),
     supabase
       .from("medidas")
@@ -47,7 +49,22 @@ export default async function PaginaPerfil() {
       .order("fecha", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("rutinas")
+      .select("semana_actual, rutina_dias ( semana )")
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  /* Objetivo de la semana: los días de su semana actual de rutina */
+  const objetivoSemana = rutina
+    ? ((rutina.rutina_dias ?? []) as { semana: number }[]).filter(
+        (d) => d.semana === rutina.semana_actual
+      ).length
+    : 0;
 
   if (!perfil) redirect("/login");
 
@@ -56,7 +73,10 @@ export default async function PaginaPerfil() {
       perfil={perfil as Perfil}
       biblioteca={(biblioteca ?? []) as Ejercicio[]}
       ejerciciosExcluidos={(exclusiones ?? []).map((e) => e.ejercicio_id)}
-      racha={calcularRacha((sesionesRecientes ?? []).map((s) => s.fecha_inicio))}
+      rachaSemanas={calcularRachaSemanas(
+        (sesionesRecientes ?? []).map((s) => s.fecha_inicio),
+        objetivoSemana
+      )}
       totalSesiones={totalSesiones ?? 0}
       ultimoPeso={ultimaMedida?.peso ? Number(ultimaMedida.peso) : null}
     />
