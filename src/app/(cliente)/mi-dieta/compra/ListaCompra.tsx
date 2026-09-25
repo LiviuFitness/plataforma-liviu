@@ -2,12 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, Check, ShoppingCart } from "lucide-react";
+import { ArrowLeft, Check, Share2, ShoppingCart } from "lucide-react";
 import {
+  DURACIONES_COMPRA,
   PASILLOS,
+  diasEntrenoEn,
   formatoCantidad,
   lunesDeEstaSemana,
   type ArticuloCompra,
+  type DuracionCompra,
 } from "@/lib/compra";
 
 /**
@@ -19,12 +22,13 @@ import {
  * lo tachado de la anterior.
  */
 export default function ListaCompra({
-  articulos,
+  listas,
   diasEntreno,
   hayDescanso,
   clienteId,
 }: {
-  articulos: ArticuloCompra[];
+  /** La lista ya sumada para 3, 5 y 7 días. */
+  listas: Record<DuracionCompra, ArticuloCompra[]>;
   diasEntreno: number;
   hayDescanso: boolean;
   clienteId: string;
@@ -32,6 +36,10 @@ export default function ListaCompra({
   const clave = `lista-compra:${clienteId}:${lunesDeEstaSemana()}`;
   const [hechos, setHechos] = useState<Set<string>>(new Set());
   const [hidratado, setHidratado] = useState(false);
+  const [duracion, setDuracion] = useState<DuracionCompra>(7);
+  const [copiada, setCopiada] = useState(false);
+  const articulos = listas[duracion];
+  const entrenoN = diasEntrenoEn(diasEntreno, duracion);
 
   /* El servidor no puede leer localStorage, así que recuperar lo marcado
    * solo puede pasar aquí, tras el primer render en el navegador. Es el
@@ -65,6 +73,34 @@ export default function ListaCompra({
       return s;
     });
 
+  /* Lo que queda por coger, por pasillos, en texto: para mandárselo a
+   * quien vaya a comprar o guardarlo en Notas. */
+  async function compartir() {
+    const lineas: string[] = [`🛒 Lista de la compra (${duracion} días)`];
+    for (const p of PASILLOS) {
+      const items = articulos.filter((a) => a.pasillo === p.clave && !hechos.has(a.alimentoId));
+      if (items.length === 0) continue;
+      lineas.push("", p.nombre.toUpperCase());
+      for (const a of items) lineas.push(`• ${a.nombre} — ${formatoCantidad(a.gramos)}`);
+    }
+    const texto = lineas.join("\n");
+    try {
+      if (navigator.share) {
+        await navigator.share({ text: texto });
+        return;
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(texto);
+      setCopiada(true);
+      setTimeout(() => setCopiada(false), 2000);
+    } catch {
+      /* sin portapapeles: no hay más que hacer */
+    }
+  }
+
   const total = articulos.length;
   const puestos = articulos.filter((a) => hechos.has(a.alimentoId)).length;
 
@@ -77,6 +113,18 @@ export default function ListaCompra({
       <h1 className="h1">Lista de la compra</h1>
       <div className="sub mb-4">tu semana, sumada —</div>
 
+      <div className="flex gap-2 mb-3">
+        {DURACIONES_COMPRA.map((n) => (
+          <button
+            key={n}
+            className={`tab ${duracion === n ? "tab-activa" : ""}`}
+            onClick={() => setDuracion(n)}
+          >
+            {n} días
+          </button>
+        ))}
+      </div>
+
       {/* De dónde salen las cantidades: sin esto son números mágicos */}
       <div className="tarjeta !p-4 flex items-center gap-3">
         <ShoppingCart size={20} className="text-acento shrink-0" />
@@ -85,14 +133,14 @@ export default function ListaCompra({
             <>
               Sale de tu dieta:{" "}
               <b>
-                {diasEntreno} {diasEntreno === 1 ? "día" : "días"} de entreno y{" "}
-                {7 - diasEntreno} de descanso
+                {entrenoN} {entrenoN === 1 ? "día" : "días"} de entreno y{" "}
+                {duracion - entrenoN} de descanso
               </b>
               .
             </>
           ) : (
             <>
-              Sale de tu dieta, para <b>los siete días</b>.
+              Sale de tu dieta, para <b>{duracion === 7 ? "los siete días" : `${duracion} días`}</b>.
             </>
           )}{" "}
           Redondea al alza al comprar.
@@ -174,9 +222,21 @@ export default function ListaCompra({
         );
       })}
 
+      <button className="cta flex items-center justify-center gap-2" onClick={compartir}>
+        {copiada ? (
+          <>
+            <Check size={16} /> Lista copiada
+          </>
+        ) : (
+          <>
+            <Share2 size={16} /> Compartir lo que falta
+          </>
+        )}
+      </button>
+
       <p className="text-atenuado text-[12px] leading-relaxed mb-6">
-        Las cantidades son en crudo y para los siete días. Lo que marques se
-        guarda en este móvil y se reinicia solo cada lunes.
+        Las cantidades son en crudo. Lo que marques se guarda en este móvil y
+        se reinicia solo cada lunes.
       </p>
     </>
   );

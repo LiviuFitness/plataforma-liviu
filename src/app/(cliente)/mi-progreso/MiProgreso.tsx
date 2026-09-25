@@ -14,6 +14,7 @@ import MapaMuscular from "@/componentes/MapaMuscular";
 import GridLogros from "@/componentes/GridLogros";
 import HabitosSemana from "@/componentes/HabitosSemana";
 import ConstanciaEntrenos from "@/componentes/ConstanciaEntrenos";
+import ComparadorFotos from "@/componentes/ComparadorFotos";
 import CuestionarioSemanal from "./CuestionarioSemanal";
 import type { SemanaRevision } from "@/lib/revision";
 import type { PR, PuntoProgresion, SesionHistorial } from "@/lib/progresoEntreno";
@@ -263,6 +264,8 @@ export default function MiProgreso({
       )}
 
       <PanelMedidas clienteId={clienteId} medidas={medidas} />
+
+      <ComparadorFotos entradas={entradasFotos} medidas={medidas} />
 
       <FotosProgreso clienteId={clienteId} entradasIniciales={entradasFotos} />
 

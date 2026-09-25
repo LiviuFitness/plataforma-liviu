@@ -10,6 +10,7 @@ import {
   sugerenciaAjusteKcal,
 } from "@/lib/revision";
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
+import ComparadorFotos from "@/componentes/ComparadorFotos";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import PanelMedidas from "@/componentes/PanelMedidas";
@@ -263,6 +264,8 @@ export default function TabProgreso({
           ))}
         </section>
       )}
+
+      <ComparadorFotos entradas={entradasFotos} medidas={medidas} />
 
       <section className="tarjeta">
         <div className="titulo-tarjeta">FOTOS DE PROGRESO</div>

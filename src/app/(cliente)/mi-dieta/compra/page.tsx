@@ -4,7 +4,7 @@ import { SELECT_DIETA_COMPLETA, type ComidaEstructurada } from "@/lib/dietas";
 import type { Dieta } from "@/lib/tipos";
 import { ShoppingCart } from "lucide-react";
 import EstadoVacio from "@/componentes/EstadoVacio";
-import { listaCompra } from "@/lib/compra";
+import { DURACIONES_COMPRA, listaCompra, type ArticuloCompra, type DuracionCompra } from "@/lib/compra";
 import ListaCompra from "./ListaCompra";
 
 export const dynamic = "force-dynamic";
@@ -64,9 +64,11 @@ export default async function PaginaCompra() {
     (rutina?.rutina_dias ?? []) as { semana: number }[]
   ).filter((d) => d.semana === semanaActual).length;
 
-  const articulos = listaCompra(comidasEntreno, comidasDescanso, diasEntreno);
+  const listas = Object.fromEntries(
+    DURACIONES_COMPRA.map((n) => [n, listaCompra(comidasEntreno, comidasDescanso, diasEntreno, n)])
+  ) as Record<DuracionCompra, ArticuloCompra[]>;
 
-  if (articulos.length === 0) {
+  if (listas[7].length === 0) {
     return (
       <>
         <h1 className="h1">Lista de la compra</h1>
@@ -85,7 +87,7 @@ export default async function PaginaCompra() {
 
   return (
     <ListaCompra
-      articulos={articulos}
+      listas={listas}
       diasEntreno={diasEntreno}
       hayDescanso={comidasDescanso.length > 0}
       clienteId={user.id}

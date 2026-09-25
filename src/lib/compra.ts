@@ -90,21 +90,35 @@ function sumarComidas(
   }
 }
 
+/** Para cuántos días se puede sacar la lista: hay quien compra dos
+ * veces por semana. */
+export const DURACIONES_COMPRA = [3, 5, 7] as const;
+export type DuracionCompra = (typeof DURACIONES_COMPRA)[number];
+
+/** De esos días, cuántos llevan la dieta de entreno: la misma proporción
+ * que en su semana (4 de 7 → 2 de 3, 3 de 5). */
+export function diasEntrenoEn(diasEntrenoSemana: number, totalDias: number): number {
+  const dias = Math.max(0, Math.min(7, diasEntrenoSemana));
+  return Math.round((dias * totalDias) / 7);
+}
+
 /**
  * @param diasEntreno días de la semana con entreno pautado (0-7). Si no
- * hay dieta de descanso, se asume que come la de entreno los siete días.
+ * hay dieta de descanso, se asume que come la de entreno todos los días.
+ * @param totalDias para cuántos días es la compra (7 por defecto).
  */
 export function listaCompra(
   comidasEntreno: ComidaEstructurada[],
   comidasDescanso: ComidaEstructurada[],
-  diasEntreno: number
+  diasEntreno: number,
+  totalDias = 7
 ): ArticuloCompra[] {
-  const dias = Math.max(0, Math.min(7, diasEntreno));
+  const dias = diasEntrenoEn(diasEntreno, totalDias);
   const hayDescanso = comidasDescanso.length > 0;
   const acumulado = new Map<string, ArticuloCompra>();
 
-  sumarComidas(comidasEntreno, hayDescanso ? dias : 7, acumulado);
-  if (hayDescanso) sumarComidas(comidasDescanso, 7 - dias, acumulado);
+  sumarComidas(comidasEntreno, hayDescanso ? dias : totalDias, acumulado);
+  if (hayDescanso) sumarComidas(comidasDescanso, totalDias - dias, acumulado);
 
   return [...acumulado.values()].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
 }
