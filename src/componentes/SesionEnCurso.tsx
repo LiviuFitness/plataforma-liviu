@@ -20,6 +20,7 @@ import { useCountUp } from "@/lib/useCountUp";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import BarraDescanso from "@/componentes/BarraDescanso";
+import HojaTarjetaEntreno from "@/componentes/HojaTarjetaEntreno";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
   ArrowDown,
@@ -31,6 +32,7 @@ import {
   Link2,
   Plus,
   Scale,
+  Share2,
   Sparkles,
   Timer,
   Trophy,
@@ -359,6 +361,7 @@ export default function SesionEnCurso({
   const [expandidoManual, setExpandidoManual] = useState<Record<string, boolean>>({});
   const [activaManual, setActivaManual] = useState<Record<string, number>>({});
   const [prToast, setPrToast] = useState<{ nombre: string; kg: number } | null>(null);
+  const [tarjetaAbierta, setTarjetaAbierta] = useState(false);
   const [editor, setEditor] = useState<{ ei: number; si: number; campo: "kg" | "reps" } | null>(
     null
   );
@@ -956,6 +959,31 @@ export default function SesionEnCurso({
             <Sparkles size={15} className="text-acento shrink-0 mt-0.5" />
             <span>{insight}</span>
           </div>
+        )}
+
+        {/* Solo el cliente: compartir su entreno en historias. En la
+         * sesión presencial no pinta nada (el móvil es el del entrenador). */}
+        {!nombreCliente && completadas > 0 && (
+          <button
+            className="w-full mb-5 flex items-center justify-center gap-2 py-3 rounded-[14px] border border-acento/40 bg-acento/10 text-acento font-semibold text-[14px] cursor-pointer anim-pulsable"
+            onClick={() => setTarjetaAbierta(true)}
+          >
+            <Share2 size={16} /> Compartir en tu historia
+          </button>
+        )}
+        {tarjetaAbierta && (
+          <HojaTarjetaEntreno
+            datos={{
+              nombreDia,
+              fecha: inicio !== null ? new Date(inicio) : new Date(),
+              duracionSeg: transcurrido,
+              tonelajeKg: tonelaje,
+              series: completadas,
+              repeticiones: repsTotales,
+              records: records.map((r) => ({ nombre: r.nombre, kg: r.kg })),
+            }}
+            onCerrar={() => setTarjetaAbierta(false)}
+          />
         )}
 
         <section className="tarjeta">
