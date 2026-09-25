@@ -67,6 +67,7 @@ export default async function PaginaFichaCliente({
     { data: plantillasDietaBruto },
     { data: ultimaConDia },
     { data: alternativas },
+    { data: respuestasRapidas },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -168,6 +169,9 @@ export default async function PaginaFichaCliente({
       .limit(1)
       .maybeSingle(),
     supabase.from("alimento_alternativas").select("alimento_id, nombre, gramos, orden").order("orden"),
+    /* Si la tabla aún no existe (migración sin aplicar) esto devuelve
+     * error y data null: el chat sale sin respuestas rápidas, sin más. */
+    supabase.from("respuestas_rapidas").select("texto").order("orden"),
   ]);
 
   if (!perfil) notFound();
@@ -226,6 +230,7 @@ export default async function PaginaFichaCliente({
         .filter((d): d is string => !!d)}
       ultimoDiaId={(ultimaConDia?.dia_id as string | undefined) ?? null}
       alternativas={(alternativas ?? []) as Alternativa[]}
+      respuestasRapidas={(respuestasRapidas ?? []).map((r) => r.texto as string)}
     />
   );
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Send } from "lucide-react";
+import { MessageCircle, Send, Zap } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import EstadoVacio from "@/componentes/EstadoVacio";
 import type { Mensaje } from "@/lib/tipos";
@@ -22,6 +22,7 @@ export default function HiloChat({
   remitentePropio,
   nombreOtro,
   anchoMaximo = "max-w-[480px]",
+  respuestasRapidas = [],
 }: {
   clienteId: string;
   mensajesIniciales: Mensaje[];
@@ -30,6 +31,8 @@ export default function HiloChat({
   /** Clase de ancho máximo del contenedor, para encajar con la barra
    * fija de escritura: la app del cliente es más estrecha que el panel. */
   anchoMaximo?: string;
+  /** Frases del entrenador a un toque (se editan en Ajustes). */
+  respuestasRapidas?: string[];
 }) {
   const router = useRouter();
   const [texto, setTexto] = useState("");
@@ -38,6 +41,10 @@ export default function HiloChat({
   // que vuelva la confirmación del servidor (sondeo de 8s o refresh manual).
   const [pendientes, setPendientes] = useState<Mensaje[]>([]);
   const finRef = useRef<HTMLDivElement>(null);
+  const cuadroRef = useRef<HTMLTextAreaElement>(null);
+  /* Las respuestas rápidas se ven con el cuadro vacío y se van en cuanto
+   * se escribe: así no roban sitio a lo que estás redactando. */
+  const verRapidas = respuestasRapidas.length > 0 && texto.trim() === "";
 
   // En cuanto llegan mensajes frescos del servidor, los optimistas ya
   // están confirmados (se insertan antes de llamar a refresh) — se limpian
@@ -97,7 +104,7 @@ export default function HiloChat({
     <>
       {/* Espacio para que el último mensaje no quede tapado por la
        * barra de escritura fija */}
-      <div className="flex flex-col pb-28">
+      <div className={`flex flex-col ${verRapidas ? "pb-48" : "pb-28"}`}>
         {mensajes.length === 0 && (
           <EstadoVacio
             Icono={MessageCircle}
@@ -150,8 +157,27 @@ export default function HiloChat({
           bottom: "calc(var(--alto-barra-inferior) + env(safe-area-inset-bottom))",
         }}
       >
+        {verRapidas && (
+          <div className="flex gap-1.5 flex-wrap bg-fondo/95 backdrop-blur-md pt-2">
+            {respuestasRapidas.map((r) => (
+              <button
+                key={r}
+                className="chip !text-[12.5px] !text-texto-2 flex items-center gap-1 max-w-full"
+                onClick={() => {
+                  /* Al cuadro, no enviada: se puede retocar antes */
+                  setTexto(r);
+                  cuadroRef.current?.focus();
+                }}
+              >
+                <Zap size={12} className="text-acento shrink-0" />
+                <span className="min-w-0 break-words text-left">{r}</span>
+              </button>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2 items-end bg-fondo/95 backdrop-blur-md pt-2">
           <textarea
+            ref={cuadroRef}
             className="w-full bg-campo border border-borde-2 rounded-2xl text-white p-2.5 px-3.5 text-[14px] resize-none font-cuerpo transition-colors focus:outline-none focus:border-acento"
             rows={1}
             placeholder="Escribe un mensaje…"

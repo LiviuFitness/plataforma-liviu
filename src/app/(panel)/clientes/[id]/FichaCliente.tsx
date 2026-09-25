@@ -85,6 +85,7 @@ export default function FichaCliente({
   diasHechosSemana,
   ultimoDiaId,
   alternativas,
+  respuestasRapidas,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -115,6 +116,7 @@ export default function FichaCliente({
   diasHechosSemana: string[];
   ultimoDiaId: string | null;
   alternativas: Alternativa[];
+  respuestasRapidas: string[];
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -336,6 +338,7 @@ export default function FichaCliente({
           remitentePropio="entrenador"
           nombreOtro={perfil.nombre}
           anchoMaximo="max-w-[480px] md:max-w-[760px]"
+          respuestasRapidas={respuestasRapidas}
         />
       )}
     </>

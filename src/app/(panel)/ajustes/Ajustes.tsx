@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CopiaSeguridad from "@/componentes/CopiaSeguridad";
+import GestionRespuestas, { type RespuestaRapida } from "@/componentes/GestionRespuestas";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import type { Perfil } from "@/lib/tipos";
 
@@ -12,9 +13,13 @@ import type { Perfil } from "@/lib/tipos";
 export default function Ajustes({
   perfil,
   email,
+  respuestas,
+  respuestasDisponibles,
 }: {
   perfil: Perfil;
   email: string;
+  respuestas: RespuestaRapida[];
+  respuestasDisponibles: boolean;
 }) {
   const router = useRouter();
   const [nombre, setNombre] = useState(perfil.nombre);
@@ -92,6 +97,15 @@ export default function Ajustes({
     <>
       <h1 className="h1">Ajustes</h1>
       <div className="sub mb-4">tu cuenta de entrenador —</div>
+
+      {/* Lo que se usa a diario va antes que la cuenta, que se toca una vez */}
+      <div className="titulo-seccion">Respuestas rápidas del chat</div>
+      <p className="text-atenuado text-[12.5px] -mt-1 mb-2.5">
+        Salen encima del cuadro de escribir en el chat de cada cliente.
+      </p>
+      <div className="mb-6">
+        <GestionRespuestas respuestas={respuestas} disponible={respuestasDisponibles} />
+      </div>
 
       <div className="titulo-seccion">Tu cuenta</div>
       {/* Una sola superficie con 3 secciones internas — sin espacio
