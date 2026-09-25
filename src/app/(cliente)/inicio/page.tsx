@@ -34,6 +34,7 @@ interface FilaSerieParaPR {
   kg: number | null;
   completada: boolean;
   tipo: string;
+  ejercicio_sustituto_id?: string | null;
   rutina_ejercicios: {
     ejercicios: { nombre: string; grupo_muscular: string } | null;
   } | null;
@@ -60,6 +61,7 @@ function calcularPrReciente(
       const nombre = s.rutina_ejercicios?.ejercicios?.nombre;
       if (!nombre || !s.completada || s.tipo === "calentamiento" || s.kg === null)
         continue;
+      if (s.ejercicio_sustituto_id) continue; // hecha con otro ejercicio
       const actual = mejores.get(nombre) ?? 0;
       if (Number(s.kg) > actual) {
         mejores.set(nombre, Number(s.kg));
@@ -112,7 +114,7 @@ export default async function PaginaInicio() {
       .from("sesiones")
       .select(
         `fecha_inicio, dia_id,
-         series_realizadas ( kg, reps, reps_extra, completada, tipo,
+         series_realizadas ( kg, reps, reps_extra, completada, tipo, ejercicio_sustituto_id,
            rutina_ejercicios ( ejercicios ( nombre, grupo_muscular ) ) )`
       )
       .eq("cliente_id", user.id)

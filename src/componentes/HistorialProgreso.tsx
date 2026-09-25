@@ -107,6 +107,7 @@ export default function HistorialProgreso({
                 })}
                 {" · "}
                 {s.seriesHechas} series
+                {s.expres && <span className="text-acento font-semibold"> · ⚡ exprés</span>}
               </div>
             </div>
             <span className="text-[18px] flex items-center gap-2">

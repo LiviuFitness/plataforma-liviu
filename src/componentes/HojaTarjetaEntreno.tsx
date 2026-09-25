@@ -67,7 +67,7 @@ export default function HojaTarjetaEntreno({
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-[480px] max-h-[92vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] flex flex-col overflow-y-auto"
+        className="w-full max-w-[480px] max-h-[92vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-3">

@@ -27,10 +27,12 @@ import {
   ArrowLeft,
   ArrowUp,
   Check,
+  ChevronRight,
   ChevronUp,
   FileText,
   Link2,
   Plus,
+  Repeat,
   Scale,
   Share2,
   Sparkles,
@@ -38,7 +40,10 @@ import {
   Trophy,
   Video,
   X,
+  Zap,
 } from "lucide-react";
+import type { AlternativaSesion } from "@/lib/alternativasSesion";
+import { admiteExpres, duracionEstimada, versionExpres } from "@/lib/expres";
 
 export interface SerieSesion {
   tipo: TipoSerie;
@@ -65,6 +70,13 @@ export interface EjercicioSesion {
   mejorKgAnterior: number | null; // mejor marca histórica, para detectar récords
   grupoSuperserie: string | null;
   series: SerieSesion[];
+  /** Ejercicio de la biblioteca, para ofrecer alternativas. */
+  ejercicioId?: string;
+  /** "¿Máquina ocupada?": por cuáles se puede cambiar hoy. */
+  alternativas?: AlternativaSesion[];
+  /** Cambiado hoy por otro: se guarda en sus series y no cuenta como
+   * marca del ejercicio pautado. */
+  sustituto?: { id: string; nombreOriginal: string } | null;
 }
 
 interface EjercicioConIndice extends EjercicioSesion {
@@ -95,6 +107,7 @@ interface AutosaveSesion {
   nota: string;
   ejercicios: EjercicioSesion[];
   descansoAcumuladoSeg?: number;
+  expres?: boolean;
 }
 
 function claveAutosave(clienteId: string, diaId: string) {
@@ -362,6 +375,9 @@ export default function SesionEnCurso({
   const [activaManual, setActivaManual] = useState<Record<string, number>>({});
   const [prToast, setPrToast] = useState<{ nombre: string; kg: number } | null>(null);
   const [tarjetaAbierta, setTarjetaAbierta] = useState(false);
+  /* Entreno exprés: se elige antes de empezar */
+  const [expres, setExpres] = useState(false);
+  const [cambioPara, setCambioPara] = useState<number | null>(null);
   const [editor, setEditor] = useState<{ ei: number; si: number; campo: "kg" | "reps" } | null>(
     null
   );
@@ -376,8 +392,53 @@ export default function SesionEnCurso({
   const gruposRefs = useRef<Record<number, HTMLElement | null>>({});
 
   function empezarEntreno() {
+    if (expres) setEjercicios(versionExpres(ejerciciosIniciales).ejercicios);
     setInicio(Date.now());
     setFase("entrenando");
+  }
+
+  /** Cambia un ejercicio por otro solo para hoy. Las series se quedan
+   * (mismas reps y RIR), pero sin el peso pautado: el de una prensa no
+   * sirve para una sentadilla búlgara. Elegir el original lo deshace. */
+  function cambiarEjercicio(ei: number, alt: AlternativaSesion | "original") {
+    const original = ejerciciosIniciales.find(
+      (x) => x.rutinaEjercicioId === ejercicios[ei].rutinaEjercicioId
+    );
+    setEjercicios((prev) =>
+      prev.map((e, i) => {
+        if (i !== ei) return e;
+        if (alt === "original") {
+          if (!original) return e;
+          return {
+            ...e,
+            nombre: original.nombre,
+            grupo: original.grupo,
+            videoUrl: original.videoUrl,
+            tecnica: original.tecnica,
+            anterior: original.anterior,
+            mejorKgAnterior: original.mejorKgAnterior,
+            sustituto: null,
+            series: e.series.map((s, si) => ({
+              ...s,
+              kgPrescrito: original.series[si]?.kgPrescrito ?? s.kgPrescrito,
+            })),
+          };
+        }
+        return {
+          ...e,
+          nombre: alt.nombre,
+          grupo: alt.grupo,
+          videoUrl: alt.videoUrl,
+          tecnica: alt.tecnica,
+          anterior: null,
+          mejorKgAnterior: null,
+          sustituto: { id: alt.id, nombreOriginal: e.sustituto?.nombreOriginal ?? e.nombre },
+          series: e.series.map((s) => (s.completada ? s : { ...s, kgPrescrito: "", kg: "" })),
+        };
+      })
+    );
+    setVideoAbierto(null);
+    setCambioPara(null);
   }
 
   /* Al abrir esta sesión, recupera del navegador un entreno que se
@@ -386,7 +447,14 @@ export default function SesionEnCurso({
    * de cero para no mezclar series de un día distinto). */
   useEffect(() => {
     const guardado = leerAutosave(clienteId, diaId);
-    if (guardado && guardado.ejercicios.length === ejerciciosIniciales.length) {
+    /* Vale si todos sus ejercicios siguen en el día; y, salvo en exprés
+     * (que lleva menos a propósito), si están todos. */
+    const idsDia = new Set(ejerciciosIniciales.map((e) => e.rutinaEjercicioId));
+    if (
+      guardado &&
+      guardado.ejercicios.every((e) => idsDia.has(e.rutinaEjercicioId)) &&
+      (guardado.expres || guardado.ejercicios.length === ejerciciosIniciales.length)
+    ) {
       // El servidor no puede leer localStorage: esta hidratación solo
       // puede pasar aquí, tras el primer render en el navegador.
       /* eslint-disable react-hooks/set-state-in-effect */
@@ -397,6 +465,7 @@ export default function SesionEnCurso({
       setSensacion(guardado.sensacion);
       setNota(guardado.nota);
       setDescansoAcumuladoSeg(guardado.descansoAcumuladoSeg ?? 0);
+      setExpres(!!guardado.expres);
       /* eslint-enable react-hooks/set-state-in-effect */
     }
     hidratado.current = true;
@@ -410,9 +479,9 @@ export default function SesionEnCurso({
     if (!hidratado.current || fase === "previo") return;
     localStorage.setItem(
       claveAutosave(clienteId, diaId),
-      JSON.stringify({ fase, inicio, prsPre, sensacion, nota, ejercicios, descansoAcumuladoSeg })
+      JSON.stringify({ fase, inicio, prsPre, sensacion, nota, ejercicios, descansoAcumuladoSeg, expres })
     );
-  }, [clienteId, diaId, fase, inicio, prsPre, sensacion, nota, ejercicios, descansoAcumuladoSeg]);
+  }, [clienteId, diaId, fase, inicio, prsPre, sensacion, nota, ejercicios, descansoAcumuladoSeg, expres]);
 
   /* Reloj: tiempo de sesión y cuenta atrás del descanso */
   useEffect(() => {
@@ -745,6 +814,8 @@ export default function SesionEnCurso({
         prs_pre: prsPre,
         sensacion,
         notas_cliente: nota.trim() || null,
+        /* Solo si lo es: así una sesión normal se guarda igual que antes */
+        ...(expres ? { expres: true } : {}),
       })
       .select("id")
       .single();
@@ -761,6 +832,7 @@ export default function SesionEnCurso({
       return false;
     }
 
+    const haySustitutos = ejercicios.some((e) => e.sustituto);
     const filas = ejercicios.flatMap((e) =>
       e.series.map((s, j) => {
         const carga = parsearCarga(s.kg);
@@ -778,6 +850,7 @@ export default function SesionEnCurso({
           rir: rir.rir,
           tecnica: rir.tecnica,
           completada: s.completada,
+          ...(haySustitutos ? { ejercicio_sustituto_id: e.sustituto?.id ?? null } : {}),
         };
       })
     );
@@ -866,8 +939,25 @@ export default function SesionEnCurso({
           </div>
         </section>
 
-        <button className="cta anim-pulsable" onClick={empezarEntreno}>
-          Empezar sesión
+        {admiteExpres(ejerciciosIniciales) && (
+          <SelectorExpres
+            ejercicios={ejerciciosIniciales}
+            expres={expres}
+            onCambiar={setExpres}
+          />
+        )}
+
+        <button
+          className="cta anim-pulsable flex items-center justify-center gap-2"
+          onClick={empezarEntreno}
+        >
+          {expres ? (
+            <>
+              <Zap size={16} /> Empezar exprés
+            </>
+          ) : (
+            "Empezar sesión"
+          )}
         </button>
       </>
     );
@@ -1191,7 +1281,14 @@ export default function SesionEnCurso({
                   <div className="flex justify-between items-start mb-0.5 gap-2">
                     <div className="flex items-start gap-2.5 min-w-0">
                       <AvatarEjercicio videoUrl={ex.videoUrl} tamano={36} />
-                      <div className="font-bold text-[16px] leading-tight">{ex.nombre}</div>
+                      <div className="min-w-0">
+                        <div className="font-bold text-[16px] leading-tight break-words">{ex.nombre}</div>
+                        {ex.sustituto && (
+                          <div className="text-aviso text-[12px] font-semibold leading-tight mt-0.5 break-words">
+                            Hoy en lugar de {ex.sustituto.nombreOriginal}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 pt-1">
                       {exCompleta && (
@@ -1274,6 +1371,17 @@ export default function SesionEnCurso({
                     )}
 
                     <div className="flex items-center gap-3 ml-auto shrink-0">
+                      {((ex.alternativas?.length ?? 0) > 0 || ex.sustituto) && (
+                        <button
+                          type="button"
+                          className="hover:text-acento transition-colors anim-pulsable"
+                          onClick={() => setCambioPara(ei)}
+                          title="Cambiar ejercicio"
+                          aria-label="Máquina ocupada: cambiar por otro ejercicio"
+                        >
+                          <Repeat size={15} />
+                        </button>
+                      )}
                       {(ex.tecnica || notasPlegadas) && (
                         <button
                           type="button"
@@ -1398,6 +1506,15 @@ export default function SesionEnCurso({
         );
       })}
 
+      {cambioPara !== null && ejercicios[cambioPara] && (
+        <HojaCambiarEjercicio
+          ejercicio={ejercicios[cambioPara]}
+          nombreOriginal={ejercicios[cambioPara].sustituto?.nombreOriginal ?? null}
+          onElegir={(alt) => cambiarEjercicio(cambioPara, alt)}
+          onCerrar={() => setCambioPara(null)}
+        />
+      )}
+
       {calculadoraPara !== null && (
         <CalculadoraDiscos
           pesoInicial={
@@ -1494,5 +1611,159 @@ export default function SesionEnCurso({
         />
       )}
     </>
+  );
+}
+
+/** Antes de empezar: el día completo o su versión exprés, con lo que
+ * se queda y lo que sale para que no haya sorpresas. */
+function SelectorExpres({
+  ejercicios,
+  expres,
+  onCambiar,
+}: {
+  ejercicios: EjercicioSesion[];
+  expres: boolean;
+  onCambiar: (v: boolean) => void;
+}) {
+  const { cambios } = versionExpres(ejercicios);
+  const totalCompleto = cambios.reduce((a, c) => a + c.antes, 0);
+  const totalExpres = cambios.reduce((a, c) => a + c.despues, 0);
+  const opcion = (activa: boolean) =>
+    `rounded-[12px] border px-3 py-2.5 text-left cursor-pointer anim-pulsable ${
+      activa ? "border-acento bg-acento/10" : "border-borde-2 bg-campo"
+    }`;
+  return (
+    <section className="tarjeta">
+      <div className="titulo-tarjeta">¿CUÁNTO TIEMPO TIENES?</div>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" className={opcion(!expres)} onClick={() => onCambiar(false)}>
+          <div className="font-bold text-[14px]">Completo</div>
+          <div className="text-atenuado text-[12px]">{duracionEstimada(totalCompleto)}</div>
+        </button>
+        <button type="button" className={opcion(expres)} onClick={() => onCambiar(true)}>
+          <div className={`font-bold text-[14px] flex items-center gap-1.5 ${expres ? "text-acento" : ""}`}>
+            <Zap size={14} /> Exprés
+          </div>
+          <div className="text-atenuado text-[12px]">{duracionEstimada(totalExpres)}</div>
+        </button>
+      </div>
+      {expres && (
+        <div className="mt-3 anim-aparecer">
+          {cambios.map((c, i) => (
+            <div
+              key={i}
+              className={`flex items-center gap-2.5 py-2 border-b border-borde last:border-0 ${
+                c.fuera ? "opacity-45" : ""
+              }`}
+            >
+              {c.fuera ? (
+                <span className="w-[15px] shrink-0 text-atenuado text-center">–</span>
+              ) : (
+                <Check size={15} className="text-acento shrink-0" strokeWidth={3} />
+              )}
+              <span className={`flex-1 min-w-0 text-[14px] break-words ${c.fuera ? "line-through" : ""}`}>
+                {c.nombre}
+              </span>
+              <span className="text-atenuado text-[12.5px] shrink-0">
+                {c.fuera
+                  ? "fuera hoy"
+                  : c.despues < c.antes
+                    ? `${c.despues} de ${c.antes} series`
+                    : `${c.despues} ${c.despues === 1 ? "serie" : "series"}`}
+              </span>
+            </div>
+          ))}
+          <div className="text-atenuado text-[12px] mt-2.5 leading-snug">
+            Se quedan los primeros ejercicios, los calentamientos solo en el primero y una serie
+            menos en los accesorios. Tu entrenador verá que lo hiciste en exprés.
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
+
+/** "¿Máquina ocupada?": cambiar el ejercicio por otro solo por hoy. */
+function HojaCambiarEjercicio({
+  ejercicio,
+  nombreOriginal,
+  onElegir,
+  onCerrar,
+}: {
+  ejercicio: EjercicioSesion;
+  nombreOriginal: string | null;
+  onElegir: (alt: AlternativaSesion | "original") => void;
+  onCerrar: () => void;
+}) {
+  const lista = (ejercicio.alternativas ?? []).filter((a) => a.id !== ejercicio.sustituto?.id);
+  const aprobadas = lista.filter((a) => a.aprobada);
+  const otras = lista.filter((a) => !a.aprobada);
+  const fila = (a: AlternativaSesion) => (
+    <button
+      key={a.id}
+      type="button"
+      className="w-full flex items-center gap-3 py-2.5 border-b border-borde last:border-0 text-left cursor-pointer anim-pulsable"
+      onClick={() => onElegir(a)}
+    >
+      <AvatarEjercicio videoUrl={a.videoUrl} tamano={36} />
+      <div className="flex-1 min-w-0">
+        <div className="font-semibold text-[14px] leading-tight break-words">{a.nombre}</div>
+        <div className="text-atenuado text-[12px]">
+          {a.material ? `${a.material} · ` : ""}mismas series y reps
+        </div>
+      </div>
+      <ChevronRight size={16} className="text-atenuado shrink-0" />
+    </button>
+  );
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-50 flex items-end justify-center anim-fondo-aparece"
+      onClick={onCerrar}
+    >
+      <div
+        className="w-full max-w-[480px] max-h-[86vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] overflow-y-auto anim-hoja-sube"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Cambiar ejercicio"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center mb-1">
+          <div className="titulo-seccion !mb-0">¿Máquina ocupada?</div>
+          <button className="ghost shrink-0" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+        <div className="text-atenuado text-[12.5px] mb-3">
+          Cambia <b className="text-texto-2">{ejercicio.nombre}</b> por otro del mismo músculo, solo
+          por hoy. Tu rutina no cambia.
+        </div>
+        {nombreOriginal && (
+          <button
+            type="button"
+            className="ghost w-full mb-3 flex items-center justify-center gap-2"
+            onClick={() => onElegir("original")}
+          >
+            <Repeat size={14} /> Volver a {nombreOriginal}
+          </button>
+        )}
+        {aprobadas.length > 0 && (
+          <>
+            <div className="titulo-tarjeta">LAS QUE HA ELEGIDO TU ENTRENADOR</div>
+            <div className="superficie px-3 mb-3">{aprobadas.map(fila)}</div>
+          </>
+        )}
+        {otras.length > 0 && (
+          <>
+            <div className="titulo-tarjeta">OTRAS DE {ejercicio.grupo.toUpperCase()}</div>
+            <div className="superficie px-3">{otras.map(fila)}</div>
+          </>
+        )}
+        {lista.length === 0 && (
+          <div className="text-atenuado text-[13px] text-center py-4">
+            No hay otros ejercicios de este músculo en la biblioteca.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

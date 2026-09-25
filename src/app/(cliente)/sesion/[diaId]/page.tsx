@@ -6,6 +6,7 @@ import SesionEnCurso, {
   type SesionAnterior,
 } from "@/componentes/SesionEnCurso";
 import { evaluarSerie, type UltimaSerieItem } from "@/lib/evaluacionSerie";
+import { cargarAlternativas } from "@/lib/alternativasSesion";
 import type { TipoSerie } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,7 @@ interface FilaSerieRealizada {
   rir: number | null;
   completada: boolean;
   tipo: string;
+  ejercicio_sustituto_id: string | null;
   rutina_ejercicios: {
     ejercicio_id: string;
     series_prescritas: FilaSerie[];
@@ -88,7 +90,7 @@ export default async function PaginaSesion({
       .from("sesiones")
       .select(
         `fecha_inicio, fecha_fin, rutina_dias ( nombre, rutina_id ),
-         series_realizadas ( orden, kg, carga_texto, reps, reps_extra, rir, completada, tipo,
+         series_realizadas ( orden, kg, carga_texto, reps, reps_extra, rir, completada, tipo, ejercicio_sustituto_id,
            rutina_ejercicios ( ejercicio_id,
              series_prescritas ( orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto ) ) )`
       )
@@ -111,6 +113,8 @@ export default async function PaginaSesion({
     for (const s of sesion.series_realizadas ?? []) {
       const id = s.rutina_ejercicios?.ejercicio_id;
       if (!id || !s.completada || s.tipo === "calentamiento") continue;
+      // Hecha con otro ejercicio ("máquina ocupada"): no cuenta para este
+      if (s.ejercicio_sustituto_id) continue;
       if (s.kg !== null && Number(s.kg) > (mejorHistorico.get(id) ?? 0)) {
         mejorHistorico.set(id, Number(s.kg));
       }
@@ -185,13 +189,19 @@ export default async function PaginaSesion({
     };
   }
 
-  const ejercicios: EjercicioSesion[] = (
-    (dia.rutina_ejercicios ?? []) as unknown as FilaEjercicio[]
-  )
+  const filasDia = ((dia.rutina_ejercicios ?? []) as unknown as FilaEjercicio[])
     .slice()
-    .sort((a, b) => a.orden - b.orden)
-    .map((e) => ({
+    .sort((a, b) => a.orden - b.orden);
+  const alternativas = await cargarAlternativas(
+    supabase,
+    filasDia.map((e) => ({ ejercicioId: e.ejercicio_id, grupo: e.ejercicios?.grupo_muscular ?? "" })),
+    user.id
+  );
+
+  const ejercicios: EjercicioSesion[] = filasDia.map((e) => ({
       rutinaEjercicioId: e.id,
+      ejercicioId: e.ejercicio_id,
+      alternativas: alternativas.get(e.ejercicio_id) ?? [],
       nombre: e.ejercicios?.nombre ?? "Ejercicio",
       grupo: e.ejercicios?.grupo_muscular ?? "",
       descansoSeg: e.descanso_seg,

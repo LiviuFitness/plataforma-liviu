@@ -29,6 +29,8 @@ export interface SesionHistorial {
   seriesHechas: number;
   sensacion: number | null;
   prsPre: number | null;
+  /** Hecho en versión exprés (recortada). */
+  expres: boolean;
 }
 
 export interface ProgresoEntreno {
@@ -43,6 +45,8 @@ interface FilaSerieRealizada {
   reps: number | null;
   completada: boolean;
   tipo: string;
+  /** Hecha con otro ejercicio ("máquina ocupada"): no es marca del pautado. */
+  ejercicio_sustituto_id: string | null;
   rutina_ejercicios: {
     ejercicios: { nombre: string; grupo_muscular: string } | null;
   } | null;
@@ -53,6 +57,7 @@ interface FilaSesion {
   fecha_inicio: string;
   sensacion: number | null;
   prs_pre: number | null;
+  expres: boolean | null;
   rutina_dias: { nombre: string } | null;
   series_realizadas: FilaSerieRealizada[];
 }
@@ -68,9 +73,9 @@ export async function resolverProgresoEntreno(
   const { data: sesiones } = await supabase
     .from("sesiones")
     .select(
-      `id, fecha_inicio, sensacion, prs_pre,
+      `id, fecha_inicio, sensacion, prs_pre, expres,
        rutina_dias ( nombre ),
-       series_realizadas ( kg, reps, completada, tipo,
+       series_realizadas ( kg, reps, completada, tipo, ejercicio_sustituto_id,
          rutina_ejercicios ( ejercicios ( nombre, grupo_muscular ) ) )`
     )
     .eq("cliente_id", clienteId)
@@ -85,6 +90,7 @@ export async function resolverProgresoEntreno(
     for (const serie of sesion.series_realizadas ?? []) {
       const nombre = serie.rutina_ejercicios?.ejercicios?.nombre;
       if (!nombre || !serie.completada || serie.tipo === "calentamiento") continue;
+      if (serie.ejercicio_sustituto_id) continue;
       // Hace falta peso Y repeticiones: una serie marcada como hecha pero
       // sin repeticiones no dice si se levantó una vez o ninguna, y salía
       // en la lista como "340 kg × 0", sin 1RM estimado y por delante de
@@ -117,6 +123,7 @@ export async function resolverProgresoEntreno(
       // progresión no dibuje picos de series sin repeticiones.
       if (
         !nombre ||
+        serie.ejercicio_sustituto_id ||
         !serie.completada ||
         serie.tipo === "calentamiento" ||
         serie.kg === null ||
@@ -142,6 +149,7 @@ export async function resolverProgresoEntreno(
     seriesHechas: (s.series_realizadas ?? []).filter((x) => x.completada).length,
     sensacion: s.sensacion,
     prsPre: s.prs_pre,
+    expres: !!s.expres,
   }));
 
   const volumenMuscular = calcularVolumenMuscular(

@@ -10,6 +10,7 @@ interface SerieResumen {
   reps_extra: number | null;
   completada: boolean;
   tipo: string;
+  ejercicio_sustituto_id?: string | null;
   rutina_ejercicios: { ejercicios: { nombre: string } | null } | null;
 }
 
@@ -87,6 +88,7 @@ export function resumenSemanaPasada(
     for (const x of s.series_realizadas ?? []) {
       const nombre = x.rutina_ejercicios?.ejercicios?.nombre;
       if (!nombre || !x.completada || x.tipo === "calentamiento" || x.kg === null) continue;
+      if (x.ejercicio_sustituto_id) continue;
       maxSesion.set(nombre, Math.max(maxSesion.get(nombre) ?? 0, Number(x.kg)));
     }
     for (const [nombre, kg] of maxSesion) {

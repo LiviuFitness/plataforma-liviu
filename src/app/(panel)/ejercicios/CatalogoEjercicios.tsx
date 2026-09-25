@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Pencil } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Repeat, X } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import { esGif, miniaturaYoutube } from "@/lib/rutinas";
@@ -14,8 +14,20 @@ type Filtro = "sin" | "todos";
  * "Sin vídeo", que es la lista de trabajo: cada uno que se completa
  * desaparece de ahí y el contador baja.
  */
-export default function CatalogoEjercicios({ ejercicios: iniciales }: { ejercicios: Ejercicio[] }) {
+export default function CatalogoEjercicios({
+  ejercicios: iniciales,
+  alternativas: alternativasIniciales,
+}: {
+  ejercicios: Ejercicio[];
+  alternativas: { ejercicio_id: string; alternativa_id: string }[];
+}) {
   const [ejercicios, setEjercicios] = useState(iniciales);
+  /* ejercicio → sus alternativas aprobadas, en orden */
+  const [alternativas, setAlternativas] = useState<Record<string, string[]>>(() => {
+    const mapa: Record<string, string[]> = {};
+    for (const a of alternativasIniciales) (mapa[a.ejercicio_id] ??= []).push(a.alternativa_id);
+    return mapa;
+  });
   const [filtro, setFiltro] = useState<Filtro>(() =>
     iniciales.some((e) => !e.video_url) ? "sin" : "todos"
   );
@@ -72,6 +84,8 @@ export default function CatalogoEjercicios({ ejercicios: iniciales }: { ejercici
               {e.grupo_muscular}
               {e.material ? ` · ${e.material}` : ""}
               {!e.instrucciones && " · sin técnica"}
+              {(alternativas[e.id]?.length ?? 0) > 0 &&
+                ` · ${alternativas[e.id].length} ${alternativas[e.id].length === 1 ? "alternativa" : "alternativas"}`}
             </div>
           </div>
           <Pencil size={14} className="text-atenuado shrink-0" />
@@ -86,6 +100,9 @@ export default function CatalogoEjercicios({ ejercicios: iniciales }: { ejercici
       {editando && (
         <HojaEjercicio
           ejercicio={editando}
+          biblioteca={ejercicios}
+          alternativas={alternativas[editando.id] ?? []}
+          onAlternativas={(lista) => setAlternativas((m) => ({ ...m, [editando.id]: lista }))}
           onGuardado={(cambios) => {
             setEjercicios((lista) => lista.map((x) => (x.id === editando.id ? { ...x, ...cambios } : x)));
             setEditando(null);
@@ -102,10 +119,16 @@ export default function CatalogoEjercicios({ ejercicios: iniciales }: { ejercici
    ============================================================ */
 function HojaEjercicio({
   ejercicio,
+  biblioteca,
+  alternativas,
+  onAlternativas,
   onGuardado,
   onCerrar,
 }: {
   ejercicio: Ejercicio;
+  biblioteca: Ejercicio[];
+  alternativas: string[];
+  onAlternativas: (lista: string[]) => void;
   onGuardado: (cambios: Pick<Ejercicio, "video_url" | "instrucciones">) => void;
   onCerrar: () => void;
 }) {
@@ -146,7 +169,7 @@ function HojaEjercicio({
       onClick={onCerrar}
     >
       <div
-        className="w-full max-w-[480px] max-h-[86vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] flex flex-col overflow-y-auto"
+        className="w-full max-w-[480px] max-h-[86vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-start gap-3 mb-3">
@@ -210,11 +233,143 @@ function HojaEjercicio({
           onChange={(e) => setTecnica(e.target.value)}
         />
 
+        <AlternativasEjercicio
+          ejercicio={ejercicio}
+          biblioteca={biblioteca}
+          elegidas={alternativas}
+          onCambio={onAlternativas}
+        />
+
         {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
         <button className="cta !mb-0" onClick={guardar} disabled={guardando || !valido}>
           {guardando ? "Guardando…" : "Guardar"}
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ============================================================
+   Alternativas aprobadas: las que el cliente ve primero cuando
+   la máquina está ocupada. Se guardan al momento.
+   ============================================================ */
+function AlternativasEjercicio({
+  ejercicio,
+  biblioteca,
+  elegidas,
+  onCambio,
+}: {
+  ejercicio: Ejercicio;
+  biblioteca: Ejercicio[];
+  elegidas: string[];
+  onCambio: (lista: string[]) => void;
+}) {
+  const [buscando, setBuscando] = useState(false);
+  const [q, setQ] = useState("");
+  const [error, setError] = useState("");
+  const porId = new Map(biblioteca.map((e) => [e.id, e]));
+
+  const texto = q.trim().toLowerCase();
+  /* Sin buscar, las del mismo músculo; buscando, cualquiera */
+  const candidatas = biblioteca
+    .filter((e) => e.id !== ejercicio.id && !elegidas.includes(e.id))
+    .filter((e) =>
+      texto ? e.nombre.toLowerCase().includes(texto) : e.grupo_muscular === ejercicio.grupo_muscular
+    )
+    .slice(0, 12);
+
+  async function anadir(id: string) {
+    setError("");
+    const lista = [...elegidas, id];
+    onCambio(lista);
+    const supabase = crearClienteNavegador();
+    const { error } = await supabase
+      .from("ejercicio_alternativas")
+      .insert({ ejercicio_id: ejercicio.id, alternativa_id: id, orden: lista.length - 1 });
+    if (error) {
+      onCambio(elegidas);
+      setError("No se pudo añadir.");
+    }
+  }
+
+  async function quitar(id: string) {
+    setError("");
+    onCambio(elegidas.filter((x) => x !== id));
+    const supabase = crearClienteNavegador();
+    const { error } = await supabase
+      .from("ejercicio_alternativas")
+      .delete()
+      .eq("ejercicio_id", ejercicio.id)
+      .eq("alternativa_id", id);
+    if (error) {
+      onCambio(elegidas);
+      setError("No se pudo quitar.");
+    }
+  }
+
+  return (
+    <div className="mb-4">
+      <div className="titulo-tarjeta flex items-center gap-1.5">
+        <Repeat size={12} /> SI LA MÁQUINA ESTÁ OCUPADA
+      </div>
+      <p className="text-atenuado text-[12px] mb-2 leading-snug">
+        Las que elijas le salen primero al cliente para cambiar este ejercicio solo ese día.
+      </p>
+      {elegidas.length > 0 && (
+        <div className="superficie px-3 mb-2">
+          {elegidas.map((id) => {
+            const e = porId.get(id);
+            if (!e) return null;
+            return (
+              <div key={id} className="flex items-center gap-2.5 py-2 border-b border-borde last:border-0">
+                <AvatarEjercicio videoUrl={e.video_url} tamano={30} />
+                <span className="flex-1 min-w-0 text-[13.5px] font-semibold break-words">{e.nombre}</span>
+                <button className="mini mini-peligro shrink-0" onClick={() => quitar(id)} aria-label={`Quitar ${e.nombre}`}>
+                  <X size={14} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {buscando ? (
+        <div className="border border-borde rounded-[12px] p-2.5">
+          <input
+            className="input !mb-2"
+            placeholder={`Buscar (sin escribir: ${ejercicio.grupo_muscular})`}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          {candidatas.map((e) => (
+            <button
+              key={e.id}
+              className="w-full flex items-center gap-2.5 py-2 border-b border-borde last:border-0 text-left cursor-pointer"
+              onClick={() => anadir(e.id)}
+            >
+              <AvatarEjercicio videoUrl={e.video_url} tamano={30} />
+              <span className="flex-1 min-w-0">
+                <span className="block text-[13.5px] font-semibold leading-tight break-words">{e.nombre}</span>
+                <span className="block text-atenuado text-[11.5px]">{e.grupo_muscular}</span>
+              </span>
+              <Plus size={15} className="text-acento shrink-0" />
+            </button>
+          ))}
+          {candidatas.length === 0 && (
+            <div className="text-atenuado text-[12.5px] text-center py-2">Sin resultados.</div>
+          )}
+          <button className="ghost w-full mt-2" onClick={() => setBuscando(false)}>
+            Listo
+          </button>
+        </div>
+      ) : (
+        <button
+          className="w-full bg-transparent border border-dashed border-[#2A333B] text-atenuado rounded-[10px] py-2 text-[13px] cursor-pointer"
+          onClick={() => setBuscando(true)}
+        >
+          + Añadir alternativa
+        </button>
+      )}
+      {error && <div className="text-peligro text-[12.5px] mt-1.5">— {error}</div>}
     </div>
   );
 }
