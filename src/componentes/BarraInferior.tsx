@@ -9,7 +9,7 @@ import { Library, Settings, Sun, Users } from "lucide-react";
  * los cuestionarios. Antes, al entrar en Alimentos desde Ajustes, la
  * barra no marcaba nada y no sabías dónde estabas. */
 const PESTANAS = [
-  { ruta: "/hoy", etiqueta: "Hoy", Icono: Sun, incluye: [] as string[] },
+  { ruta: "/hoy", etiqueta: "Hoy", Icono: Sun, incluye: ["/estadisticas", "/revision"] },
   {
     ruta: "/clientes",
     etiqueta: "Clientes",
@@ -20,7 +20,7 @@ const PESTANAS = [
     ruta: "/plantillas",
     etiqueta: "Biblioteca",
     Icono: Library,
-    incluye: ["/ejercicios", "/alimentos", "/cuestionario", "/cuestionario-alta"],
+    incluye: ["/ejercicios", "/alimentos", "/cuestionario", "/cuestionario-alta", "/guias"],
   },
   { ruta: "/ajustes", etiqueta: "Ajustes", Icono: Settings, incluye: [] as string[] },
 ];

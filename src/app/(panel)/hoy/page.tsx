@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   CalendarCheck,
+  ClipboardCheck,
   CalendarClock,
   ChevronRight,
   Inbox,
@@ -538,8 +539,8 @@ export default async function PaginaHoy() {
         </div>
       </div>
 
-      {(listaPagos.length > 0 || filasRenovacion.length > 0) && (
-        <section className="tarjeta tarjeta-verde !p-4 !mb-5">
+      {/* Siempre visible: también es la puerta a las estadísticas */}
+      <section className="tarjeta tarjeta-verde !p-4 !mb-5">
           <div className="flex items-center gap-3">
             <IconoTarjeta Icono={Wallet} color="var(--color-verde)" tamano={38} />
             <div className="flex-1 min-w-0">
@@ -568,8 +569,27 @@ export default async function PaginaHoy() {
               {mesAnteriorFecha.toLocaleDateString("es-ES", { month: "long" })}: {euros(cobradoAnterior)}
             </span>
           </div>
+          <Link href="/estadisticas" className="text-acento text-[13px] font-semibold inline-flex items-center gap-1 mt-2.5">
+            Ver estadísticas del negocio <ChevronRight size={14} />
+          </Link>
         </section>
-      )}
+
+      {/* La revisión semanal: destacada lunes y martes, discreta el resto */}
+      <Link
+        href="/revision"
+        className={`tarjeta !p-4 mb-5 flex items-center gap-3 anim-pulsable ${
+          (hoyFecha.getDay() + 6) % 7 <= 1 ? "tarjeta-acento" : ""
+        }`}
+      >
+        <ClipboardCheck size={20} className="text-acento shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-[14.5px]">Ronda de revisión semanal</div>
+          <div className="text-atenuado text-[12.5px]">
+            {listaClientes.length} {listaClientes.length === 1 ? "cliente" : "clientes"}, uno tras otro, con su ajuste de kcal
+          </div>
+        </div>
+        <ChevronRight size={16} className="text-atenuado shrink-0" />
+      </Link>
 
       {/* Un lead sin contestar es lo único que caduca de verdad */}
       {(leadsNuevos ?? 0) > 0 && (
