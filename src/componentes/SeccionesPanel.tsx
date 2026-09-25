@@ -9,8 +9,9 @@ import { usePathname } from "next/navigation";
  *
  *  · Clientes   → Clientes · Invitaciones · Leads. Es el camino entero de
  *    una persona: se interesa (lead), la invitas y entra (cliente).
- *  · Biblioteca → Plantillas · Alimentos · Cuestionarios. Tu método, lo
- *    que reutilizas con todos.
+ *  · Biblioteca → Plantillas · Ejercicios · Alimentos · Preguntas. Tu
+ *    método, lo que reutilizas con todos. ("Preguntas" y no
+ *    "Cuestionarios": con cuatro pestañas no cabía en un iPhone.)
  *
  * Antes todo lo que no era Hoy, Clientes o Plantillas acababa dentro de
  * Ajustes, mezclado con la contraseña.
@@ -23,8 +24,9 @@ const GRUPOS = {
   ],
   biblioteca: [
     { href: "/plantillas", etiqueta: "Plantillas", contador: null },
+    { href: "/ejercicios", etiqueta: "Ejercicios", contador: null },
     { href: "/alimentos", etiqueta: "Alimentos", contador: null },
-    { href: "/cuestionario", etiqueta: "Cuestionarios", contador: null },
+    { href: "/cuestionario", etiqueta: "Preguntas", contador: null },
   ],
 } as const;
 

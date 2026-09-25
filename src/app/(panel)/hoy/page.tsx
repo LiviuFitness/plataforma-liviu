@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ChevronRight,
   Inbox,
+  Repeat,
   MessageCircle,
   TrendingDown,
   TrendingUp,
@@ -13,6 +14,8 @@ import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar, PuntoEstado } from "@/componentes/ui";
 import type { Alerta } from "@/lib/tipos";
 import { calcularRevisionSemanal } from "@/lib/revision";
+import { cuandoRenueva, proximaRenovacion } from "@/lib/renovaciones";
+import type { Plan } from "@/lib/tipos";
 
 interface RecordSemana {
   cliente_id: string;
@@ -52,7 +55,7 @@ export default async function PaginaHoy() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nombre, fecha_alta, objetivo")
+      .select("id, nombre, fecha_alta, objetivo, plan")
       .eq("rol", "cliente")
       .eq("estado", "activo")
       .order("nombre"),
@@ -306,6 +309,19 @@ export default async function PaginaHoy() {
     .filter((r) => r.dias >= 28)
     .sort((a, b) => b.dias - a.dias);
 
+  /* Renuevan en los próximos 7 días: el momento de preguntar cómo lo
+   * ve y de recordarle todo lo que ha conseguido. */
+  const hoyFecha = new Date();
+  const renuevan = listaClientes
+    .map((c) => ({
+      clienteId: c.id as string,
+      nombre: c.nombre as string,
+      plan: c.plan as Plan | null,
+      r: c.fecha_alta ? proximaRenovacion(c.fecha_alta, c.plan as Plan | null, hoyFecha) : null,
+    }))
+    .filter((x) => x.r !== null && x.r.enDias <= 6)
+    .sort((a, b) => a.r!.enDias - b.r!.enDias);
+
   return (
     <>
       <h1 className="h1">Hoy</h1>
@@ -432,6 +448,33 @@ export default async function PaginaHoy() {
               </Link>
             ))}
           </div>
+
+          {renuevan.length > 0 && (
+            <>
+              <div className="flex items-baseline justify-between">
+                <div className="titulo-seccion">Renuevan esta semana</div>
+                <span className="text-atenuado text-[12px]">próximos 7 días</span>
+              </div>
+              <div className="superficie px-4 mb-6">
+                {renuevan.map(({ clienteId, nombre, plan, r }) => (
+                  <Link key={clienteId} href={`/clientes/${clienteId}`} className="fila">
+                    <Avatar nombre={nombre} tamano={34} />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-bold text-[14.5px] leading-tight break-words">{nombre}</div>
+                      <div className="text-texto-2 text-[12.5px] leading-snug break-words">
+                        Plan {plan} · renueva{" "}
+                        <b className={r!.enDias <= 1 ? "text-acento" : "text-texto-2"}>{cuandoRenueva(r!)}</b>
+                      </div>
+                      <div className="text-atenuado text-[12px]">
+                        {r!.meses === 1 ? "Cumple su primer mes" : `Cumple ${r!.meses} meses contigo`}
+                      </div>
+                    </div>
+                    <Repeat size={17} className="text-acento shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            </>
+          )}
 
           {tocaRevisar.length > 0 && (
             <>

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function PaginaInvitaciones() {
   const supabase = await crearClienteServidor();
 
-  const [{ data: invitaciones }, contadores] = await Promise.all([
+  const [{ data: invitaciones }, contadores, { data: clientes }] = await Promise.all([
     /* Sin filtrar por fecha: una invitación caducada desaparecía sin
      * dejar rastro, y el cliente veía "enlace no válido" sin que aquí
      * hubiera nada pendiente que explicara por qué. */
@@ -20,6 +20,7 @@ export default async function PaginaInvitaciones() {
       .eq("usada", false)
       .order("creada_en", { ascending: false }),
     contadoresPanel(supabase),
+    supabase.from("profiles").select("email").eq("rol", "cliente"),
   ]);
 
   const ahora = new Date().getTime();
@@ -27,7 +28,11 @@ export default async function PaginaInvitaciones() {
   return (
     <>
       <SeccionesPanel grupo="personas" contadores={contadores} />
-      <Invitaciones invitaciones={(invitaciones ?? []) as Invitacion[]} ahora={ahora} />
+      <Invitaciones
+        invitaciones={(invitaciones ?? []) as Invitacion[]}
+        emailsClientes={(clientes ?? []).map((c) => String(c.email ?? "").toLowerCase()).filter(Boolean)}
+        ahora={ahora}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { Check, Copy, MessageCircle, RotateCw, Trash2 } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { OBJETIVOS, type Invitacion } from "@/lib/tipos";
 import { URL_PUBLICA } from "@/lib/planes";
+import InvitarVarios from "./InvitarVarios";
 
 /** Días de validez de un enlace de alta (lo fija la tabla por defecto). */
 const DIAS_VALIDEZ = 7;
@@ -21,9 +22,13 @@ const DIAS_VALIDEZ = 7;
  */
 export default function Invitaciones({
   invitaciones,
+  emailsClientes,
   ahora,
 }: {
   invitaciones: Invitacion[];
+  /** Emails de quienes ya son clientes, en minúsculas: invitarles otra
+   * vez les crearía una segunda cuenta de la nada. */
+  emailsClientes: string[];
   /** Marca de tiempo del servidor: los días que quedan se cuentan igual
    * al pintar allí y al hidratar aquí. */
   ahora: number;
@@ -38,6 +43,8 @@ export default function Invitaciones({
   const [recienCreada, setRecienCreada] = useState<string | null>(null);
   const [copiada, setCopiada] = useState<string | null>(null);
   const [renovando, setRenovando] = useState<string | null>(null);
+  const [modo, setModo] = useState<"una" | "varias">("una");
+  const [creadasLote, setCreadasLote] = useState<number | null>(null);
 
   async function crearInvitacion(e: React.FormEvent) {
     e.preventDefault();
@@ -53,6 +60,10 @@ export default function Invitaciones({
     }
     /* Dos enlaces vivos para el mismo correo solo sirven para que el
      * cliente abra el viejo y le diga "no válido". */
+    if (emailsClientes.includes(limpio)) {
+      setError("Ese email ya es de un cliente tuyo.");
+      return;
+    }
     if (invitaciones.some((i) => i.email.toLowerCase() === limpio)) {
       setError("Ya hay una invitación pendiente para ese email: renuévala o bórrala abajo.");
       return;
@@ -125,6 +136,32 @@ export default function Invitaciones({
       <h1 className="h1">Invitaciones</h1>
       <div className="sub mb-4">el alta es solo por invitación —</div>
 
+      <div className="flex gap-2 mb-3">
+        <button className={`tab ${modo === "una" ? "tab-activa" : ""}`} onClick={() => setModo("una")}>
+          Una persona
+        </button>
+        <button className={`tab ${modo === "varias" ? "tab-activa" : ""}`} onClick={() => setModo("varias")}>
+          Varias a la vez
+        </button>
+      </div>
+
+      {creadasLote !== null && (
+        <div className="banner banner-accion !mb-3 items-center">
+          <Check size={15} className="shrink-0" />
+          <span className="flex-1 min-w-0">
+            {creadasLote} {creadasLote === 1 ? "invitación creada" : "invitaciones creadas"}. Mándalas
+            desde Pendientes, aquí abajo.
+          </span>
+        </div>
+      )}
+
+      {modo === "varias" ? (
+        <InvitarVarios
+          pendientes={invitaciones.map((i) => i.email.toLowerCase())}
+          clientes={emailsClientes}
+          onCreadas={setCreadasLote}
+        />
+      ) : (
       <form onSubmit={crearInvitacion} className="tarjeta">
         <div className="titulo-tarjeta">NUEVA INVITACIÓN</div>
         <input
@@ -142,7 +179,7 @@ export default function Invitaciones({
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 min-[440px]:grid-cols-2 min-[440px]:gap-2">
           <select className="input" value={objetivo} onChange={(e) => setObjetivo(e.target.value)}>
             {OBJETIVOS.map((o) => (
               <option key={o}>{o}</option>
@@ -167,6 +204,7 @@ export default function Invitaciones({
           datos de salud.
         </p>
       </form>
+      )}
 
       <div className="flex items-baseline justify-between mt-6">
         <div className="titulo-seccion !mb-0">Pendientes</div>

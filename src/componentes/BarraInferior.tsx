@@ -20,7 +20,7 @@ const PESTANAS = [
     ruta: "/plantillas",
     etiqueta: "Biblioteca",
     Icono: Library,
-    incluye: ["/alimentos", "/cuestionario", "/cuestionario-alta"],
+    incluye: ["/ejercicios", "/alimentos", "/cuestionario", "/cuestionario-alta"],
   },
   { ruta: "/ajustes", etiqueta: "Ajustes", Icono: Settings, incluye: [] as string[] },
 ];

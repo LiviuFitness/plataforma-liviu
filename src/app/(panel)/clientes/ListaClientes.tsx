@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { MessageCircle, Search } from "lucide-react";
+import { Megaphone, MessageCircle, Search } from "lucide-react";
 import { Avatar, PuntoEstado } from "@/componentes/ui";
 import { estadoCliente } from "@/lib/estadoCliente";
+import HojaMensajeVarios from "@/componentes/HojaMensajeVarios";
 import type { Perfil } from "@/lib/tipos";
 
 type Filtro = "todos" | "atencion" | "sin-rutina" | "sin-dieta" | "inactivos";
@@ -36,6 +37,7 @@ export default function ListaClientes({
   const [busqueda, setBusqueda] = useState("");
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
+  const [mensajeVarios, setMensajeVarios] = useState(false);
 
   /* Todo lo que pinta cada fila se calcula una vez, y los filtros
    * cuentan con lo mismo que se ve: si el chip dice "Sin dieta 3", al
@@ -102,10 +104,32 @@ export default function ListaClientes({
             {FILTROS[4].n > 0 ? ` · ${FILTROS[4].n} pausados o de baja` : ""}
           </div>
         </div>
-        <Link href="/invitaciones" className="cta cta-mini shrink-0">
-          + Invitar
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          {FILTROS[0].n > 0 && (
+            <button
+              className="mini !w-[38px] !h-[38px]"
+              onClick={() => setMensajeVarios(true)}
+              aria-label="Mensaje a varios clientes"
+              title="Mensaje a varios"
+            >
+              <Megaphone size={17} />
+            </button>
+          )}
+          <Link href="/invitaciones" className="cta cta-mini shrink-0">
+            + Invitar
+          </Link>
+        </div>
       </div>
+
+      {mensajeVarios && (
+        <HojaMensajeVarios
+          clientes={filas.filter((f) => f.activo).map((f) => ({ id: f.c.id, nombre: f.c.nombre }))}
+          /* Viene marcado lo que estabas viendo: con el filtro "Sin dieta"
+           * puesto, el mensaje es para esos. Sin filtro, para todos. */
+          preseleccion={filtrados.filter((f) => f.activo).map((f) => f.c.id)}
+          onCerrar={() => setMensajeVarios(false)}
+        />
+      )}
 
 
       <div className="relative mt-3.5 mb-2.5">
