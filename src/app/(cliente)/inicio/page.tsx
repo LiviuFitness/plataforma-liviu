@@ -265,6 +265,15 @@ export default async function PaginaInicio() {
     rachaSemanas,
     totalRegistrosHabitos: totalRegistrosHabitos ?? 0,
     semanaHabitosCompleta: semanaHabitosCompleta(habitos ?? [], registrosHabitos ?? []),
+    retoMesCumplido: (() => {
+      /* Mismo cálculo que el reto de Comunidad, en hora de Madrid */
+      const madrid = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+      const mes = madrid(new Date()).slice(0, 7);
+      const dias = new Set(
+        (fechasSesiones ?? []).map((x) => madrid(new Date(x.fecha_inicio))).filter((d) => d.startsWith(mes))
+      ).size;
+      return objetivoSemana > 0 && dias >= Math.max(4, objetivoSemana * 4);
+    })(),
   });
   const nuevosLogros = cumplidos.filter((c) => !clavesPrevias.has(c));
   if (nuevosLogros.length > 0) {

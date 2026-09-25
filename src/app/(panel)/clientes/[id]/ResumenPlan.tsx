@@ -1,5 +1,6 @@
 "use client";
 
+import { textoVisible } from "@/lib/guias";
 import { Check, ChevronRight, MessageCircle, TrendingUp, UtensilsCrossed } from "lucide-react";
 import { IconoTarjeta, Sparkline } from "@/componentes/ui";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
@@ -276,7 +277,7 @@ export default function ResumenPlan({
             </div>
             <div className="text-atenuado text-[12.5px] leading-snug break-words line-clamp-2">
               {ultimoMensaje
-                ? `${ultimoMensaje.remitente === "entrenador" ? "Tú: " : ""}${ultimoMensaje.texto}`
+                ? `${ultimoMensaje.remitente === "entrenador" ? "Tú: " : ""}${textoVisible(ultimoMensaje.texto)}`
                 : "Sin mensajes todavía"}
             </div>
           </div>

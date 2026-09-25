@@ -54,6 +54,12 @@ export const CATALOGO_LOGROS: Logro[] = [
     Icono: Flame,
   },
   {
+    clave: "reto_mes",
+    etiqueta: "Reto del mes",
+    descripcion: "Cumple el reto de un mes: los días de tu rutina × 4.",
+    Icono: Trophy,
+  },
+  {
     clave: "primer_habito",
     etiqueta: "Primer hábito",
     descripcion: "Marca tu primer hábito diario.",
@@ -73,6 +79,8 @@ export interface DatosParaLogros {
   rachaSemanas: number;
   totalRegistrosHabitos: number;
   semanaHabitosCompleta: boolean;
+  /** Días entrenados este mes ≥ su objetivo del reto. */
+  retoMesCumplido: boolean;
 }
 
 /** Claves de logros que se cumplen con estos datos (independientemente
@@ -86,5 +94,6 @@ export function logrosCumplidos(datos: DatosParaLogros): string[] {
   if (datos.rachaSemanas >= 12) claves.push("racha_30");
   if (datos.totalRegistrosHabitos >= 1) claves.push("primer_habito");
   if (datos.semanaHabitosCompleta) claves.push("semana_habitos");
+  if (datos.retoMesCumplido) claves.push("reto_mes");
   return claves;
 }

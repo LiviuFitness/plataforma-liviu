@@ -48,6 +48,8 @@ export interface ItemComida {
   alimento_id: string;
   gramos: number;
   orden: number;
+  /** 0 = opción A (la que suma en el día), 1 = opción B. */
+  opcion?: number;
   alimentos: Alimento | null;
 }
 
@@ -57,15 +59,30 @@ export interface ComidaEstructurada {
   orden: number;
   nombre: string;
   descripcion_libre: string | null;
+  /** Nombre de la opción B ("Avena"), si la comida la tiene. */
+  nombre_b?: string | null;
   dieta_comida_alimentos: ItemComida[];
+}
+
+/** Los alimentos de una opción de la comida (A por defecto), en orden. */
+export function itemsDeOpcion(comida: ComidaEstructurada, opcion: 0 | 1 = 0): ItemComida[] {
+  return (comida.dieta_comida_alimentos ?? [])
+    .filter((i) => (i.opcion ?? 0) === opcion)
+    .slice()
+    .sort((a, b) => a.orden - b.orden);
+}
+
+/** true si la comida tiene opción B con algún alimento. */
+export function tieneOpcionB(comida: ComidaEstructurada): boolean {
+  return (comida.dieta_comida_alimentos ?? []).some((i) => (i.opcion ?? 0) === 1);
 }
 
 export const SELECT_DIETA_COMPLETA = `
   *,
   dieta_comidas (
-    id, dieta_id, orden, nombre, descripcion_libre,
+    id, dieta_id, orden, nombre, descripcion_libre, nombre_b,
     dieta_comida_alimentos (
-      id, alimento_id, gramos, orden,
+      id, alimento_id, gramos, orden, opcion,
       alimentos ( id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria )
     )
   )

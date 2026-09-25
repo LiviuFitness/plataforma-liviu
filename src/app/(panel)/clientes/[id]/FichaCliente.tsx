@@ -14,6 +14,7 @@ import HiloChat from "@/componentes/HiloChat";
 import VistaComoCliente from "@/componentes/VistaComoCliente";
 import NotasCliente, { type NotaCliente } from "@/componentes/NotasCliente";
 import HojaInforme from "@/componentes/HojaInforme";
+import ListaArranque, { type PasoArranque } from "./ListaArranque";
 import type { Alimento, Alternativa } from "@/lib/dietas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
@@ -89,6 +90,7 @@ export default function FichaCliente({
   alternativas,
   respuestasRapidas,
   notas,
+  guias,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -121,6 +123,7 @@ export default function FichaCliente({
   alternativas: Alternativa[];
   respuestasRapidas: string[];
   notas: NotaCliente[];
+  guias: { id: string; titulo: string }[];
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -133,6 +136,7 @@ export default function FichaCliente({
   const [tipoDieta, setTipoDieta] = useState<"entreno" | "descanso">("entreno");
   const [viendoComoCliente, setViendoComoCliente] = useState(false);
   const [informeAbierto, setInformeAbierto] = useState(false);
+  const [borradorChat, setBorradorChat] = useState("");
 
   const nombrePila = perfil.nombre.split(" ")[0];
   const ultimoMensaje = mensajes[mensajes.length - 1] ?? null;
@@ -142,6 +146,48 @@ export default function FichaCliente({
     month: "long",
     year: "numeric",
   });
+
+  /* Lista de arranque: solo en sus primeros 60 días */
+  const diasDeAlta = Math.floor((ahora - new Date(perfil.fecha_alta).getTime()) / 86400000);
+  const pasosArranque: PasoArranque[] = [
+    {
+      clave: "rutina",
+      texto: "Rutina asignada",
+      hecho: !!rutina,
+      accion: { tipo: "abrir", vista: "entreno", etiqueta: "Asignar" },
+    },
+    {
+      clave: "dieta",
+      texto: "Dieta asignada",
+      hecho: !!dieta,
+      accion: { tipo: "abrir", vista: "dieta", etiqueta: "Asignar" },
+    },
+    {
+      clave: "alta",
+      texto: "Cuestionario de alta respondido",
+      hecho: respuestasAlta.length > 0,
+    },
+    {
+      clave: "peso",
+      texto: "Primera medida de peso",
+      hecho: medidas.some((m) => m.peso !== null),
+      accion: {
+        tipo: "pedir",
+        etiqueta: "Pedírsela",
+        mensaje: `Hola ${nombrePila}, apunta tu peso en la app (Inicio › Tu día), mejor por la mañana y en ayunas. Así tengo tu punto de partida 💪`,
+      },
+    },
+    {
+      clave: "fotos",
+      texto: "Fotos de inicio",
+      hecho: entradasFotos.length > 0,
+      accion: {
+        tipo: "pedir",
+        etiqueta: "Pedírselas",
+        mensaje: `Hola ${nombrePila}, súbeme tus fotos de inicio (Mi progreso › Fotos): de frente, de lado y de espalda, con buena luz. Solo las vemos tú y yo, y dentro de unas semanas vas a alucinar con el cambio 📸`,
+      },
+    },
+  ];
 
   function abrir(v: Vista | null) {
     setEditandoDia(false);
@@ -180,6 +226,18 @@ export default function FichaCliente({
             </span>
           </div>
         </div>
+
+        {perfil.estado === "activo" && diasDeAlta <= 60 && (
+          <ListaArranque
+            pila={nombrePila}
+            pasos={pasosArranque}
+            abrir={abrir}
+            pedir={(mensaje) => {
+              setBorradorChat(mensaje);
+              abrir("chat");
+            }}
+          />
+        )}
 
         <TabResumen
           perfil={perfil}
@@ -365,6 +423,8 @@ export default function FichaCliente({
           nombreOtro={perfil.nombre}
           anchoMaximo="max-w-[480px] md:max-w-[760px]"
           respuestasRapidas={respuestasRapidas}
+          textoInicial={borradorChat}
+          guias={guias}
         />
       )}
     </>

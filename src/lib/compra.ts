@@ -71,7 +71,8 @@ function sumarComidas(
 ) {
   if (veces <= 0) return;
   for (const comida of comidas) {
-    for (const item of comida.dieta_comida_alimentos ?? []) {
+    /* La opción B no se suma: se come una u otra */
+    for (const item of (comida.dieta_comida_alimentos ?? []).filter((i) => (i.opcion ?? 0) === 0)) {
       const alimento = item.alimentos;
       if (!alimento) continue;
       const previo = acumulado.get(alimento.id);

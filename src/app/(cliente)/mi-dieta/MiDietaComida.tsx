@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { ArrowLeftRight, ChevronDown, ChevronRight } from "lucide-react";
 import {
+  itemsDeOpcion,
   macrosDe,
+  tieneOpcionB,
   r,
   r1,
   sumar,
@@ -45,6 +47,9 @@ export default function MiDietaComida({
   equivalencias: Map<string, Alternativa[]>;
 }) {
   const [expandida, setExpandida] = useState(true);
+  /* Opción A o B de la comida, si tiene las dos */
+  const [opcion, setOpcion] = useState<0 | 1>(0);
+  const hayB = tieneOpcionB(comida);
   const [sustitucion, setSustitucion] = useState<DatosSustitucion | null>(null);
   const [cerrando, setCerrando] = useState(false);
 
@@ -60,10 +65,7 @@ export default function MiDietaComida({
     }, 220);
   }
 
-  const items = (comida.dieta_comida_alimentos ?? [])
-    .slice()
-    .sort((a, b) => a.orden - b.orden)
-    .filter((i) => i.alimentos);
+  const items = itemsDeOpcion(comida, hayB ? opcion : 0).filter((i) => i.alimentos);
 
   const total = sumar(items.map((i) => macrosDe(i.alimentos!, Number(i.gramos))));
   const valores = [total.prot, total.carb, total.gras];
@@ -154,6 +156,22 @@ export default function MiDietaComida({
               {comida.descripcion_libre && (
                 <div className="text-texto-2 text-[13.5px] px-4 pt-2.5">
                   {comida.descripcion_libre}
+                </div>
+              )}
+
+              {/* Dos versiones de la misma comida, con los mismos macros:
+                * se elige la que apetezca hoy */}
+              {hayB && (
+                <div className="flex gap-2 px-4 pt-3">
+                  {([0, 1] as const).map((o) => (
+                    <button
+                      key={o}
+                      className={`tab !text-[13px] min-w-0 break-words ${opcion === o ? "tab-activa" : ""}`}
+                      onClick={() => setOpcion(o)}
+                    >
+                      {o === 0 ? "Opción A" : comida.nombre_b?.trim() ? `B · ${comida.nombre_b.trim()}` : "Opción B"}
+                    </button>
+                  ))}
                 </div>
               )}
 

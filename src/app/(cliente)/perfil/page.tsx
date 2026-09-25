@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { calcularRachaSemanas } from "@/lib/racha";
 import PerfilCliente from "./PerfilCliente";
+import type { Guia } from "@/lib/guias";
 import type { Ejercicio, Perfil } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +26,7 @@ export default async function PaginaPerfil() {
     { count: totalSesiones },
     { data: ultimaMedida },
     { data: rutina },
+    { data: guias },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
     supabase
@@ -57,6 +59,7 @@ export default async function PaginaPerfil() {
       .order("creada_en", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from("guias").select("id, titulo, contenido, video_url, orden").order("orden").order("creada_en"),
   ]);
 
   /* Objetivo de la semana: los días de su semana actual de rutina */
@@ -79,6 +82,7 @@ export default async function PaginaPerfil() {
       )}
       totalSesiones={totalSesiones ?? 0}
       ultimoPeso={ultimaMedida?.peso ? Number(ultimaMedida.peso) : null}
+      guias={(guias ?? []) as Guia[]}
     />
   );
 }

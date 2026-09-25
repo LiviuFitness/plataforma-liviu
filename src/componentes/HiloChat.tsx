@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, Send, Zap } from "lucide-react";
+import { BookOpen, ChevronRight, MessageCircle, Send, Zap } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import EstadoVacio from "@/componentes/EstadoVacio";
+import VisorGuia from "@/componentes/VisorGuia";
+import { leerGuia, mensajeDeGuia } from "@/lib/guias";
+import { avisarMensaje } from "@/lib/avisos";
 import type { Mensaje } from "@/lib/tipos";
 
 const INTERVALO_SONDEO_MS = 8000;
@@ -23,6 +26,8 @@ export default function HiloChat({
   nombreOtro,
   anchoMaximo = "max-w-[480px]",
   respuestasRapidas = [],
+  textoInicial = "",
+  guias = [],
 }: {
   clienteId: string;
   mensajesIniciales: Mensaje[];
@@ -33,15 +38,21 @@ export default function HiloChat({
   anchoMaximo?: string;
   /** Frases del entrenador a un toque (se editan en Ajustes). */
   respuestasRapidas?: string[];
+  /** Borrador con el que se abre el cuadro (sin enviar). */
+  textoInicial?: string;
+  /** Guías que el entrenador puede mandar con un toque. */
+  guias?: { id: string; titulo: string }[];
 }) {
   const router = useRouter();
-  const [texto, setTexto] = useState("");
+  const [texto, setTexto] = useState(textoInicial);
   const [enviando, setEnviando] = useState(false);
   // Mensajes propios optimistas: aparecen al instante al enviar, antes de
   // que vuelva la confirmación del servidor (sondeo de 8s o refresh manual).
   const [pendientes, setPendientes] = useState<Mensaje[]>([]);
   const finRef = useRef<HTMLDivElement>(null);
   const cuadroRef = useRef<HTMLTextAreaElement>(null);
+  const [guiaAbierta, setGuiaAbierta] = useState<string | null>(null);
+  const [eligiendoGuia, setEligiendoGuia] = useState(false);
   /* Las respuestas rápidas se ven con el cuadro vacío y se van en cuanto
    * se escribe: así no roban sitio a lo que estás redactando. */
   const verRapidas = respuestasRapidas.length > 0 && texto.trim() === "";
@@ -74,8 +85,8 @@ export default function HiloChat({
     })();
   }, [remitentePropio]);
 
-  async function enviar() {
-    const valor = texto.trim();
+  async function enviar(directo?: string) {
+    const valor = (directo ?? texto).trim();
     if (!valor) return;
     const temporal: Mensaje = {
       id: `tmp-${Date.now()}`,
@@ -86,7 +97,7 @@ export default function HiloChat({
     };
     setPendientes((prev) => [...prev, temporal]);
     setEnviando(true);
-    setTexto("");
+    if (directo === undefined) setTexto("");
     const supabase = crearClienteNavegador();
     const { error } = await supabase
       .from("mensajes")
@@ -94,9 +105,10 @@ export default function HiloChat({
     setEnviando(false);
     if (error) {
       setPendientes((prev) => prev.filter((m) => m.id !== temporal.id));
-      setTexto(valor);
+      if (directo === undefined) setTexto(valor);
       return;
     }
+    avisarMensaje(remitentePropio === "entrenador" ? [clienteId] : []);
     router.refresh();
   }
 
@@ -134,7 +146,26 @@ export default function HiloChat({
                   : "self-start bg-campo border border-borde-2 text-texto-2"
               }`}
             >
-              {m.texto}
+              {(() => {
+                const guia = leerGuia(m.texto);
+                if (!guia) return m.texto;
+                return (
+                  <button
+                    type="button"
+                    className="flex items-center gap-2 text-left cursor-pointer"
+                    onClick={() => setGuiaAbierta(guia.id)}
+                  >
+                    <BookOpen size={18} className="shrink-0" />
+                    <span className="min-w-0">
+                      <span className="block font-bold leading-tight break-words">{guia.titulo}</span>
+                      <span className={`block text-[12px] ${esPropio ? "text-fondo/75" : "text-atenuado"}`}>
+                        Guía · toca para abrir
+                      </span>
+                    </span>
+                    <ChevronRight size={16} className="shrink-0" />
+                  </button>
+                );
+              })()}
               <div
                 className={`text-[10.5px] mt-1 ${
                   esPropio ? "text-fondo/70" : "text-atenuado"
@@ -176,6 +207,16 @@ export default function HiloChat({
           </div>
         )}
         <div className="flex gap-2 items-end bg-fondo/95 backdrop-blur-md pt-2">
+          {guias.length > 0 && (
+            <button
+              className="mini !w-11 !h-11 shrink-0"
+              onClick={() => setEligiendoGuia(true)}
+              aria-label="Mandar una guía"
+              title="Mandar una guía"
+            >
+              <BookOpen size={17} />
+            </button>
+          )}
           <textarea
             ref={cuadroRef}
             className="w-full bg-campo border border-borde-2 rounded-2xl text-white p-2.5 px-3.5 text-[14px] resize-none font-cuerpo transition-colors focus:outline-none focus:border-acento"
@@ -192,7 +233,7 @@ export default function HiloChat({
           />
           <button
             className="cta cta-mini anim-pulsable !mb-0 !w-11 !px-0 flex items-center justify-center shrink-0"
-            onClick={enviar}
+            onClick={() => void enviar()}
             disabled={enviando || texto.trim() === ""}
             aria-label="Enviar mensaje"
           >
@@ -200,6 +241,41 @@ export default function HiloChat({
           </button>
         </div>
       </div>
+
+      {guiaAbierta && <VisorGuia id={guiaAbierta} onCerrar={() => setGuiaAbierta(null)} />}
+
+      {eligiendoGuia && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-50 flex items-end justify-center anim-fondo-aparece"
+          onClick={() => setEligiendoGuia(false)}
+        >
+          <div
+            className="w-full max-w-[480px] max-h-[80vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] pb-7 overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-2">
+              <div className="titulo-seccion !mb-0">Mandar una guía</div>
+              <button className="ghost shrink-0" onClick={() => setEligiendoGuia(false)}>
+                Cerrar
+              </button>
+            </div>
+            {guias.map((g) => (
+              <button
+                key={g.id}
+                className="w-full flex items-center gap-3 py-3 border-b border-borde last:border-0 text-left cursor-pointer"
+                onClick={() => {
+                  setEligiendoGuia(false);
+                  void enviar(mensajeDeGuia(g));
+                }}
+              >
+                <BookOpen size={17} className="text-acento shrink-0" />
+                <span className="flex-1 min-w-0 font-semibold text-[14px] break-words">{g.titulo}</span>
+                <Send size={15} className="text-acento shrink-0" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
     </>
   );
 }

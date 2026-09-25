@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import SubidaPendientes from "@/componentes/SubidaPendientes";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { Logo } from "@/componentes/ui";
 import BarraInferior from "@/componentes/BarraInferior";
@@ -45,7 +46,10 @@ export default async function LayoutPanel({
         <BotonSalir />
       </header>
 
-      <main className="p-[18px] pb-24">{children}</main>
+      <main className="p-[18px] pb-24">
+        <SubidaPendientes />
+        {children}
+      </main>
 
       <BarraInferior />
     </div>

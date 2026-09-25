@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Dumbbell, Footprints, UtensilsCrossed } from "lucide-react";
 import {
+  itemsDeOpcion,
   macrosDe,
   r,
   r1,
@@ -42,8 +43,9 @@ export default function VistaDietas({
 
   const { dieta, comidas } = plan;
   const totalesPlan = sumar(
+    /* Solo la opción A: la B es su alternativa, no se suma */
     comidas.flatMap((c) =>
-      (c.dieta_comida_alimentos ?? [])
+      itemsDeOpcion(c, 0)
         .filter((i) => i.alimentos)
         .map((i) => macrosDe(i.alimentos!, Number(i.gramos)))
     )

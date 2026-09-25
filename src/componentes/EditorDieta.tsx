@@ -13,10 +13,13 @@ import {
   r,
   r1,
   sumar,
+  itemsDeOpcion,
+  tieneOpcionB,
   type Alimento,
   type ComidaEstructurada,
+  type ItemComida,
 } from "@/lib/dietas";
-import { ArrowDown, ArrowUp, Copy, CopyPlus, MoreHorizontal, Sparkles, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, CopyPlus, MoreHorizontal, Sparkles, Split, X } from "lucide-react";
 import { infoComida } from "@/lib/infoComida";
 import { IconoTarjeta } from "@/componentes/ui";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
@@ -31,7 +34,11 @@ interface ItemUI {
 interface ComidaUI {
   nombre: string;
   notas: string;
+  /** Opción A: la que suma en el día. */
   items: ItemUI[];
+  /** Opción B (misma comida, otros alimentos) o null si no tiene. */
+  itemsB: ItemUI[] | null;
+  nombreB: string;
 }
 
 const COMIDAS_SUGERIDAS = ["Desayuno", "Media mañana", "Comida", "Merienda", "Cena", "Recena"];
@@ -76,20 +83,33 @@ export default function EditorDieta({
     ((dieta?.dieta_comidas ?? []) as unknown as ComidaEstructurada[])
       .slice()
       .sort((a, b) => a.orden - b.orden)
-      .map((c) => ({
-        nombre: c.nombre,
-        notas: c.descripcion_libre ?? "",
-        items: (c.dieta_comida_alimentos ?? [])
-          .slice()
-          .sort((a, b) => a.orden - b.orden)
-          .filter((i) => i.alimentos)
-          .map((i) => ({
-            alimento: i.alimentos!,
-            gramos: String(Number(i.gramos)),
-          })),
-      }))
+      .map((c) => {
+        const aUI = (lista: ItemComida[]) =>
+          lista
+            .filter((i) => i.alimentos)
+            .map((i) => ({ alimento: i.alimentos!, gramos: String(Number(i.gramos)) }));
+        return {
+          nombre: c.nombre,
+          notas: c.descripcion_libre ?? "",
+          items: aUI(itemsDeOpcion(c, 0)),
+          itemsB: tieneOpcionB(c) ? aUI(itemsDeOpcion(c, 1)) : null,
+          nombreB: c.nombre_b ?? "",
+        };
+      })
   );
   const [buscandoPara, setBuscandoPara] = useState<number | null>(null);
+  /* Qué opción de cada comida se está viendo/editando (0 = A, 1 = B) */
+  const [opcionVista, setOpcionVista] = useState<Record<number, 0 | 1>>({});
+  const opcionDe = (ci: number): 0 | 1 => (opcionVista[ci] === 1 && comidas[ci]?.itemsB ? 1 : 0);
+  /** Cambia los alimentos de la opción que se está viendo de una comida. */
+  function cambiarItems(ci: number, fn: (items: ItemUI[]) => ItemUI[]) {
+    const op = opcionDe(ci);
+    setComidas((prev) =>
+      prev.map((x, j) =>
+        j !== ci ? x : op === 1 && x.itemsB ? { ...x, itemsB: fn(x.itemsB) } : { ...x, items: fn(x.items) }
+      )
+    );
+  }
   const [sucio, setSucio] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
@@ -121,6 +141,8 @@ export default function EditorDieta({
       nombre: c.nombre ? `${c.nombre} (copia)` : "",
       notas: c.notas,
       items: c.items.map((it) => ({ ...it })),
+      itemsB: c.itemsB ? c.itemsB.map((it) => ({ ...it })) : null,
+      nombreB: c.nombreB,
     });
     setComidas(copia);
     setMenuComida(null);
@@ -155,19 +177,14 @@ export default function EditorDieta({
         orden: count ?? 99,
         nombre: c.nombre.trim() || "Comida",
         descripcion_libre: c.notas.trim() || null,
+        nombre_b: c.itemsB ? c.nombreB.trim() || null : null,
       })
       .select("id")
       .single();
     let fallo = !!e1 || !nueva;
-    if (!fallo && nueva && c.items.length > 0) {
-      const { error: e2 } = await supabase.from("dieta_comida_alimentos").insert(
-        c.items.map((it, i) => ({
-          comida_id: nueva.id,
-          alimento_id: it.alimento.id,
-          gramos: Number(it.gramos.replace(",", ".")) || 0,
-          orden: i,
-        }))
-      );
+    const filasCopia = nueva ? filasAlimentos(nueva.id, c) : [];
+    if (!fallo && filasCopia.length > 0) {
+      const { error: e2 } = await supabase.from("dieta_comida_alimentos").insert(filasCopia);
       fallo = !!e2;
     }
     setCopiandoComida(false);
@@ -185,6 +202,39 @@ export default function EditorDieta({
     setOk(false);
   }
 
+  /** Filas de alimentos de una comida para guardar: la A con opcion 0 y
+   * la B (si la tiene) con opcion 1. */
+  function filasAlimentos(comidaId: string, c: ComidaUI) {
+    const fila = (it: ItemUI, j: number, opcion: 0 | 1) => ({
+      comida_id: comidaId,
+      alimento_id: it.alimento.id,
+      gramos: Number(it.gramos.replace(",", ".")) || 0,
+      orden: j,
+      opcion,
+    });
+    return [
+      ...c.items.map((it, j) => fila(it, j, 0)),
+      ...(c.itemsB ?? []).map((it, j) => fila(it, j, 1)),
+    ];
+  }
+
+  /** Crea la opción B partiendo de una copia de la A (lo normal es
+   * cambiar dos o tres alimentos, no empezar de cero). */
+  function anadirOpcionB(ci: number) {
+    setComidas(comidas.map((x, j) => (j === ci ? { ...x, itemsB: x.items.map((it) => ({ ...it })), nombreB: "" } : x)));
+    setOpcionVista({ ...opcionVista, [ci]: 1 });
+    setMenuComida(null);
+    tocar();
+  }
+
+  function quitarOpcionB(ci: number) {
+    if (!confirm("¿Quitar la opción B de esta comida?")) return;
+    setComidas(comidas.map((x, j) => (j === ci ? { ...x, itemsB: null, nombreB: "" } : x)));
+    setOpcionVista({ ...opcionVista, [ci]: 0 });
+    setMenuComida(null);
+    tocar();
+  }
+
   /* --- Generador automático: solo alimentos que le gustan al cliente y ya categorizados --- */
   const excluidosSet = useMemo(() => new Set(excluidos ?? []), [excluidos]);
   const alimentosPermitidos = useMemo(
@@ -197,8 +247,9 @@ export default function EditorDieta({
 
   function generarAutomatico(ci: number) {
     const c = comidas[ci];
+    const actuales = opcionDe(ci) === 1 && c.itemsB ? c.itemsB : c.items;
     if (
-      c.items.length > 0 &&
+      actuales.length > 0 &&
       !confirm(`Esto sustituye los alimentos actuales de «${c.nombre || "esta comida"}». ¿Continuar?`)
     )
       return;
@@ -212,18 +263,11 @@ export default function EditorDieta({
       return;
     }
 
-    setComidas(
-      comidas.map((x, j) =>
-        j === ci
-          ? {
-              ...x,
-              items: resultado.items.map((it) => ({
-                alimento: it.alimento,
-                gramos: String(it.gramos),
-              })),
-            }
-          : x
-      )
+    cambiarItems(ci, () =>
+      resultado.items.map((it) => ({
+        alimento: it.alimento,
+        gramos: String(it.gramos),
+      }))
     );
     setAvisoGeneracion((prev) => ({ ...prev, [ci]: resultado.aviso ?? "" }));
     tocar();
@@ -238,7 +282,7 @@ export default function EditorDieta({
     const base: ComidaUI[] =
       comidas.length > 0
         ? comidas
-        : COMIDAS_SUGERIDAS.map((nombre) => ({ nombre, notas: "", items: [] }));
+        : COMIDAS_SUGERIDAS.map((nombre) => ({ nombre, notas: "", items: [], itemsB: null, nombreB: "" }));
 
     const avisos: Record<number, string> = {};
     const nuevas = base.map((c, i) => {
@@ -364,6 +408,7 @@ export default function EditorDieta({
           orden: i,
           nombre: c.nombre.trim(),
           descripcion_libre: c.notas.trim() || null,
+          nombre_b: c.itemsB ? c.nombreB.trim() || null : null,
         })
         .select("id")
         .single();
@@ -371,15 +416,9 @@ export default function EditorDieta({
         fallo = true;
         break;
       }
-      if (c.items.length > 0) {
-        const { error: e4 } = await supabase.from("dieta_comida_alimentos").insert(
-          c.items.map((it, j) => ({
-            comida_id: fila.id,
-            alimento_id: it.alimento.id,
-            gramos: Number(it.gramos.replace(",", ".")) || 0,
-            orden: j,
-          }))
-        );
+      const filas = filasAlimentos(fila.id, c);
+      if (filas.length > 0) {
+        const { error: e4 } = await supabase.from("dieta_comida_alimentos").insert(filas);
         if (e4) fallo = true;
       }
     }
@@ -518,11 +557,17 @@ export default function EditorDieta({
 
       {/* Comidas con alimentos estructurados */}
       {comidas.map((c, ci) => {
-        const totales = sumar(
-          c.items.map((i) =>
-            macrosDe(i.alimento, Number(i.gramos.replace(",", ".")) || 0)
-          )
-        );
+        const op = opcionDe(ci);
+        const lista = op === 1 && c.itemsB ? c.itemsB : c.items;
+        const totalesDe = (items: ItemUI[]) =>
+          sumar(items.map((i) => macrosDe(i.alimento, Number(i.gramos.replace(",", ".")) || 0)));
+        const totalesA = totalesDe(c.items);
+        const totales = totalesDe(lista);
+        /* La B tiene que parecerse a la A: si se separa más de un 10 %
+         * en kcal, el día deja de cuadrar cuando la elige */
+        const totalesB = c.itemsB ? totalesDe(c.itemsB) : null;
+        const difB =
+          totalesB && totalesA.kcal > 0 ? Math.round(((totalesB.kcal - totalesA.kcal) / totalesA.kcal) * 100) : 0;
         const sugerido = COMIDAS_SUGERIDAS[ci % COMIDAS_SUGERIDAS.length];
         const { Icono, color, foto } = infoComida(c.nombre.trim() || sugerido);
         const velo = `color-mix(in srgb, ${color} 13%, var(--color-panel))`;
@@ -575,17 +620,19 @@ export default function EditorDieta({
                   {c.items.length === 0
                     ? "Sin alimentos"
                     : `${c.items.length} ${c.items.length === 1 ? "alimento" : "alimentos"}`}
+                  {c.itemsB && " · con opción B"}
                 </div>
               </div>
               {c.items.length > 0 && (
                 <span
                   className="relative shrink-0 text-[12px] font-bold rounded-full px-2.5 py-1"
+                  title="Kcal de la opción A"
                   style={{
                     color,
                     background: `color-mix(in srgb, ${color} 14%, ${foto ? "var(--color-fondo)" : "transparent"})`,
                   }}
                 >
-                  {r(totales.kcal)} kcal
+                  {r(totalesA.kcal)} kcal
                 </span>
               )}
               <button
@@ -599,7 +646,40 @@ export default function EditorDieta({
 
             <div className="px-4 pt-2 pb-4">
 
-            {c.items.map((it, ii) => {
+            {c.itemsB && (
+              <>
+                <div className="flex gap-2 mt-1 mb-2">
+                  {([0, 1] as const).map((o) => (
+                    <button
+                      key={o}
+                      className={`tab !text-[13px] ${op === o ? "tab-activa" : ""}`}
+                      onClick={() => setOpcionVista({ ...opcionVista, [ci]: o })}
+                    >
+                      {o === 0 ? "Opción A" : "Opción B"}
+                    </button>
+                  ))}
+                </div>
+                {op === 1 && (
+                  <input
+                    className="input !mb-2 !text-[13.5px]"
+                    placeholder="Nombre de la opción B (p. ej. Avena)"
+                    value={c.nombreB}
+                    onChange={(e) => {
+                      setComidas(comidas.map((x, j) => (j === ci ? { ...x, nombreB: e.target.value } : x)));
+                      tocar();
+                    }}
+                  />
+                )}
+                {Math.abs(difB) > 10 && (
+                  <div className="text-aviso text-[12px] font-semibold mb-1.5">
+                    La B tiene un {Math.abs(difB)} % {difB > 0 ? "más" : "menos"} de kcal que la A ({r(totalesB!.kcal)} vs{" "}
+                    {r(totalesA.kcal)}).
+                  </div>
+                )}
+              </>
+            )}
+
+            {lista.map((it, ii) => {
               const m = macrosDe(it.alimento, Number(it.gramos.replace(",", ".")) || 0);
               return (
                 <div
@@ -612,12 +692,8 @@ export default function EditorDieta({
                     inputMode="decimal"
                     value={it.gramos}
                     onChange={(e) => {
-                      setComidas(
-                        comidas.map((x, j) =>
-                          j === ci
-                            ? { ...x, items: x.items.map((y, k) => (k === ii ? { ...y, gramos: e.target.value } : y)) }
-                            : x
-                        )
+                      cambiarItems(ci, (items) =>
+                        items.map((y, k) => (k === ii ? { ...y, gramos: e.target.value } : y))
                       );
                       tocar();
                     }}
@@ -629,11 +705,7 @@ export default function EditorDieta({
                   <button
                     className="mini mini-peligro shrink-0"
                     onClick={() => {
-                      setComidas(
-                        comidas.map((x, j) =>
-                          j === ci ? { ...x, items: x.items.filter((_, k) => k !== ii) } : x
-                        )
-                      );
+                      cambiarItems(ci, (items) => items.filter((_, k) => k !== ii));
                       tocar();
                     }}
                     aria-label={`Quitar ${it.alimento.nombre}`}
@@ -661,9 +733,9 @@ export default function EditorDieta({
               + Añadir alimento
             </button>
 
-            {c.items.length > 0 && (
+            {lista.length > 0 && (
               <div className="flex justify-between text-[12.5px] text-atenuado mt-2 pt-2 border-t border-borde">
-                <span className="font-bold text-texto-2">Total</span>
+                <span className="font-bold text-texto-2">{c.itemsB ? `Total ${op === 1 ? "B" : "A"}` : "Total"}</span>
                 <span>
                   <b className="text-acento">{r(totales.kcal)} kcal</b> · P{r1(totales.prot)} · C{r1(totales.carb)} · G{r1(totales.gras)}
                 </span>
@@ -728,6 +800,20 @@ export default function EditorDieta({
                 <span className="flex-1 text-[14px]">{texto}</span>
               </button>
             ))}
+            {comidas[menuComida].itemsB ? (
+              <button className="fila w-full text-left cursor-pointer" onClick={() => quitarOpcionB(menuComida)}>
+                <Split size={17} className="text-acento shrink-0" />
+                <span className="flex-1 text-[14px]">Quitar la opción B</span>
+              </button>
+            ) : (
+              <button className="fila w-full text-left cursor-pointer" onClick={() => anadirOpcionB(menuComida)}>
+                <Split size={17} className="text-acento shrink-0" />
+                <span className="flex-1 text-[14px]">
+                  Añadir opción B
+                  <span className="block text-atenuado text-[12px]">Otra versión de esta comida, con los mismos macros</span>
+                </span>
+              </button>
+            )}
             {otraDieta && (
               <button
                 className="fila w-full text-left cursor-pointer"
@@ -761,7 +847,7 @@ export default function EditorDieta({
         onClick={() => {
           setComidas([
             ...comidas,
-            { nombre: COMIDAS_SUGERIDAS[comidas.length] ?? "", notas: "", items: [] },
+            { nombre: COMIDAS_SUGERIDAS[comidas.length] ?? "", notas: "", items: [], itemsB: null, nombreB: "" },
           ]);
           tocar();
         }}
@@ -780,13 +866,7 @@ export default function EditorDieta({
           alimentos={alimentos}
           excluidos={excluidos}
           onElegir={(alimento) => {
-            setComidas(
-              comidas.map((x, j) =>
-                j === buscandoPara
-                  ? { ...x, items: [...x.items, { alimento, gramos: "100" }] }
-                  : x
-              )
-            );
+            cambiarItems(buscandoPara, (items) => [...items, { alimento, gramos: "100" }]);
             tocar();
             setBuscandoPara(null);
           }}

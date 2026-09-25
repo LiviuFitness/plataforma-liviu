@@ -137,7 +137,8 @@ interface FilaComida {
   orden: number;
   nombre: string;
   descripcion_libre: string | null;
-  dieta_comida_alimentos: { alimento_id: string; gramos: number; orden: number }[];
+  nombre_b: string | null;
+  dieta_comida_alimentos: { alimento_id: string; gramos: number; orden: number; opcion: number }[];
 }
 
 /** Copia una dieta con sus comidas y alimentos. Devuelve el id nuevo. */
@@ -150,8 +151,8 @@ export async function copiarDieta(
     .from("dietas")
     .select(
       `kcal_obj, prot_obj, carb_obj, gras_obj, tipo,
-       dieta_comidas ( orden, nombre, descripcion_libre,
-         dieta_comida_alimentos ( alimento_id, gramos, orden ) )`
+       dieta_comidas ( orden, nombre, descripcion_libre, nombre_b,
+         dieta_comida_alimentos ( alimento_id, gramos, orden, opcion ) )`
     )
     .eq("id", dietaId)
     .maybeSingle();
@@ -188,6 +189,7 @@ export async function copiarDieta(
         orden: i,
         nombre: c.nombre,
         descripcion_libre: c.descripcion_libre,
+        nombre_b: c.nombre_b,
       }))
     )
     .select("id, orden");
@@ -200,6 +202,7 @@ export async function copiarDieta(
       alimento_id: a.alimento_id,
       gramos: a.gramos,
       orden: a.orden,
+      opcion: a.opcion ?? 0,
     }))
   );
   if (alimentos.length > 0) {

@@ -10,6 +10,9 @@ import SubidaAvatar from "@/componentes/SubidaAvatar";
 import Switch from "@/componentes/Switch";
 import BotonSalir from "@/componentes/BotonSalir";
 import PreferenciasEjercicios from "./PreferenciasEjercicios";
+import ListaGuiasCliente from "@/componentes/ListaGuiasCliente";
+import PanelAvisos, { type Avisos } from "@/componentes/PanelAvisos";
+import type { Guia } from "@/lib/guias";
 import type { Ejercicio, Perfil } from "@/lib/tipos";
 
 /** Perfil del cliente: dashboard, datos, contraseña, ejercicios a evitar y RGPD. */
@@ -20,6 +23,7 @@ export default function PerfilCliente({
   rachaSemanas,
   totalSesiones,
   ultimoPeso,
+  guias,
 }: {
   perfil: Perfil;
   biblioteca: Ejercicio[];
@@ -28,6 +32,7 @@ export default function PerfilCliente({
   rachaSemanas: number;
   totalSesiones: number;
   ultimoPeso: number | null;
+  guias: Guia[];
 }) {
   const [visibleComunidad, setVisibleComunidad] = useState(perfil.visible_en_comunidad);
   const [guardandoComunidad, setGuardandoComunidad] = useState(false);
@@ -40,10 +45,9 @@ export default function PerfilCliente({
     setVisibleComunidad(valor);
     setGuardandoComunidad(true);
     const supabase = crearClienteNavegador();
-    await supabase
-      .from("profiles")
-      .update({ visible_en_comunidad: valor })
-      .eq("id", perfil.id);
+    /* Por función: el cliente no puede editar su perfil directamente */
+    const { error } = await supabase.rpc("cambiar_visible_comunidad", { p_visible: valor });
+    if (error) setVisibleComunidad(!valor);
     setGuardandoComunidad(false);
   }
 
@@ -198,6 +202,13 @@ export default function PerfilCliente({
           label="Aparecer en la comunidad"
         />
       </section>
+
+      <PanelAvisos
+        usuarioId={perfil.id}
+        avisos={{ mensajes: true, entreno: true, peso: true, ...((perfil as { avisos?: Partial<Avisos> }).avisos ?? {}) }}
+      />
+
+      <ListaGuiasCliente guias={guias} />
 
       <PreferenciasEjercicios
         clienteId={perfil.id}

@@ -1,5 +1,6 @@
 "use client";
 
+import PanelAvisos, { type Avisos } from "@/componentes/PanelAvisos";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import CopiaSeguridad from "@/componentes/CopiaSeguridad";
@@ -106,6 +107,12 @@ export default function Ajustes({
       <div className="mb-6">
         <GestionRespuestas respuestas={respuestas} disponible={respuestasDisponibles} />
       </div>
+
+      <PanelAvisos
+        usuarioId={perfil.id}
+        paraEntrenador
+        avisos={{ mensajes: true, entreno: true, peso: true, ...((perfil as { avisos?: Partial<Avisos> }).avisos ?? {}) }}
+      />
 
       <div className="titulo-seccion">Tu cuenta</div>
       {/* Una sola superficie con 3 secciones internas — sin espacio

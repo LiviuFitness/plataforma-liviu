@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar } from "@/componentes/ui";
+import { avisarMensaje } from "@/lib/avisos";
 
 interface Destinatario {
   id: string;
@@ -66,6 +67,7 @@ export default function HojaMensajeVarios({
       return;
     }
     setEnviados(filas.length);
+    avisarMensaje(filas.map((f) => f.cliente_id));
     router.refresh();
   }
 

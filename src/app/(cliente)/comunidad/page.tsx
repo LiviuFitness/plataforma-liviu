@@ -6,6 +6,7 @@ import { CATALOGO_LOGROS } from "@/lib/logros";
 import { AnilloAdherencia } from "@/componentes/ui";
 import EstadoVacio from "@/componentes/EstadoVacio";
 import GridLogros from "@/componentes/GridLogros";
+import RetoMes from "./RetoMes";
 
 export const dynamic = "force-dynamic";
 
@@ -25,13 +26,50 @@ export default async function PaginaComunidad() {
   const user = await obtenerUsuario();
   if (!user) redirect("/login");
 
-  const [{ data: perfil }, { data: misLogros }, { data: feed }, { data: ranking }] =
-    await Promise.all([
-      supabase.from("profiles").select("visible_en_comunidad").eq("id", user.id).maybeSingle(),
-      supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
-      supabase.from("v_comunidad_logros").select("*"),
-      supabase.from("v_comunidad_ranking").select("*"),
-    ]);
+  /* Primer día del mes, en hora de Madrid */
+  const hoyMadrid = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+  const inicioMes = `${hoyMadrid.slice(0, 7)}-01`;
+
+  const [
+    { data: perfil },
+    { data: misLogros },
+    { data: feed },
+    { data: ranking },
+    { data: reto },
+    { data: misSesiones },
+    { data: rutina },
+  ] = await Promise.all([
+    supabase.from("profiles").select("visible_en_comunidad").eq("id", user.id).maybeSingle(),
+    supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
+    supabase.from("v_comunidad_logros").select("*"),
+    supabase.from("v_comunidad_ranking").select("*"),
+    supabase.from("v_comunidad_reto").select("*"),
+    supabase
+      .from("sesiones")
+      .select("fecha_inicio")
+      .eq("cliente_id", user.id)
+      /* Un día de margen por el cambio de hora; se filtra abajo por fecha de Madrid */
+      .gte("fecha_inicio", new Date(Date.parse(inicioMes) - 86400000).toISOString()),
+    supabase
+      .from("rutinas")
+      .select("semana_actual, rutina_dias ( semana )")
+      .eq("cliente_id", user.id)
+      .eq("activa", true)
+      .order("creada_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  /* Mi reto: mis días entrenados este mes frente a mi objetivo */
+  const misDias = new Set(
+    (misSesiones ?? [])
+      .map((x) => new Date(x.fecha_inicio).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" }))
+      .filter((d) => d >= inicioMes)
+  ).size;
+  const diasSemana = rutina
+    ? ((rutina.rutina_dias ?? []) as { semana: number }[]).filter((d) => d.semana === rutina.semana_actual).length
+    : 0;
+  const miObjetivo = Math.max(4, diasSemana * 4);
 
   const misClaves = new Set((misLogros ?? []).map((l) => l.clave));
 
@@ -49,6 +87,14 @@ export default async function PaginaComunidad() {
           .
         </div>
       )}
+
+      <RetoMes
+        hoyISO={hoyMadrid}
+        misEntrenos={misDias}
+        miObjetivo={miObjetivo}
+        yoId={user.id}
+        participantes={((reto ?? []) as { cliente_id: string; nombre: string; entrenos: number; objetivo: number }[])}
+      />
 
       <GridLogros desbloqueados={[...misClaves]} />
 

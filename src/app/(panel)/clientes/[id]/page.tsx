@@ -70,6 +70,7 @@ export default async function PaginaFichaCliente({
     { data: alternativas },
     { data: respuestasRapidas },
     { data: notas },
+    { data: guias },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -180,6 +181,7 @@ export default async function PaginaFichaCliente({
       .eq("cliente_id", id)
       .order("creada_en", { ascending: false })
       .limit(50),
+    supabase.from("guias").select("id, titulo").order("orden").order("creada_en"),
   ]);
 
   if (!perfil) notFound();
@@ -240,6 +242,7 @@ export default async function PaginaFichaCliente({
       alternativas={(alternativas ?? []) as Alternativa[]}
       respuestasRapidas={(respuestasRapidas ?? []).map((r) => r.texto as string)}
       notas={(notas ?? []) as NotaCliente[]}
+      guias={(guias ?? []) as { id: string; titulo: string }[]}
     />
   );
 }

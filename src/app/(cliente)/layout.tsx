@@ -1,4 +1,5 @@
 import Link from "next/link";
+import SubidaPendientes from "@/componentes/SubidaPendientes";
 import { redirect } from "next/navigation";
 import { CircleUserRound } from "lucide-react";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
@@ -80,7 +81,10 @@ export default async function LayoutCliente({
           </Link>
         </header>
 
-        <main className="p-[18px] pb-32 md:pb-[18px]">{children}</main>
+        <main className="p-[18px] pb-32 md:pb-[18px]">
+          <SubidaPendientes />
+          {children}
+        </main>
 
         <BarraCliente chatSinLeer={hayChatSinLeer} revisionSinLeer={hayRevisionSinLeer} />
       </div>

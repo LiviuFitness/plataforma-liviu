@@ -19,6 +19,9 @@ const RUTAS_PUBLICAS = [
   // no llegaría nunca a la base de datos. La ruta se protege por su
   // cuenta con CRON_SECRET (ver src/app/api/ping/route.ts).
   "/api/ping",
+  // Recordatorios diarios (entreno, peso): también los llama el cron, y
+  // se protegen con CRON_SECRET (ver src/app/api/avisos/diario/route.ts).
+  "/api/avisos/diario",
 ];
 
 function esRutaPublica(ruta: string) {

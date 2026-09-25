@@ -28,6 +28,7 @@ import {
   ArrowUp,
   Check,
   ChevronRight,
+  CloudOff,
   ChevronUp,
   FileText,
   Link2,
@@ -44,6 +45,7 @@ import {
 } from "lucide-react";
 import type { AlternativaSesion } from "@/lib/alternativasSesion";
 import { admiteExpres, duracionEstimada, versionExpres } from "@/lib/expres";
+import { encolar, subirSesion, type SesionParaSubir } from "@/lib/subirSesion";
 
 export interface SerieSesion {
   tipo: TipoSerie;
@@ -378,6 +380,8 @@ export default function SesionEnCurso({
   /* Entreno exprés: se elige antes de empezar */
   const [expres, setExpres] = useState(false);
   const [cambioPara, setCambioPara] = useState<number | null>(null);
+  /* Guardada en el móvil por falta de cobertura */
+  const [sinRed, setSinRed] = useState(false);
   const [editor, setEditor] = useState<{ ei: number; si: number; campo: "kg" | "reps" } | null>(
     null
   );
@@ -804,64 +808,55 @@ export default function SesionEnCurso({
       }
     }
 
-    const { data: sesion, error: e1 } = await supabase
-      .from("sesiones")
-      .insert({
+    const fechaInicio = new Date(inicio ?? Date.now()).toISOString();
+    const haySustitutos = ejercicios.some((e) => e.sustituto);
+    const paquete: SesionParaSubir = {
+      id: `${clienteId}:${fechaInicio}`,
+      nombreDia,
+      sesion: {
         cliente_id: clienteId,
         dia_id: diaId,
-        fecha_inicio: new Date(inicio ?? Date.now()).toISOString(),
+        fecha_inicio: fechaInicio,
         fecha_fin: new Date().toISOString(),
         prs_pre: prsPre,
         sensacion,
         notas_cliente: nota.trim() || null,
         /* Solo si lo es: así una sesión normal se guarda igual que antes */
         ...(expres ? { expres: true } : {}),
-      })
-      .select("id")
-      .single();
+      },
+      series: ejercicios.flatMap((e) =>
+        e.series.map((s, j) => {
+          const carga = parsearCarga(s.kg);
+          const reps = parsearRepsRealizadas(s.reps);
+          const rir = parsearRir(s.rir);
+          return {
+            rutina_ejercicio_id: e.rutinaEjercicioId,
+            orden: j,
+            tipo: s.tipo,
+            kg: carga.kg,
+            carga_texto: carga.carga_texto,
+            reps: reps.reps,
+            reps_extra: reps.reps_extra,
+            rir: rir.rir,
+            tecnica: rir.tecnica,
+            completada: s.completada,
+            ...(haySustitutos ? { ejercicio_sustituto_id: e.sustituto?.id ?? null } : {}),
+          };
+        })
+      ),
+    };
 
-    if (e1 || !sesion) {
-      /* 23505 = índice único: esta misma sesión ya está guardada (dos
-       * pestañas, o un reintento tras recuperar el autoguardado). No es
-       * un error para el cliente, ya tiene su entreno registrado. */
-      if (e1?.code === "23505") {
-        borrarAutosave(clienteId, diaId);
-        return true;
-      }
-      setError("No se pudo guardar la sesión. Comprueba la conexión e inténtalo de nuevo.");
+    const resultado = await subirSesion(supabase, paquete);
+    if (resultado === "sin-red") {
+      /* Sin cobertura: el entreno se queda en el móvil y se sube solo
+       * al volver la conexión. Nada se pierde. */
+      encolar(paquete);
+      borrarAutosave(clienteId, diaId);
+      setSinRed(true);
       return false;
     }
-
-    const haySustitutos = ejercicios.some((e) => e.sustituto);
-    const filas = ejercicios.flatMap((e) =>
-      e.series.map((s, j) => {
-        const carga = parsearCarga(s.kg);
-        const reps = parsearRepsRealizadas(s.reps);
-        const rir = parsearRir(s.rir);
-        return {
-          sesion_id: sesion.id,
-          rutina_ejercicio_id: e.rutinaEjercicioId,
-          orden: j,
-          tipo: s.tipo,
-          kg: carga.kg,
-          carga_texto: carga.carga_texto,
-          reps: reps.reps,
-          reps_extra: reps.reps_extra,
-          rir: rir.rir,
-          tecnica: rir.tecnica,
-          completada: s.completada,
-          ...(haySustitutos ? { ejercicio_sustituto_id: e.sustituto?.id ?? null } : {}),
-        };
-      })
-    );
-    const { error: e2 } = await supabase.from("series_realizadas").insert(filas);
-
-    if (e2) {
-      /* Se deshace la sesión sin series: si se quedara ahí, el reintento
-       * chocaría contra el índice único (mismo cliente y misma hora de
-       * inicio) y el entreno saldría vacío en el historial. */
-      await supabase.from("sesiones").delete().eq("id", sesion.id);
-      setError("La sesión se creó pero fallaron las series. Inténtalo de nuevo.");
+    if (resultado === "error") {
+      setError("No se pudo guardar la sesión. Inténtalo de nuevo.");
       return false;
     }
     borrarAutosave(clienteId, diaId);
@@ -960,6 +955,23 @@ export default function SesionEnCurso({
           )}
         </button>
       </>
+    );
+  }
+
+  /* --------- Sin cobertura al guardar --------- */
+  if (sinRed) {
+    return (
+      <div className="anim-aparecer flex flex-col items-center text-center pt-8">
+        <IconoTarjeta Icono={CloudOff} color="var(--color-aviso)" tamano={52} />
+        <h1 className="h1 mt-3 mb-1">Entreno guardado en tu móvil</h1>
+        <p className="text-texto-2 text-[14px] leading-relaxed px-2 mb-6">
+          Ahora mismo no hay conexión. No pasa nada: se subirá solo en cuanto vuelvas a tener
+          internet. No hace falta que hagas nada.
+        </p>
+        <button className="cta w-full" onClick={() => router.push(volverA)}>
+          Entendido
+        </button>
+      </div>
     );
   }
 

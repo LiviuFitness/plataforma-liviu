@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, Check, Pencil, Send, Trophy } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta } from "@/componentes/ui";
+import { avisarMensaje } from "@/lib/avisos";
 import type { Sugerencia, TipoSugerencia } from "@/lib/sugerencias";
 
 const ICONO: Record<TipoSugerencia, { Icono: typeof Bell; color: string }> = {
@@ -69,6 +70,7 @@ export default function MensajesSugeridos({ items }: { items: Sugerencia[] }) {
       return;
     }
     setEnviadas((prev) => new Set(prev).add(s.clave));
+    avisarMensaje([s.clienteId]);
     router.refresh();
   }
 

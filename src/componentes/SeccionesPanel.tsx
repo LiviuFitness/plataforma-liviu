@@ -9,7 +9,7 @@ import { usePathname } from "next/navigation";
  *
  *  · Clientes   → Clientes · Invitaciones · Leads. Es el camino entero de
  *    una persona: se interesa (lead), la invitas y entra (cliente).
- *  · Biblioteca → Plantillas · Ejercicios · Alimentos · Preguntas. Tu
+ *  · Biblioteca → Plantillas · Ejercicios · Alimentos · Preguntas · Guías. Tu
  *    método, lo que reutilizas con todos. ("Preguntas" y no
  *    "Cuestionarios": con cuatro pestañas no cabía en un iPhone.)
  *
@@ -27,6 +27,7 @@ const GRUPOS = {
     { href: "/ejercicios", etiqueta: "Ejercicios", contador: null },
     { href: "/alimentos", etiqueta: "Alimentos", contador: null },
     { href: "/cuestionario", etiqueta: "Preguntas", contador: null },
+    { href: "/guias", etiqueta: "Guías", contador: null },
   ],
 } as const;
 
@@ -45,8 +46,11 @@ export default function SeccionesPanel({
   contadores?: ContadoresPanel;
 }) {
   const ruta = usePathname();
+  /* Con cinco pestañas, letra y huecos un punto más pequeños para que
+   * quepan enteras en un iPhone de 375 px */
+  const apretado = GRUPOS[grupo].length > 4;
   return (
-    <nav className="flex gap-1.5 mb-5" aria-label="Secciones">
+    <nav className={`flex ${apretado ? "gap-1" : "gap-1.5"} mb-5`} aria-label="Secciones">
       {GRUPOS[grupo].map((s) => {
         const activa =
           ruta === s.href || (TAMBIEN[s.href] ?? []).some((r) => ruta === r);
@@ -55,7 +59,7 @@ export default function SeccionesPanel({
           <Link
             key={s.href}
             href={s.href}
-            className={`tab text-center !text-[13px] !px-1 flex items-center justify-center gap-1.5 min-w-0 ${
+            className={`tab text-center ${apretado ? "!text-[12px] !px-0.5" : "!text-[13px] !px-1"} flex items-center justify-center gap-1.5 min-w-0 ${
               activa ? "tab-activa" : ""
             }`}
             aria-current={activa ? "page" : undefined}
