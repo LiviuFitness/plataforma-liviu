@@ -913,6 +913,20 @@ body {
   animation: pagina-entrar 0.22s ease-out;
 }
 
+/* Historias del resumen del mes: la barra de la pantalla actual se
+   llena en lo que dura (5,5 s) */
+@keyframes historia-llenar {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+.historia-barra {
+  animation: historia-llenar 5.5s linear forwards;
+}
+
 /* Anillos de la semana: se llenan al entrar */
 @keyframes anillo-llenar {
   from {

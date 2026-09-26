@@ -7,6 +7,7 @@ import SesionEnCurso, {
 } from "@/componentes/SesionEnCurso";
 import { evaluarSerie, type UltimaSerieItem } from "@/lib/evaluacionSerie";
 import { cargarAlternativas } from "@/lib/alternativasSesion";
+import { cuandoFue, fechaCortaSesion, type VezEjercicio } from "@/lib/historialEjercicio";
 import type { TipoSerie } from "@/lib/tipos";
 
 export const dynamic = "force-dynamic";
@@ -96,7 +97,7 @@ export default async function PaginaSesion({
       )
       .eq("cliente_id", user.id)
       .order("fecha_inicio", { ascending: false })
-      .limit(15),
+      .limit(30),
   ]);
 
   if (!dia) notFound();
@@ -107,7 +108,10 @@ export default async function PaginaSesion({
   // la rutina actual, por si el entrenador la cambió desde entonces).
   // También la mejor marca histórica en kg, para detectar récords.
   const anterior = new Map<string, UltimaSerieItem[]>();
+  /* Las últimas 5 veces de cada ejercicio, para su historial en la sesión */
+  const historial = new Map<string, VezEjercicio[]>();
   const mejorHistorico = new Map<string, number>();
+  const ahora = new Date();
   for (const sesion of (previas ?? []) as unknown as FilaSesionPrevia[]) {
     const porEjercicio = new Map<string, FilaSerieRealizada[]>();
     for (const s of sesion.series_realizadas ?? []) {
@@ -123,7 +127,7 @@ export default async function PaginaSesion({
       porEjercicio.set(id, lista);
     }
     for (const [id, series] of porEjercicio) {
-      if (anterior.has(id)) continue;
+      if ((historial.get(id)?.length ?? 0) >= 5) continue;
       const items: UltimaSerieItem[] = series
         .sort((a, b) => a.orden - b.orden)
         .map((s) => {
@@ -150,7 +154,18 @@ export default async function PaginaSesion({
             : null;
           return { texto: carga ? `${carga}×${reps}` : `${reps} reps`, estado };
         });
-      if (items.length > 0) anterior.set(id, items);
+      if (items.length === 0) continue;
+      if (!anterior.has(id)) anterior.set(id, items);
+      const kgs = series.map((s) => s.kg).filter((k): k is number => k !== null).map(Number);
+      historial.set(id, [
+        ...(historial.get(id) ?? []),
+        {
+          fecha: fechaCortaSesion(sesion.fecha_inicio),
+          cuando: cuandoFue(sesion.fecha_inicio, ahora),
+          items,
+          mejorKg: kgs.length ? Math.max(...kgs) : null,
+        },
+      ]);
     }
   }
 
@@ -192,6 +207,14 @@ export default async function PaginaSesion({
   const filasDia = ((dia.rutina_ejercicios ?? []) as unknown as FilaEjercicio[])
     .slice()
     .sort((a, b) => a.orden - b.orden);
+  /* Sus notas propias de estos ejercicios ("respaldo en el 4") */
+  const { data: notasEj } = await supabase
+    .from("notas_ejercicio")
+    .select("ejercicio_id, texto")
+    .eq("cliente_id", user.id)
+    .in("ejercicio_id", filasDia.map((e) => e.ejercicio_id));
+  const notaDe = new Map((notasEj ?? []).map((n) => [n.ejercicio_id as string, n.texto as string]));
+
   const alternativas = await cargarAlternativas(
     supabase,
     filasDia.map((e) => ({ ejercicioId: e.ejercicio_id, grupo: e.ejercicios?.grupo_muscular ?? "" })),
@@ -210,6 +233,8 @@ export default async function PaginaSesion({
       tecnica: e.ejercicios?.instrucciones ?? null,
       videoUrl: e.ejercicios?.video_url ?? null,
       anterior: anterior.get(e.ejercicio_id) ?? null,
+      historial: historial.get(e.ejercicio_id) ?? [],
+      notaPropia: notaDe.get(e.ejercicio_id) ?? null,
       mejorKgAnterior: mejorHistorico.get(e.ejercicio_id) ?? null,
       series: (e.series_prescritas ?? [])
         .slice()

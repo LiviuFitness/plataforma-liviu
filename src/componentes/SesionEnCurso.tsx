@@ -31,10 +31,13 @@ import {
   CloudOff,
   ChevronUp,
   FileText,
+  History,
   Link2,
   Plus,
+  Pencil,
   Repeat,
   Scale,
+  Sun,
   Share2,
   Sparkles,
   Timer,
@@ -43,6 +46,7 @@ import {
   X,
   Zap, AlertCircle } from "lucide-react";
 import type { AlternativaSesion } from "@/lib/alternativasSesion";
+import type { VezEjercicio } from "@/lib/historialEjercicio";
 import { admiteExpres, duracionEstimada, versionExpres } from "@/lib/expres";
 import { encolar, subirSesion, type SesionParaSubir } from "@/lib/subirSesion";
 
@@ -73,6 +77,10 @@ export interface EjercicioSesion {
   series: SerieSesion[];
   /** Ejercicio de la biblioteca, para ofrecer alternativas. */
   ejercicioId?: string;
+  /** Las últimas veces que lo hizo (la primera es "anterior"). */
+  historial?: VezEjercicio[];
+  /** Su nota propia de este ejercicio ("respaldo en el 4"). */
+  notaPropia?: string | null;
   /** "¿Máquina ocupada?": por cuáles se puede cambiar hoy. */
   alternativas?: AlternativaSesion[];
   /** Cambiado hoy por otro: se guarda en sus series y no cuenta como
@@ -381,6 +389,63 @@ export default function SesionEnCurso({
   const [cambioPara, setCambioPara] = useState<number | null>(null);
   /* Guardada en el móvil por falta de cobertura */
   const [sinRed, setSinRed] = useState(false);
+  const [historialPara, setHistorialPara] = useState<number | null>(null);
+  const [notaPara, setNotaPara] = useState<number | null>(null);
+  /* Notas propias editadas en esta sesión (ejercicioId → texto) */
+  const [notasEditadas, setNotasEditadas] = useState<Record<string, string | null>>({});
+
+  /* Pantalla fija (Wake Lock): opcional, apagada por defecto. Cada uno
+   * decide: hay quien entrena con el móvil bloqueado y quien lo quiere
+   * siempre a la vista (p. ej. el entrenador en una presencial). Se
+   * recuerda en el móvil y solo actúa mientras se entrena. */
+  const [pantallaFija, setPantallaFija] = useState(false);
+  const [admitePantallaFija, setAdmitePantallaFija] = useState(false);
+  const [avisoPantalla, setAvisoPantalla] = useState("");
+  useEffect(() => {
+    // Solo se sabe en el navegador (no en el servidor)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setAdmitePantallaFija("wakeLock" in navigator);
+    try {
+      if (localStorage.getItem("pantalla-fija") === "1") setPantallaFija(true);
+    } catch {
+      /* sin almacenamiento: apagada */
+    }
+  }, []);
+  useEffect(() => {
+    if (!pantallaFija || fase !== "entrenando" || !("wakeLock" in navigator)) return;
+    let bloqueo: WakeLockSentinel | null = null;
+    let vivo = true;
+    const pedir = async () => {
+      try {
+        bloqueo = await navigator.wakeLock.request("screen");
+      } catch {
+        /* batería baja o sin permiso: la pantalla se comporta como siempre */
+      }
+    };
+    /* Al volver a la app el sistema lo ha soltado: se pide otra vez */
+    const alVolver = () => {
+      if (vivo && document.visibilityState === "visible") void pedir();
+    };
+    void pedir();
+    document.addEventListener("visibilitychange", alVolver);
+    return () => {
+      vivo = false;
+      document.removeEventListener("visibilitychange", alVolver);
+      void bloqueo?.release().catch(() => {});
+    };
+  }, [pantallaFija, fase]);
+
+  function alternarPantallaFija() {
+    const nuevo = !pantallaFija;
+    setPantallaFija(nuevo);
+    try {
+      localStorage.setItem("pantalla-fija", nuevo ? "1" : "0");
+    } catch {
+      /* sin almacenamiento: vale para esta sesión */
+    }
+    setAvisoPantalla(nuevo ? "Pantalla fija: no se apagará mientras entrenas" : "Pantalla normal: se apagará como siempre");
+    setTimeout(() => setAvisoPantalla(""), 2600);
+  }
   const [editor, setEditor] = useState<{ ei: number; si: number; campo: "kg" | "reps" } | null>(
     null
   );
@@ -1140,6 +1205,12 @@ export default function SesionEnCurso({
     );
   }
 
+  /** La nota propia vigente: la editada en esta sesión o la guardada */
+  function notaDe(ex: EjercicioSesion): string | null {
+    if (ex.ejercicioId && ex.ejercicioId in notasEditadas) return notasEditadas[ex.ejercicioId];
+    return ex.notaPropia ?? null;
+  }
+
   /* --------- Pantalla de entreno --------- */
   const gruposCalculados = agruparPorSuperserie(
     ejercicios.map((ex, ei) => ({ ...ex, indiceGlobal: ei }))
@@ -1167,6 +1238,19 @@ export default function SesionEnCurso({
             </div>
           )}
         </div>
+        {admitePantallaFija && (
+          <button
+            className={`w-9 h-9 rounded-full grid place-items-center shrink-0 border transition-colors anim-pulsable ${
+              pantallaFija ? "bg-acento/15 border-acento/50 text-acento" : "border-borde-2 text-atenuado"
+            }`}
+            onClick={alternarPantallaFija}
+            aria-pressed={pantallaFija}
+            aria-label={pantallaFija ? "Pantalla fija activada: tocar para desactivar" : "Mantener la pantalla encendida"}
+            title="Pantalla fija"
+          >
+            <Sun size={16} />
+          </button>
+        )}
         <div className="text-atenuado text-[13px] flex items-center gap-1 tabular-nums shrink-0">
           <Timer size={13} /> {fmt(transcurrido)} ·{" "}
           <span className={todoCompleto ? "text-acento font-semibold" : ""}>
@@ -1174,6 +1258,9 @@ export default function SesionEnCurso({
           </span>
         </div>
       </div>
+      {avisoPantalla && (
+        <div className="text-acento text-[12.5px] mb-2 anim-aparecer">{avisoPantalla}</div>
+      )}
       <div className="barra-capsula !h-1 mb-3.5">
         <div
           className="barra-capsula-relleno"
@@ -1299,6 +1386,17 @@ export default function SesionEnCurso({
                             Hoy en lugar de {ex.sustituto.nombreOriginal}
                           </div>
                         )}
+                        {!ex.sustituto && notaDe(ex) && (
+                          <button
+                            type="button"
+                            className="mt-1 inline-flex items-start gap-1.5 text-left text-[12.5px] text-dorado bg-dorado/10 border border-dorado/30 rounded-[8px] px-2 py-0.5 cursor-pointer max-w-full"
+                            onClick={() => setNotaPara(ei)}
+                            aria-label="Editar tu nota de este ejercicio"
+                          >
+                            <Pencil size={11} className="shrink-0 mt-[3px]" />
+                            <span className="min-w-0 break-words">{notaDe(ex)}</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0 pt-1">
@@ -1323,6 +1421,37 @@ export default function SesionEnCurso({
                     </div>
                   </div>
 
+                  {/* La última vez, en su propia línea y pulsable: abre las
+                    * últimas 5 veces con la gráfica de su marca */}
+                  {!ex.sustituto && ex.historial && ex.historial.length > 0 && (
+                    <button
+                      type="button"
+                      className="w-full flex items-center gap-2 text-[12.5px] text-atenuado bg-campo/60 border border-borde rounded-[10px] px-2.5 py-2 my-1.5 text-left cursor-pointer anim-pulsable"
+                      onClick={() => setHistorialPara(ei)}
+                      aria-label={`Ver tu historial de ${ex.nombre}`}
+                    >
+                      <History size={14} className="text-acento shrink-0" />
+                      <span className="flex-1 min-w-0 inline-flex flex-wrap items-center gap-x-1">
+                        <span className="text-texto-2 first-letter:uppercase">{ex.historial[0].cuando}:</span>
+                        {ex.historial[0].items.map((it, i) => (
+                          <span key={i} className="inline-flex items-center gap-0.5 font-bold tabular-nums text-white">
+                            {it.texto}
+                            {it.estado === "superado" && (
+                              <ArrowUp size={10} strokeWidth={3} aria-hidden="true" className="text-acento" />
+                            )}
+                            {it.estado === "no_alcanzado" && (
+                              <ArrowDown size={10} strokeWidth={3} aria-hidden="true" className="text-aviso" />
+                            )}
+                            {i < ex.historial![0].items.length - 1 && (
+                              <span className="text-atenuado font-normal">·</span>
+                            )}
+                          </span>
+                        ))}
+                      </span>
+                      <ChevronRight size={14} className="shrink-0" />
+                    </button>
+                  )}
+
                   {/* Todo lo secundario en UNA fila: antes eran cuatro
                    * líneas apiladas (descanso, «última vez», técnica y
                    * vídeo) con el mismo peso visual, y había que pasar por
@@ -1338,42 +1467,6 @@ export default function SesionEnCurso({
                       </span>
                     )}
 
-                    {ex.anterior && ex.anterior.length > 0 && (
-                      <>
-                        <span className="text-borde-2">|</span>
-                        <span className="inline-flex flex-wrap items-center gap-x-1 min-w-0">
-                          <span className="shrink-0">Última</span>
-                          {ex.anterior.map((it, i) => (
-                            <span
-                              key={i}
-                              className="inline-flex items-center gap-0.5 font-bold tabular-nums text-texto-2"
-                            >
-                              {it.texto}
-                              {it.estado === "superado" && (
-                                <ArrowUp
-                                  size={10}
-                                  strokeWidth={3}
-                                  aria-hidden="true"
-                                  className="text-acento"
-                                />
-                              )}
-                              {it.estado === "no_alcanzado" && (
-                                <ArrowDown
-                                  size={10}
-                                  strokeWidth={3}
-                                  aria-hidden="true"
-                                  className="text-aviso"
-                                />
-                              )}
-                              {i < ex.anterior!.length - 1 && (
-                                <span className="text-atenuado font-normal">·</span>
-                              )}
-                            </span>
-                          ))}
-                        </span>
-                      </>
-                    )}
-
                     {notaInline && (
                       <>
                         <span className="text-borde-2">|</span>
@@ -1382,6 +1475,17 @@ export default function SesionEnCurso({
                     )}
 
                     <div className="flex items-center gap-3 ml-auto shrink-0">
+                      {!ex.sustituto && !notaDe(ex) && ex.ejercicioId && (
+                        <button
+                          type="button"
+                          className="hover:text-dorado transition-colors anim-pulsable"
+                          onClick={() => setNotaPara(ei)}
+                          title="Tu nota"
+                          aria-label="Añadir una nota tuya a este ejercicio"
+                        >
+                          <Pencil size={15} />
+                        </button>
+                      )}
                       {((ex.alternativas?.length ?? 0) > 0 || ex.sustituto) && (
                         <button
                           type="button"
@@ -1516,6 +1620,26 @@ export default function SesionEnCurso({
           </section>
         );
       })}
+
+      {historialPara !== null && ejercicios[historialPara] && (
+        <HojaHistorialEjercicio
+          ejercicio={ejercicios[historialPara]}
+          onCerrar={() => setHistorialPara(null)}
+        />
+      )}
+
+      {notaPara !== null && ejercicios[notaPara]?.ejercicioId && (
+        <HojaNotaEjercicio
+          clienteId={clienteId}
+          ejercicio={ejercicios[notaPara]}
+          nota={notaDe(ejercicios[notaPara]) ?? ""}
+          onGuardada={(texto) => {
+            setNotasEditadas((prev) => ({ ...prev, [ejercicios[notaPara].ejercicioId!]: texto }));
+            setNotaPara(null);
+          }}
+          onCerrar={() => setNotaPara(null)}
+        />
+      )}
 
       {cambioPara !== null && ejercicios[cambioPara] && (
         <HojaCambiarEjercicio
@@ -1775,6 +1899,173 @@ function HojaCambiarEjercicio({
             No hay otros ejercicios de este músculo en la biblioteca.
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+/** Las últimas veces de un ejercicio: su mejor marca, cómo ha ido
+ * subiendo y cada sesión serie a serie. */
+function HojaHistorialEjercicio({
+  ejercicio,
+  onCerrar,
+}: {
+  ejercicio: EjercicioSesion;
+  onCerrar: () => void;
+}) {
+  const veces = ejercicio.historial ?? [];
+  const cronologico = veces.slice().reverse();
+  const marcas = cronologico.map((v) => v.mejorKg).filter((k): k is number => k !== null);
+  const mejor = marcas.length ? Math.max(...marcas) : null;
+  const subida = marcas.length >= 2 ? marcas[marcas.length - 1] - marcas[0] : 0;
+  const kg = (n: number) => String(n).replace(".", ",");
+
+  /* Gráfica mínima: un punto por sesión con peso */
+  const W = 300;
+  const H = 70;
+  const min = marcas.length ? Math.min(...marcas) : 0;
+  const max = marcas.length ? Math.max(...marcas) : 1;
+  const puntos = marcas.map((m, i) => [
+    marcas.length === 1 ? W / 2 : 10 + (i * (W - 20)) / (marcas.length - 1),
+    max === min ? H / 2 : H - 8 - ((m - min) / (max - min)) * (H - 16),
+  ]);
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-50 flex items-end justify-center anim-fondo-aparece"
+      onClick={onCerrar}
+    >
+      <div
+        className="w-full max-w-[480px] max-h-[86vh] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] pb-7 overflow-y-auto anim-hoja-sube"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Historial de ${ejercicio.nombre}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center gap-3 mb-1">
+          <div className="titulo-seccion !mb-0 break-words min-w-0">{ejercicio.nombre}</div>
+          <button className="ghost shrink-0" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+        {mejor !== null && (
+          <div className="flex items-baseline gap-2 flex-wrap mb-2">
+            <span className="num-grande !text-[30px] text-acento">{kg(mejor)} kg</span>
+            <span className="text-atenuado text-[13px]">
+              tu mejor marca en estas sesiones
+              {subida > 0 ? ` · +${kg(subida)} kg` : ""}
+            </span>
+          </div>
+        )}
+        {puntos.length >= 2 && (
+          <svg viewBox={`0 0 ${W} ${H}`} className="w-full mb-3" aria-hidden="true">
+            <polyline
+              fill="none"
+              stroke="var(--color-acento)"
+              strokeWidth="2.5"
+              strokeLinejoin="round"
+              points={puntos.map(([x, y]) => `${x},${y}`).join(" ")}
+            />
+            {puntos.map(([x, y], i) => (
+              <circle key={i} cx={x} cy={y} r="3.5" fill="var(--color-acento)" />
+            ))}
+          </svg>
+        )}
+        {veces.map((v, i) => (
+          <div key={i} className="flex items-start gap-3 py-2.5 border-b border-borde last:border-0">
+            <span className="text-atenuado text-[12.5px] w-[82px] shrink-0 leading-tight pt-0.5">
+              <span className="block first-letter:uppercase">{v.fecha}</span>
+              <span className="text-[11px]">{v.cuando}</span>
+            </span>
+            <span className="flex-1 min-w-0 text-[13px] text-texto-2 tabular-nums leading-snug break-words">
+              {v.items.map((it) => it.texto).join(" · ")}
+            </span>
+            {v.mejorKg !== null && <span className="num-grande !text-[16px] shrink-0">{kg(v.mejorKg)}</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Nota propia del cliente para un ejercicio: se guarda para siempre y
+ * sale cada vez que lo haga. Vacía = se borra. */
+function HojaNotaEjercicio({
+  clienteId,
+  ejercicio,
+  nota,
+  onGuardada,
+  onCerrar,
+}: {
+  clienteId: string;
+  ejercicio: EjercicioSesion;
+  nota: string;
+  onGuardada: (texto: string | null) => void;
+  onCerrar: () => void;
+}) {
+  const [texto, setTexto] = useState(nota);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState("");
+
+  async function guardar() {
+    const limpio = texto.trim().slice(0, 200);
+    setGuardando(true);
+    setError("");
+    const supabase = crearClienteNavegador();
+    const { error } = limpio
+      ? await supabase.from("notas_ejercicio").upsert({
+          cliente_id: clienteId,
+          ejercicio_id: ejercicio.ejercicioId!,
+          texto: limpio,
+          actualizada_en: new Date().toISOString(),
+        })
+      : await supabase
+          .from("notas_ejercicio")
+          .delete()
+          .eq("cliente_id", clienteId)
+          .eq("ejercicio_id", ejercicio.ejercicioId!);
+    setGuardando(false);
+    if (error) {
+      setError("No se pudo guardar. Inténtalo de nuevo.");
+      return;
+    }
+    onGuardada(limpio || null);
+  }
+
+  return (
+    <div
+      className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-50 flex items-end justify-center anim-fondo-aparece"
+      onClick={onCerrar}
+    >
+      <div
+        className="w-full max-w-[480px] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] pb-7 anim-hoja-sube"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Tu nota de ${ejercicio.nombre}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex justify-between items-center gap-3 mb-1">
+          <div className="titulo-seccion !mb-0 break-words min-w-0">Tu nota</div>
+          <button className="ghost shrink-0" onClick={onCerrar}>
+            Cerrar
+          </button>
+        </div>
+        <div className="text-atenuado text-[12.5px] mb-3 break-words">
+          Te saldrá cada vez que hagas {ejercicio.nombre}.
+        </div>
+        <textarea
+          className="w-full bg-campo border border-borde-2 focus:border-dorado outline-none rounded-[10px] text-white p-2.5 px-3 text-[14px] resize-none font-cuerpo mb-3"
+          rows={3}
+          maxLength={200}
+          placeholder="Respaldo en el 4 · agarre neutro · la de la izquierda va más dura…"
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          autoFocus
+        />
+        {error && <div className="text-peligro text-[13px] mb-2">{error}</div>}
+        <button className="cta !mb-0" onClick={guardar} disabled={guardando}>
+          {guardando ? "Guardando…" : texto.trim() ? "Guardar nota" : nota ? "Borrar nota" : "Guardar nota"}
+        </button>
       </div>
     </div>
   );

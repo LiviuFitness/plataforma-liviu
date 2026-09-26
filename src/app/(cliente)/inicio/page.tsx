@@ -20,6 +20,7 @@ import WidgetLogros from "./WidgetLogros";
 import TarjetaSemanaPasada from "./TarjetaSemanaPasada";
 import AnillosSemana from "./AnillosSemana";
 import Celebracion from "./Celebracion";
+import { mesAnterior, nombreMes } from "@/lib/resumenMes";
 import { resumenSemanaPasada, type SesionResumen } from "@/lib/resumenSemana";
 import { semanaHabitosCompleta } from "@/lib/habitos";
 import { logrosCumplidos } from "@/lib/logros";
@@ -382,6 +383,16 @@ export default async function PaginaInicio() {
     },
   };
 
+  /* Del 1 al 7 de cada mes: "Tu {mes} en LivFit" si entrenó el mes pasado */
+  const hoyMadridISO = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+  const mesPasado = mesAnterior(hoyMadridISO.slice(0, 7));
+  const entrenosMesPasado =
+    Number(hoyMadridISO.slice(8)) <= 7
+      ? (fechasSesiones ?? []).filter((x) =>
+          new Date(x.fecha_inicio).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" }).startsWith(mesPasado)
+        ).length
+      : 0;
+
   /* Lunes y martes: el cierre de la semana anterior */
   const semanaPasada =
     hoySemana <= 1
@@ -602,6 +613,19 @@ export default async function PaginaInicio() {
       )}
 
       {proximoDia && <AnillosSemana datos={anillos} />}
+
+      {entrenosMesPasado > 0 && (
+        <Link href="/resumen" className="tarjeta tarjeta-dorado !p-4 !mb-3 flex items-center gap-3 anim-pulsable anim-entrada-2">
+          <span className="w-11 h-11 rounded-full bg-dorado/15 grid place-items-center text-[22px] shrink-0">✨</span>
+          <div className="flex-1 min-w-0">
+            <div className="font-bold text-[15px] leading-tight">Tu {nombreMes(mesPasado)} en LivFit</div>
+            <div className="text-atenuado text-[12.5px]">
+              {entrenosMesPasado} {entrenosMesPasado === 1 ? "entreno" : "entrenos"} · tu mes en un minuto
+            </div>
+          </div>
+          <ChevronRight size={16} className="text-atenuado shrink-0" />
+        </Link>
+      )}
 
       {semanaPasada && <TarjetaSemanaPasada r={semanaPasada} />}
 
