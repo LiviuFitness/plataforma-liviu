@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarCheck, ChevronDown, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import ResumenPlan from "./ResumenPlan";
+import PreguntasAsistente from "@/componentes/PreguntasAsistente";
 import type { SesionHistorial } from "@/lib/progresoEntreno";
 import type { Vista } from "./FichaCliente";
 import {
@@ -212,6 +213,9 @@ export default function TabResumen({
         abrir={abrir}
         adherenciaDieta={adherenciaDieta}
       />
+
+      {/* Lo que pregunta al Asistente LivFit (si lo usa) */}
+      <PreguntasAsistente clienteId={perfil.id} />
 
       {respuestasAlta.length > 0 && (
         <section className="tarjeta">

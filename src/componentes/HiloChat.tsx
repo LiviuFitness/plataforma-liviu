@@ -74,6 +74,23 @@ export default function HiloChat({
     setPendientes([]);
   }, [mensajesIniciales]);
 
+  /* Pregunta que el Asistente LivFit le pasa al entrenador ("Preguntar a
+   * Liviu"): llega como borrador, sin enviar, para que la repase. */
+  useEffect(() => {
+    if (remitentePropio !== "cliente") return;
+    let borrador: string | null = null;
+    try {
+      borrador = sessionStorage.getItem("borrador-chat");
+      sessionStorage.removeItem("borrador-chat");
+    } catch {
+      /* sin almacenamiento: se abre vacío */
+    }
+    if (!borrador) return;
+    /* eslint-disable-next-line react-hooks/set-state-in-effect */
+    setTexto(borrador);
+    cuadroRef.current?.focus();
+  }, [remitentePropio]);
+
   const mensajes = [...mensajesIniciales, ...pendientes];
 
   /* Firma las fotos que aún no tienen URL */

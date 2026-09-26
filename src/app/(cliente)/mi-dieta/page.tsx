@@ -11,6 +11,7 @@ import { ChevronRight, ShoppingCart, UtensilsCrossed } from "lucide-react";
 import Link from "next/link";
 import VistaDietas, { type PlanDieta } from "./VistaDietas";
 import PreferenciasAlimentos from "./PreferenciasAlimentos";
+import AsistenteDieta from "./AsistenteDieta";
 import EstadoVacio from "@/componentes/EstadoVacio";
 
 export const dynamic = "force-dynamic";
@@ -120,6 +121,9 @@ export default async function PaginaMiDieta() {
             </div>
             <ChevronRight size={16} className="text-atenuado shrink-0" />
           </Link>
+
+          {/* Solo aparece cuando la clave de la IA está puesta en Vercel */}
+          {process.env.ANTHROPIC_API_KEY && <AsistenteDieta />}
 
           <VistaDietas
             entreno={entreno}

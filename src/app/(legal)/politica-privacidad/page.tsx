@@ -91,6 +91,12 @@ export default function PoliticaPrivacidad() {
         <li>
           <b>Vercel</b> (alojamiento de la aplicación web).
         </li>
+        <li>
+          <b>Anthropic</b> (inteligencia artificial del Asistente LivFit): solo
+          cuando usas el asistente, recibe tu pregunta junto con tu plan de
+          dieta y de entreno para poder responderte. No usa tus datos para
+          entrenar sus modelos.
+        </li>
       </ul>
       <p>No se utilizan herramientas de analítica de terceros ni píxeles publicitarios.</p>
 
