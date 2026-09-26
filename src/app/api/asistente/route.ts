@@ -230,7 +230,10 @@ export async function POST(request: Request) {
       max_tokens: 8000,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
-      output_config: { effort: "high", format: { type: "json_schema", schema: FORMATO_RESPUESTA } },
+      /* Con foto (una carta, una etiqueta) piensa más; para cambiar un
+       * alimento o una duda normal, "medium" responde igual de bien y
+       * gasta bastante menos. Fijo por tipo, para no romper la caché. */
+      output_config: { effort: imagen ? "high" : "medium", format: { type: "json_schema", schema: FORMATO_RESPUESTA } },
       system: [
         /* Instrucciones y catálogo: iguales para todos, se cachean */
         { type: "text", text: INSTRUCCIONES },
@@ -253,6 +256,10 @@ export async function POST(request: Request) {
         },
       ],
     });
+    /* Consumo de cada pregunta en los registros de Vercel, para vigilar el gasto */
+    console.log(
+      `[asistente] entrada ${r.usage.input_tokens} · caché leída ${r.usage.cache_read_input_tokens ?? 0} · caché escrita ${r.usage.cache_creation_input_tokens ?? 0} · salida ${r.usage.output_tokens}${imagen ? " · con foto" : ""}`
+    );
     if (r.stop_reason === "refusal") {
       respuesta = {
         respuesta: "Esa no te la puedo responder yo. Pregúntasela a Liviu, que te contesta él. 💪",

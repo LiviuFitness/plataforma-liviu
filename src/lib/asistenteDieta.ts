@@ -102,10 +102,10 @@ const n1 = (x: number) => String(Math.round(Number(x) * 10) / 10).replace(".", "
 
 /** El catálogo de alimentos en texto compacto (igual para todos los clientes: se cachea) */
 export function textoCatalogo(catalogo: Alimento[]): string {
-  const lineas = catalogo.map(
-    (a) => `${a.nombre}: ${n0(a.kcal_100)} kcal, P ${n1(a.prot_100)}, C ${n1(a.carb_100)}, G ${n1(a.gras_100)}`
-  );
-  return `CATÁLOGO DE ALIMENTOS DE LIVFIT (valores por 100 g: kcal, proteína, hidratos y grasa en gramos)\n${lineas.join("\n")}`;
+  /* Formato mínimo: es lo que más ocupa de todo lo que se le manda.
+   * Las kcal no hacen falta (salen de los macros: 4/4/9). */
+  const lineas = catalogo.map((a) => `${a.nombre} ${n0(a.prot_100)}/${n0(a.carb_100)}/${n0(a.gras_100)}`);
+  return `CATÁLOGO DE ALIMENTOS DE LIVFIT (gramos de proteína/hidratos/grasa por 100 g)\n${lineas.join("\n")}`;
 }
 
 interface Plan {
