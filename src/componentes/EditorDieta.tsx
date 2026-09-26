@@ -25,6 +25,8 @@ import { avisarCambio } from "@/lib/avisos";
 import { IconoTarjeta } from "@/componentes/ui";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
+import HojaDietaIA from "@/componentes/HojaDietaIA";
+import type { BorradorDietaIA } from "@/lib/iaTipos";
 import AsignarPlantilla, { type PlantillaResumen } from "@/componentes/AsignarPlantilla";
 
 interface ItemUI {
@@ -201,6 +203,29 @@ export default function EditorDieta({
   function tocar() {
     setSucio(true);
     setOk(false);
+  }
+
+  /* Crear dieta con IA: el borrador entra en el editor sin guardar */
+  const [iaAbierta, setIaAbierta] = useState(false);
+  function usarBorradorIA(b: BorradorDietaIA) {
+    const porId = new Map(alimentos.map((a) => [a.id, a]));
+    const aUI = (l: { alimentoId: string; gramos: number }[]) =>
+      l
+        .filter((i) => porId.has(i.alimentoId))
+        .map((i) => ({ alimento: porId.get(i.alimentoId)!, gramos: String(i.gramos) }));
+    setComidas(
+      b.comidas.map((c) => ({
+        nombre: c.nombre,
+        notas: "",
+        items: aUI(c.items),
+        itemsB: c.itemsB ? aUI(c.itemsB) : null,
+        nombreB: c.nombreB,
+      }))
+    );
+    setOpcionVista({});
+    setIaAbierta(false);
+    setAvisoComida("Borrador de la IA en el editor: revísalo y dale a guardar.");
+    tocar();
   }
 
   /** Filas de alimentos de una comida para guardar: la A con opcion 0 y
@@ -485,7 +510,7 @@ export default function EditorDieta({
     return (
       <section className="tarjeta">
         <div className="text-atenuado text-[13.5px] mb-3">
-          Sin dieta asignada todavía.
+          Sin dieta asignada todavía.{clienteId ? " Créala desde cero y rellénala con «Crear dieta con IA», o usa una plantilla." : ""}
         </div>
         {clienteId && plantillas && (
           <AsignarPlantilla tipo="dieta" plantillas={plantillas} clienteId={clienteId} />
@@ -506,6 +531,27 @@ export default function EditorDieta({
 
   return (
     <>
+      {clienteId && (
+        <button
+          className="w-full flex items-center justify-center gap-2 bg-panel border border-morado/50 text-morado rounded-[12px] py-3 font-semibold text-[14px] cursor-pointer mb-2.5"
+          onClick={() => setIaAbierta(true)}
+        >
+          <Sparkles size={15} /> Crear dieta con IA
+        </button>
+      )}
+      {iaAbierta && clienteId && (
+        <HojaDietaIA
+          clienteId={clienteId}
+          tipo={tipoDieta}
+          objetivos={{ kcal, prot, carb, gras }}
+          datos={autoCalculo}
+          alimentos={alimentos}
+          excluidos={excluidos ?? []}
+          hayComidas={comidas.some((c) => c.items.length > 0)}
+          onUsar={usarBorradorIA}
+          onCerrar={() => setIaAbierta(false)}
+        />
+      )}
       {autoCalculo && (
         <button
           className="w-full flex items-center justify-center gap-2 bg-panel border border-acento/40 text-acento rounded-[12px] py-3 font-semibold text-[14px] cursor-pointer mb-3.5"

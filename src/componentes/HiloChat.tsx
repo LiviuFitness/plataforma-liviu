@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Camera, ChevronRight, MessageCircle, Send, X, Zap } from "lucide-react";
+import { BookOpen, Camera, Check, ChevronRight, MessageCircle, RefreshCw, Send, Sparkles, X, Zap } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import EstadoVacio from "@/componentes/EstadoVacio";
 import VisorGuia from "@/componentes/VisorGuia";
@@ -92,6 +92,34 @@ export default function HiloChat({
   }, [remitentePropio]);
 
   const mensajes = [...mensajesIniciales, ...pendientes];
+
+  /* Respuesta sugerida por la IA (solo el entrenador): para el último
+   * mensaje del cliente. "Usar" la pone en el cuadro, no la envía. */
+  const [sugerencia, setSugerencia] = useState<{ para: string; cargando: boolean; texto?: string; error?: string } | null>(null);
+  const ultimo = mensajes[mensajes.length - 1];
+  const puedeSugerir =
+    remitentePropio === "entrenador" && !!ultimo && ultimo.remitente === "cliente" && !ultimo.id.startsWith("tmp-");
+  const sugerenciaVigente = sugerencia && ultimo && sugerencia.para === ultimo.id ? sugerencia : null;
+  const verSugerir = puedeSugerir && texto.trim() === "";
+
+  async function pedirSugerencia() {
+    if (!ultimo) return;
+    const para = ultimo.id;
+    const anterior = sugerenciaVigente?.texto;
+    setSugerencia({ para, cargando: true, texto: anterior });
+    try {
+      const r = await fetch("/api/ia/mensaje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clienteId, modo: "responder", anterior }),
+      });
+      const d = (await r.json()) as { mensaje?: string; error?: string };
+      if (!r.ok || !d.mensaje) throw new Error(d.error);
+      setSugerencia({ para, cargando: false, texto: d.mensaje });
+    } catch (e) {
+      setSugerencia({ para, cargando: false, error: e instanceof Error && e.message ? e.message : "No se ha podido sugerir." });
+    }
+  }
 
   /* Firma las fotos que aún no tienen URL */
   const rutasSinUrl = mensajes
@@ -200,7 +228,7 @@ export default function HiloChat({
     <>
       {/* Espacio para que el último mensaje no quede tapado por la
        * barra de escritura fija */}
-      <div className={`flex flex-col ${verRapidas ? "pb-48" : "pb-28"}`}>
+      <div className={`flex flex-col ${sugerenciaVigente && verSugerir ? "pb-80" : verRapidas || verSugerir ? "pb-48" : "pb-28"}`}>
         {mensajes.length === 0 && (
           <EstadoVacio
             Icono={MessageCircle}
@@ -291,6 +319,52 @@ export default function HiloChat({
           bottom: "calc(var(--alto-barra-inferior) + env(safe-area-inset-bottom))",
         }}
       >
+        {verSugerir &&
+          (sugerenciaVigente ? (
+            <div className="tarjeta tarjeta-morado !p-3 !mb-0 mt-2 bg-panel/95 backdrop-blur-md">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Sparkles size={14} className="text-morado shrink-0" />
+                <span className="text-[12px] text-atenuado flex-1">Respuesta sugerida</span>
+                <button className="text-atenuado cursor-pointer" onClick={() => setSugerencia(null)} aria-label="Quitar sugerencia">
+                  <X size={15} />
+                </button>
+              </div>
+              {sugerenciaVigente.cargando ? (
+                <div className="text-atenuado text-[13px] py-1 animate-pulse">Leyendo la conversación…</div>
+              ) : sugerenciaVigente.error ? (
+                <div className="text-peligro text-[13px]">{sugerenciaVigente.error}</div>
+              ) : (
+                <div className="text-[14px] text-texto-2 leading-snug mb-2.5 max-h-32 overflow-y-auto whitespace-pre-line break-words">
+                  {sugerenciaVigente.texto}
+                </div>
+              )}
+              {!sugerenciaVigente.cargando && (
+                <div className="flex gap-2">
+                  {sugerenciaVigente.texto && (
+                    <button
+                      className="flex-1 flex items-center justify-center gap-1.5 bg-acento text-fondo font-semibold rounded-[10px] py-2 text-[13.5px] cursor-pointer"
+                      onClick={() => {
+                        setTexto(sugerenciaVigente.texto!);
+                        setSugerencia(null);
+                        cuadroRef.current?.focus();
+                      }}
+                    >
+                      <Check size={14} /> Usar
+                    </button>
+                  )}
+                  <button className="ghost flex-1 flex items-center justify-center gap-1.5" onClick={pedirSugerencia}>
+                    <RefreshCw size={13} /> {sugerenciaVigente.error ? "Reintentar" : "Otra"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-fondo/95 backdrop-blur-md pt-2">
+              <button className="chip !text-[12.5px] flex items-center gap-1.5" onClick={pedirSugerencia}>
+                <Sparkles size={12} className="text-morado shrink-0" /> Sugerir respuesta
+              </button>
+            </div>
+          ))}
         {verRapidas && (
           <div className="flex gap-1.5 flex-wrap bg-fondo/95 backdrop-blur-md pt-2">
             {respuestasRapidas.map((r) => (

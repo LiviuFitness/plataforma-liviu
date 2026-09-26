@@ -43,6 +43,13 @@ interface Riesgo {
 
 const DIA_MS = 86400000;
 
+/** Fechas por cliente */
+function agrupar(filas: { cliente_id: string; fecha: string }[]): Map<string, string[]> {
+  const m = new Map<string, string[]>();
+  for (const f of filas) m.set(f.cliente_id, [...(m.get(f.cliente_id) ?? []), String(f.fecha)]);
+  return m;
+}
+
 /** Pantalla "Hoy": estado del estudio de un vistazo. */
 export default async function PaginaHoy() {
   const supabase = await crearClienteServidor();
@@ -63,6 +70,7 @@ export default async function PaginaHoy() {
     { data: notas },
     { data: rutinasActivas },
     { data: sesionesSeries },
+    { data: comidasRecientes },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -148,6 +156,12 @@ export default async function PaginaHoy() {
            rutina_ejercicios ( ejercicio_id ) )`
       )
       .gte("fecha_inicio", new Date(new Date().setDate(new Date().getDate() - 28)).toISOString()),
+    /* Comidas marcadas en 3 semanas: quien deja de marcarlas se enfría */
+    supabase
+      .from("comidas_hechas")
+      .select("cliente_id, fecha")
+      .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 21)).toLocaleDateString("sv-SE"))
+      .limit(5000),
   ]);
 
   const listaClientes = clientes ?? [];
@@ -441,7 +455,11 @@ export default async function PaginaHoy() {
     objetivo: objetivoCliente,
     lunes,
     lunesPasado,
+    comidas: agrupar((comidasRecientes ?? []) as { cliente_id: string; fecha: string }[]),
+    pesajes: agrupar((medidas ?? []) as { cliente_id: string; fecha: string }[]),
   });
+  const enfrian = sugerencias.filter((s) => s.tipo === "inactivo");
+  const alegrias = sugerencias.filter((s) => s.tipo !== "inactivo");
 
   /* Recordatorios que ya tocan (o se pasaron) */
   const recordatorios: Recordatorio[] = (notas ?? [])
@@ -649,7 +667,8 @@ export default async function PaginaHoy() {
 
           <Recordatorios items={recordatorios} />
 
-          <MensajesSugeridos items={sugerencias} />
+          <MensajesSugeridos items={enfrian} titulo="Se están enfriando" />
+          <MensajesSugeridos items={alegrias} titulo="Mensajes sugeridos" />
 
           {filasRenovacion.length > 0 && (
             <>

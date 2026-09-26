@@ -12,6 +12,7 @@ import Link from "next/link";
 import VistaDietas, { type PlanDieta } from "./VistaDietas";
 import PreferenciasAlimentos from "./PreferenciasAlimentos";
 import AsistenteDieta from "./AsistenteDieta";
+import EscanerProducto from "./EscanerProducto";
 import EstadoVacio from "@/componentes/EstadoVacio";
 
 export const dynamic = "force-dynamic";
@@ -123,7 +124,12 @@ export default async function PaginaMiDieta() {
           </Link>
 
           {/* Solo aparece cuando la clave de la IA está puesta en Vercel */}
-          {process.env.ANTHROPIC_API_KEY && <AsistenteDieta />}
+          {process.env.ANTHROPIC_API_KEY && (
+            <>
+              <EscanerProducto />
+              <AsistenteDieta />
+            </>
+          )}
 
           <VistaDietas
             entreno={entreno}

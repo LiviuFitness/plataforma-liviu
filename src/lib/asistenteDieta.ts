@@ -197,7 +197,9 @@ export function textoHoy(d: {
   comidasHechas: string[];
   entrenos: { fecha: string; dia: string }[];
   pesos: { fecha: string; peso: number }[];
+  diasEntrenos?: number;
 }): string {
+  const n = d.diasEntrenos ?? 7;
   const partes = [`HOY: ${d.hoy}, son las ${d.hora} (hora de España).`];
   partes.push(
     d.comidasHechas.length > 0
@@ -206,8 +208,8 @@ export function textoHoy(d: {
   );
   partes.push(
     d.entrenos.length > 0
-      ? `Sus entrenos de los últimos 7 días: ${d.entrenos.map((e) => `${e.fecha} (${e.dia})`).join(", ")}.`
-      : "No ha registrado entrenos en los últimos 7 días."
+      ? `Sus entrenos de los últimos ${n} días: ${d.entrenos.map((e) => `${e.fecha} (${e.dia})`).join(", ")}.`
+      : `No ha registrado entrenos en los últimos ${n} días.`
   );
   if (d.pesos.length > 0) {
     partes.push(`Sus últimos pesajes: ${d.pesos.map((p) => `${p.fecha}: ${n1(p.peso)} kg`).join(", ")}.`);

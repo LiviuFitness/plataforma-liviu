@@ -92,9 +92,13 @@ export default function PoliticaPrivacidad() {
           <b>Vercel</b> (alojamiento de la aplicación web).
         </li>
         <li>
-          <b>Anthropic</b> (inteligencia artificial del Asistente LivFit): solo
-          cuando usas el asistente, recibe tu pregunta junto con tu plan de
-          dieta y de entreno para poder responderte. No usa tus datos para
+          <b>Anthropic</b> (inteligencia artificial de LivFit): cuando usas el
+          asistente, el coach del entreno o el escáner de productos, recibe tu
+          pregunta junto con tu plan de dieta y de entreno para poder
+          responderte. También cuando tu entrenador usa sus herramientas de
+          IA para preparar tu revisión semanal, tu dieta o un mensaje: en ese
+          caso recibe los datos de tu plan y tu progreso que hacen falta, y tu
+          entrenador revisa siempre el resultado. No usa tus datos para
           entrenar sus modelos.
         </li>
       </ul>

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Pencil, Send, Trophy, AlertCircle } from "lucide-react";
+import { Bell, Check, Pencil, Send, Sparkles, Trophy, AlertCircle, TrendingDown } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta } from "@/componentes/ui";
 import { avisarMensaje } from "@/lib/avisos";
@@ -10,7 +10,7 @@ import type { Sugerencia, TipoSugerencia } from "@/lib/sugerencias";
 
 const ICONO: Record<TipoSugerencia, { Icono: typeof Bell; color: string }> = {
   record: { Icono: Trophy, color: "var(--color-dorado)" },
-  inactivo: { Icono: Bell, color: "var(--color-aviso)" },
+  inactivo: { Icono: TrendingDown, color: "var(--color-aviso)" },
   semana: { Icono: Check, color: "var(--color-acento)" },
 };
 
@@ -29,13 +29,34 @@ function leerDescartes(): string[] {
  * chat, "Editar" deja cambiarlo antes. Descartar se recuerda en este
  * móvil; en cuanto le escribes, deja de salir en todos.
  */
-export default function MensajesSugeridos({ items }: { items: Sugerencia[] }) {
+export default function MensajesSugeridos({ items, titulo }: { items: Sugerencia[]; titulo: string }) {
   const router = useRouter();
   const [descartadas, setDescartadas] = useState<string[]>([]);
   const [enviadas, setEnviadas] = useState<Set<string>>(new Set());
   const [editando, setEditando] = useState<Record<string, string>>({});
   const [enviando, setEnviando] = useState<string | null>(null);
   const [error, setError] = useState("");
+  /* Mensaje personalizado con IA: se pide al tocar, y queda para editar */
+  const [conIA, setConIA] = useState<string | null>(null);
+
+  async function escribirConIA(s: Sugerencia) {
+    setConIA(s.clave);
+    setError("");
+    try {
+      const r = await fetch("/api/ia/mensaje", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clienteId: s.clienteId, modo: "reenganche", motivo: s.motivo, anterior: editando[s.clave] }),
+      });
+      const d = (await r.json()) as { mensaje?: string; error?: string };
+      if (!r.ok || !d.mensaje) throw new Error(d.error);
+      setEditando((prev) => ({ ...prev, [s.clave]: d.mensaje! }));
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "No se ha podido escribir el mensaje.");
+    } finally {
+      setConIA(null);
+    }
+  }
 
   /* localStorage solo existe en el navegador: se lee tras montar */
   useEffect(() => {
@@ -80,7 +101,7 @@ export default function MensajesSugeridos({ items }: { items: Sugerencia[] }) {
   return (
     <>
       <div className="flex items-baseline justify-between">
-        <div className="titulo-seccion">Mensajes sugeridos</div>
+        <div className="titulo-seccion">{titulo}</div>
         <span className="text-atenuado text-[12px]">{visibles.length} hoy</span>
       </div>
       <div className="mb-6">
@@ -105,7 +126,7 @@ export default function MensajesSugeridos({ items }: { items: Sugerencia[] }) {
               {enEdicion ? (
                 <textarea
                   className="w-full bg-campo border border-acento rounded-[12px] text-white px-3 py-2 text-[13.5px] resize-none font-cuerpo mb-2.5"
-                  rows={3}
+                  rows={5}
                   value={editando[s.clave]}
                   onChange={(e) => setEditando({ ...editando, [s.clave]: e.target.value })}
                   autoFocus
@@ -136,6 +157,14 @@ export default function MensajesSugeridos({ items }: { items: Sugerencia[] }) {
                       <Pencil size={14} /> Editar
                     </button>
                   )}
+                  <button
+                    className="tab !text-[13px] flex items-center justify-center gap-1.5"
+                    onClick={() => escribirConIA(s)}
+                    disabled={conIA !== null || enviando !== null}
+                  >
+                    <Sparkles size={14} className="text-morado" />
+                    {conIA === s.clave ? "Escribiendo…" : enEdicion ? "Otra" : "Con IA"}
+                  </button>
                 </div>
               )}
             </div>

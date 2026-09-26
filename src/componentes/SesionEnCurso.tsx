@@ -20,6 +20,7 @@ import { useCountUp } from "@/lib/useCountUp";
 import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import BarraDescanso from "@/componentes/BarraDescanso";
+import HojaCoachEntreno from "@/componentes/HojaCoachEntreno";
 import HojaTarjetaEntreno from "@/componentes/HojaTarjetaEntreno";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
@@ -341,6 +342,7 @@ export default function SesionEnCurso({
   sesionAnterior = null,
   analisisHref = "/mi-progreso",
   avisarSiDuplicada = false,
+  conIA = false,
 }: {
   clienteId: string;
   diaId: string;
@@ -363,6 +365,8 @@ export default function SesionEnCurso({
    * pilla: la hora de inicio es distinta), y eso infla su adherencia y
    * duplica el volumen y los récords. */
   avisarSiDuplicada?: boolean;
+  /** "Pregúntame" (IA) en cada ejercicio: solo el cliente, si la IA está activa */
+  conIA?: boolean;
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
@@ -391,6 +395,7 @@ export default function SesionEnCurso({
   const [sinRed, setSinRed] = useState(false);
   const [historialPara, setHistorialPara] = useState<number | null>(null);
   const [notaPara, setNotaPara] = useState<number | null>(null);
+  const [coachPara, setCoachPara] = useState<number | null>(null);
   /* Notas propias editadas en esta sesión (ejercicioId → texto) */
   const [notasEditadas, setNotasEditadas] = useState<Record<string, string | null>>({});
 
@@ -1475,6 +1480,17 @@ export default function SesionEnCurso({
                     )}
 
                     <div className="flex items-center gap-3 ml-auto shrink-0">
+                      {conIA && !nombreCliente && (
+                        <button
+                          type="button"
+                          className="text-morado hover:text-white transition-colors anim-pulsable"
+                          onClick={() => setCoachPara(ei)}
+                          title="Pregúntame"
+                          aria-label="Preguntar sobre este ejercicio: peso, técnica o molestias"
+                        >
+                          <Sparkles size={15} />
+                        </button>
+                      )}
                       {!ex.sustituto && !notaDe(ex) && ex.ejercicioId && (
                         <button
                           type="button"
@@ -1625,6 +1641,17 @@ export default function SesionEnCurso({
         <HojaHistorialEjercicio
           ejercicio={ejercicios[historialPara]}
           onCerrar={() => setHistorialPara(null)}
+        />
+      )}
+
+      {coachPara !== null && ejercicios[coachPara] && (
+        <HojaCoachEntreno
+          ejercicio={ejercicios[coachPara]}
+          onCambiar={(alt) => {
+            cambiarEjercicio(coachPara, alt);
+            setCoachPara(null);
+          }}
+          onCerrar={() => setCoachPara(null)}
         />
       )}
 

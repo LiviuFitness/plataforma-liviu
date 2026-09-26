@@ -36,6 +36,10 @@ export function calcularSugerencias(d: {
   /** Lunes de esta semana y de la anterior (medianoche). */
   lunes: Date;
   lunesPasado: Date;
+  /** Fechas (AAAA-MM-DD) de comidas marcadas en las 3 últimas semanas. */
+  comidas?: Map<string, string[]>;
+  /** Fechas de pesajes recientes. */
+  pesajes?: Map<string, string[]>;
 }): Sugerencia[] {
   const res: Sugerencia[] = [];
   const escritoDesde = (id: string, t: number) => (d.ultimoMensajeTuyo.get(id) ?? 0) >= t;
@@ -58,21 +62,52 @@ export function calcularSugerencias(d: {
     });
   }
 
+  const hace = (dias: number) => new Date(d.ahora - dias * DIA).toLocaleDateString("sv-SE");
   for (const c of d.clientes) {
     const fechas = d.sesiones.get(c.id) ?? [];
+    /* Señales de que se enfría: juntas en una sola tarjeta por persona */
+    const motivos: string[] = [];
+    /* La clave no cambia mientras duren los mismos motivos: descartada, no vuelve cada día */
+    const claves: string[] = [];
+    let desde = 0;
     /* Sin entrenar entre 5 y 14 días: después ya es otra conversación */
     if (fechas.length > 0) {
       const dias = Math.floor((d.ahora - new Date(fechas[0]).getTime()) / DIA);
-      if (dias >= 5 && dias <= 14 && !escritoDesde(c.id, new Date(fechas[0]).getTime() + 3 * DIA)) {
-        res.push({
-          clave: `inactivo:${c.id}:${fechas[0].slice(0, 10)}`,
-          tipo: "inactivo",
-          clienteId: c.id,
-          nombre: c.nombre,
-          motivo: `${dias} días sin entrenar`,
-          texto: `Hola ${pila(c.nombre)}, ¿todo bien? Hace unos días que no te veo por la app. Si necesitas que ajustemos algo, dímelo 🙌`,
-        });
+      if (dias >= 5 && dias <= 14) {
+        motivos.push(`${dias} días sin entrenar`);
+        claves.push(`e${fechas[0].slice(0, 10)}`);
+        desde = new Date(fechas[0]).getTime() + 3 * DIA;
       }
+    }
+    /* Antes marcaba sus comidas y estos 5 días, ninguna */
+    const comidas = d.comidas?.get(c.id) ?? [];
+    const antes = comidas.filter((f) => f >= hace(19) && f < hace(5)).length;
+    const ahora = comidas.filter((f) => f >= hace(5)).length;
+    if (antes >= 8 && ahora === 0) {
+      motivos.push("antes marcaba sus comidas y estos días, ninguna");
+      const ultima = comidas.slice().sort().at(-1);
+      claves.push(`c${ultima}`);
+      desde = Math.max(desde, ultima ? new Date(ultima + "T12:00:00").getTime() : 0);
+    }
+    /* Se pesaba y lleva más de 2 semanas sin hacerlo */
+    const pesajes = (d.pesajes?.get(c.id) ?? []).slice().sort();
+    const ultimoPeso = pesajes.at(-1);
+    if (ultimoPeso && pesajes.length >= 3 && ultimoPeso < hace(14) && ultimoPeso >= hace(35)) {
+      const dias = Math.floor((d.ahora - new Date(ultimoPeso + "T12:00:00").getTime()) / DIA);
+      motivos.push(`no se pesa desde hace ${dias} días`);
+      claves.push(`p${ultimoPeso}`);
+      desde = Math.max(desde, new Date(ultimoPeso + "T12:00:00").getTime() + 7 * DIA);
+    }
+    if (motivos.length > 0 && !escritoDesde(c.id, desde)) {
+      const motivo = motivos.join(" · ");
+      res.push({
+        clave: `inactivo:${c.id}:${claves.join("-")}`,
+        tipo: "inactivo",
+        clienteId: c.id,
+        nombre: c.nombre,
+        motivo: motivo.charAt(0).toUpperCase() + motivo.slice(1),
+        texto: `Hola ${pila(c.nombre)}, ¿todo bien? Hace unos días que no te veo por la app. Si necesitas que ajustemos algo, dímelo 🙌`,
+      });
     }
 
     /* Semana pasada cumplida entera: de lunes a miércoles */

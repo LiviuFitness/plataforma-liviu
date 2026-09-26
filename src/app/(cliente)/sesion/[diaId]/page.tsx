@@ -253,6 +253,7 @@ export default async function PaginaSesion({
 
   return (
     <SesionEnCurso
+      conIA={!!process.env.ANTHROPIC_API_KEY}
       clienteId={user.id}
       diaId={dia.id}
       nombreDia={dia.nombre}

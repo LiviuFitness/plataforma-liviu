@@ -7,6 +7,9 @@ import { ArrowLeft, ArrowRight, Check, ChevronLeft, MessageCircle, UserRound, Al
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar } from "@/componentes/ui";
 import type { Sugerencia } from "@/lib/revision";
+import type { RevisionIA } from "@/lib/iaTipos";
+import { avisarMensaje } from "@/lib/avisos";
+import RevisionConIA from "./RevisionConIA";
 
 export interface FichaRonda {
   id: string;
@@ -53,12 +56,16 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
   const [elegido, setElegido] = useState<Record<string, number>>({});
   const [aplicando, setAplicando] = useState(false);
   const [error, setError] = useState("");
+  /* La revisión que prepara la IA, por cliente: se pide al abrir cada uno */
+  const [ia, setIa] = useState<Record<string, { cargando: boolean; datos?: RevisionIA; error?: string }>>({});
+  const [mensajeIA, setMensajeIA] = useState<Record<string, string>>({});
+  const [enviarIA, setEnviarIA] = useState<Record<string, boolean>>({});
+  const [mensajeEnviado, setMensajeEnviado] = useState<Set<string>>(new Set());
 
   /* Lo marcado como "sin cambios" se recuerda en este móvil toda la semana */
   useEffect(() => {
     try {
       const guardado = JSON.parse(localStorage.getItem(claveSemana()) ?? "[]") as string[];
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setRevisados(new Set(guardado));
     } catch {
       /* sin almacenamiento */
@@ -89,13 +96,63 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
   const fin = i >= fichas.length;
   const f = fichas[Math.min(i, fichas.length - 1)];
   const hechos = fichas.filter((x) => x.ajustadoEstaSemana !== null || revisados.has(x.id)).length;
-  const delta = elegido[f.id] ?? f.sugerencia?.deltaKcal ?? 0;
+  const delta = elegido[f.id] ?? ia[f.id]?.datos?.delta_kcal ?? f.sugerencia?.deltaKcal ?? 0;
+  const conMensaje = !!mensajeIA[f.id]?.trim() && enviarIA[f.id] !== false && !mensajeEnviado.has(f.id);
+
+  async function pedirRevisionIA(rehacer = false) {
+    const ficha = f;
+    setIa((prev) => ({ ...prev, [ficha.id]: { cargando: true } }));
+    try {
+      const r = await fetch("/api/ia/revision", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clienteId: ficha.id,
+          rehacer,
+          datos: {
+            pesoMedio: ficha.pesoMedio,
+            variacionPct: ficha.variacionPct,
+            ritmo: ficha.ritmo,
+            entrenos: ficha.entrenos,
+            objetivoEntrenos: ficha.objetivoEntrenos,
+            sensacion: ficha.sensacion,
+            cuestionario: ficha.cuestionario,
+            kcal: ficha.dieta?.kcal ?? null,
+            dietaPct: ficha.dietaPct,
+            sugerencia: ficha.sugerencia,
+          },
+        }),
+      });
+      const d = (await r.json()) as RevisionIA & { error?: string };
+      if (!r.ok) throw new Error(d.error);
+      setIa((prev) => ({ ...prev, [ficha.id]: { cargando: false, datos: d } }));
+      setMensajeIA((prev) => ({ ...prev, [ficha.id]: d.mensaje }));
+      if (rehacer) setElegido((prev) => ({ ...prev, [ficha.id]: d.delta_kcal }));
+    } catch (e) {
+      setIa((prev) => ({
+        ...prev,
+        [ficha.id]: { cargando: false, error: e instanceof Error && e.message ? e.message : "No se ha podido preparar." },
+      }));
+    }
+  }
+
+  /** El mensaje de la IA a su chat (si está marcado para enviar) */
+  async function enviarMensajeIA(): Promise<boolean> {
+    if (!conMensaje) return true;
+    const supabase = crearClienteNavegador();
+    const { error } = await supabase
+      .from("mensajes")
+      .insert({ cliente_id: f.id, remitente: "entrenador", texto: mensajeIA[f.id].trim() });
+    if (error) return false;
+    setMensajeEnviado((prev) => new Set(prev).add(f.id));
+    avisarMensaje([f.id]);
+    return true;
+  }
 
   async function aplicarYSeguir() {
     if (!f.dieta) return;
     if (delta === 0) {
-      marcar(f.id);
-      setI(i + 1);
+      await sinCambios();
       return;
     }
     setAplicando(true);
@@ -113,9 +170,16 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
         motivo: f.sugerencia?.texto ?? "Revisión semanal",
       });
     }
-    setAplicando(false);
     if (error) {
+      setAplicando(false);
       setError("No se pudo aplicar. Inténtalo de nuevo.");
+      return;
+    }
+    const enviado = await enviarMensajeIA();
+    setAplicando(false);
+    if (!enviado) {
+      setError("Kcal aplicadas, pero el mensaje no se pudo enviar. Inténtalo otra vez.");
+      router.refresh();
       return;
     }
     marcar(f.id);
@@ -123,7 +187,17 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
     router.refresh();
   }
 
-  function sinCambios() {
+  async function sinCambios() {
+    if (conMensaje) {
+      setAplicando(true);
+      setError("");
+      const enviado = await enviarMensajeIA();
+      setAplicando(false);
+      if (!enviado) {
+        setError("No se pudo enviar el mensaje. Inténtalo de nuevo.");
+        return;
+      }
+    }
     marcar(f.id);
     setI(i + 1);
   }
@@ -213,6 +287,18 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
         </div>
       </div>
 
+      <RevisionConIA
+        key={f.id}
+        estado={ia[f.id]}
+        revisado={revisado}
+        mensaje={mensajeIA[f.id] ?? ""}
+        onMensaje={(t) => setMensajeIA({ ...mensajeIA, [f.id]: t })}
+        enviar={enviarIA[f.id] !== false}
+        onEnviar={(v) => setEnviarIA({ ...enviarIA, [f.id]: v })}
+        enviado={mensajeEnviado.has(f.id)}
+        pedir={pedirRevisionIA}
+      />
+
       {(f.cuestionario.length > 0 || f.foto) && (
         <section className="tarjeta !p-3.5">
           <div className="flex gap-3">
@@ -288,13 +374,23 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
           ) : (
             <>
               Aplicar {delta > 0 ? "+" : "−"}
-              {Math.abs(delta)} y siguiente <ArrowRight size={16} />
+              {Math.abs(delta)}
+              {conMensaje ? " y enviar mensaje" : " y siguiente"} <ArrowRight size={16} />
             </>
           )}
         </button>
       ) : (
-        <button className="cta flex items-center justify-center gap-2" onClick={sinCambios}>
-          {yaAjustado ? "Siguiente" : "Sin cambios · siguiente"} <ArrowRight size={16} />
+        <button className="cta flex items-center justify-center gap-2" onClick={sinCambios} disabled={aplicando}>
+          {aplicando
+            ? "Enviando…"
+            : conMensaje
+              ? yaAjustado
+                ? "Enviar mensaje · siguiente"
+                : "Sin cambios · enviar mensaje"
+              : yaAjustado
+                ? "Siguiente"
+                : "Sin cambios · siguiente"}{" "}
+          <ArrowRight size={16} />
         </button>
       )}
 
