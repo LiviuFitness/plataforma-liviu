@@ -38,6 +38,7 @@ export default function AsistenteDieta() {
   const [pensando, setPensando] = useState(false);
   const [error, setError] = useState("");
   const finRef = useRef<HTMLDivElement>(null);
+  const cuadroRef = useRef<HTMLTextAreaElement>(null);
   const selectorFoto = useRef<HTMLInputElement>(null);
   /* Foto adjunta (la carta, un plato, una etiqueta): se manda con la pregunta */
   const [foto, setFoto] = useState<{ base64: string; url: string } | null>(null);
@@ -100,6 +101,8 @@ export default function AsistenteDieta() {
     if ((!t && !adjunta) || pensando) return;
     setError("");
     setTexto("");
+    /* El cuadro vuelve a su altura de una línea (crece al escribir) */
+    if (cuadroRef.current) cuadroRef.current.style.height = "";
     setFoto(null);
     const ahora = new Date();
     const provisional: MensajeAsistente = {
@@ -349,6 +352,7 @@ export default function AsistenteDieta() {
                       <Camera size={18} />
                     </button>
                     <textarea
+                      ref={cuadroRef}
                       className="flex-1 min-w-0 bg-campo border border-borde-2 rounded-[12px] text-white px-3 py-2.5 text-[16px] leading-snug resize-none font-cuerpo focus:outline-none focus:border-acento max-h-28"
                       rows={1}
                       maxLength={600}
