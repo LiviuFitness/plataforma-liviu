@@ -19,7 +19,33 @@ import {
 export const dynamic = "force-dynamic";
 export const maxDuration = 90;
 
-const MODELO = "claude-opus-5";
+const MODELO = "claude-opus-5-5";
+
+/** Para el entrenador: ¿el servidor puede guardar las conversaciones?
+ * (si la clave de servicio de Vercel está mal, la IA responde pero no se
+ * guarda nada). Dice qué tipo de clave es, sin enseñarla. */
+async function diagnostico() {
+  const clave = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
+  let tipo = "no está puesta";
+  if (clave.startsWith("sb_secret_")) tipo = "clave secreta (correcta)";
+  else if (clave.startsWith("sb_publishable_")) tipo = "clave PÚBLICA (incorrecta: hay que poner la secreta)";
+  else if (clave.split(".").length === 3) {
+    try {
+      const rol = JSON.parse(Buffer.from(clave.split(".")[1], "base64url").toString()).role;
+      tipo = rol === "service_role" ? "service_role (correcta)" : `rol "${rol}" (incorrecta: hay que poner la service_role)`;
+    } catch {
+      tipo = "no se puede leer";
+    }
+  } else if (clave) tipo = "formato desconocido";
+  const { count, error } = await clienteServicio()
+    .from("asistente_mensajes")
+    .select("id", { count: "exact", head: true });
+  return {
+    clave_servicio: tipo,
+    lectura: error ? `ERROR: ${error.message}` : `ok (${count ?? 0} mensajes guardados en total)`,
+    modelo: MODELO,
+  };
+}
 const CAMPOS = "id, rol, texto, alternativas, derivado, creado_en";
 
 async function preguntasDeHoy(clienteId: string): Promise<number> {
@@ -37,6 +63,8 @@ export async function GET() {
   const usuario = await obtenerUsuario();
   if (!usuario) return Response.json({ error: "Sin sesión" }, { status: 401 });
   const supabase = await crearClienteServidor();
+  const { data: yo } = await supabase.from("profiles").select("rol").eq("id", usuario.id).maybeSingle();
+  if (yo?.rol === "entrenador") return Response.json(await diagnostico());
   const [{ data }, usadas] = await Promise.all([
     supabase
       .from("asistente_mensajes")
