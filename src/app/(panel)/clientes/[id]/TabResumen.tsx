@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertTriangle, CalendarCheck, ChevronDown } from "lucide-react";
+import { AlertTriangle, CalendarCheck, ChevronDown, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import ResumenPlan from "./ResumenPlan";
 import type { SesionHistorial } from "@/lib/progresoEntreno";
@@ -389,7 +389,7 @@ export default function TabResumen({
             placeholder="Nombre completo"
           />
           {errorEliminar && (
-            <div className="text-peligro text-[13.5px] mb-3">— {errorEliminar}</div>
+            <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{errorEliminar}</span></div>
           )}
           <button
             className="w-full bg-transparent border border-peligro text-peligro rounded-[12px] py-[13px] font-bold text-[15px] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"

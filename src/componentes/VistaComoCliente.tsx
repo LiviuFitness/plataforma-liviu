@@ -105,7 +105,7 @@ export default function VistaComoCliente({
           ) : (
             <>
               <h1 className="h1">Mi dieta</h1>
-              <div className="sub mb-4">tu plan de hoy —</div>
+              <div className="sub mb-4">Tu plan de hoy</div>
               {!entreno && !descanso ? (
                 <div className="tarjeta text-atenuado text-[13.5px]">
                   {pila} todavía no tiene dieta: ve la pantalla vacía.

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, Dumbbell, MessageCircle, Scale, Share } from "lucide-react";
+import { BellRing, Dumbbell, MessageCircle, Scale, Share, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import Switch from "@/componentes/Switch";
 
@@ -168,7 +168,7 @@ export default function PanelAvisos({
           </button>
         </>
       )}
-      {error && <div className="text-peligro text-[13px] mt-2">— {error}</div>}
+      {error && <div className="text-peligro text-[13px] mt-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
     </section>
   );
 }

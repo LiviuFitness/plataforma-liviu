@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, Eye, Pencil, Plus, Trash2 } from "lucide-react";
+import { BookOpen, Eye, Pencil, Plus, Trash2, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta } from "@/componentes/ui";
 import VisorGuia from "@/componentes/VisorGuia";
@@ -32,7 +32,7 @@ export default function GestionGuias({ guias }: { guias: Guia[] }) {
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="h1 !mb-0">Guías</h1>
-          <div className="sub mb-4">lo que explicas siempre, escrito una vez —</div>
+          <div className="sub mb-4">Lo que explicas siempre, escrito una vez</div>
         </div>
         <button
           className="cta cta-mini shrink-0 flex items-center gap-1"
@@ -190,7 +190,7 @@ function EditorGuia({
           value={video}
           onChange={(e) => setVideo(e.target.value)}
         />
-        {error && <div className="text-peligro text-[13px] mb-2">— {error}</div>}
+        {error && <div className="text-peligro text-[13px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-0" onClick={guardar} disabled={guardando}>
           {guardando ? "Guardando…" : "Guardar guía"}
         </button>

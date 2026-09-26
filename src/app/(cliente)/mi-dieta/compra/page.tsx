@@ -72,7 +72,7 @@ export default async function PaginaCompra() {
     return (
       <>
         <h1 className="h1">Lista de la compra</h1>
-        <div className="sub mb-4">tu semana, sumada —</div>
+        <div className="sub mb-4">Tu semana, sumada</div>
         <section className="tarjeta">
           <EstadoVacio
             Icono={ShoppingCart}

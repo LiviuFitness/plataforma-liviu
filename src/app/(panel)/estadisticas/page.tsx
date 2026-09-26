@@ -91,7 +91,7 @@ export default async function PaginaEstadisticas() {
         <ArrowLeft size={14} /> Hoy
       </Link>
       <h1 className="h1 !mb-0">Tu negocio</h1>
-      <div className="sub mb-4">cómo va el estudio —</div>
+      <div className="sub mb-4">Cómo va el estudio</div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
         <div className="tarjeta !mb-0 !p-3.5 min-w-0">

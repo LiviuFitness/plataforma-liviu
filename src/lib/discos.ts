@@ -20,9 +20,9 @@ export const DISCOS_ESTANDAR: Disco[] = [
 ];
 
 export const PESOS_BARRA = [
-  { valor: 20, etiqueta: "Barra olímpica — 20 kg" },
-  { valor: 15, etiqueta: "Barra mujer — 15 kg" },
-  { valor: 10, etiqueta: "Barra técnica — 10 kg" },
+  { valor: 20, etiqueta: "Barra olímpica · 20 kg" },
+  { valor: 15, etiqueta: "Barra mujer · 15 kg" },
+  { valor: 10, etiqueta: "Barra técnica · 10 kg" },
   { valor: 0, etiqueta: "Sin barra (mancuerna, máquina…)" },
 ];
 

@@ -97,7 +97,7 @@ export default function Ajustes({
   return (
     <>
       <h1 className="h1">Ajustes</h1>
-      <div className="sub mb-4">tu cuenta de entrenador —</div>
+      <div className="sub mb-4">Tu cuenta de entrenador</div>
 
       {/* Lo que se usa a diario va antes que la cuenta, que se toca una vez */}
       <div className="titulo-seccion">Respuestas rápidas del chat</div>
@@ -128,7 +128,7 @@ export default function Ajustes({
           />
           {msgNombre && (
             <div className={`text-[13.5px] mb-2 ${msgNombre.ok ? "text-acento" : "text-peligro"}`}>
-              — {msgNombre.texto}
+              {msgNombre.texto}
             </div>
           )}
           <button
@@ -151,7 +151,7 @@ export default function Ajustes({
           />
           {msgEmail && (
             <div className={`text-[13.5px] mb-2 ${msgEmail.ok ? "text-acento" : "text-peligro"}`}>
-              — {msgEmail.texto}
+              {msgEmail.texto}
             </div>
           )}
           <button
@@ -187,7 +187,7 @@ export default function Ajustes({
           />
           {msgContrasena && (
             <div className={`text-[13.5px] mb-2 ${msgContrasena.ok ? "text-acento" : "text-peligro"}`}>
-              — {msgContrasena.texto}
+              {msgContrasena.texto}
             </div>
           )}
           <button

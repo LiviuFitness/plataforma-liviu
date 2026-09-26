@@ -41,8 +41,7 @@ import {
   Trophy,
   Video,
   X,
-  Zap,
-} from "lucide-react";
+  Zap, AlertCircle } from "lucide-react";
 import type { AlternativaSesion } from "@/lib/alternativasSesion";
 import { admiteExpres, duracionEstimada, versionExpres } from "@/lib/expres";
 import { encolar, subirSesion, type SesionParaSubir } from "@/lib/subirSesion";
@@ -220,14 +219,14 @@ function FilaSerie({
           aria-label={`Editar peso: ${kgMostrado || "sin registrar"} kg`}
         >
           <span className={etiqueta}>kg</span>
-          <span className={valor}>{kgMostrado || "—"}</span>
+          <span className={valor}>{kgMostrado}</span>
         </button>
       ) : (
         <label className={caja}>
           <span className={`${etiqueta} absolute top-[7px]`}>kg</span>
           <input
             className={campo}
-            placeholder={serie.kgPrescrito || "—"}
+            placeholder={serie.kgPrescrito}
             inputMode="decimal"
             value={serie.kg}
             onChange={(e) => onCambiarKg(e.target.value)}
@@ -249,14 +248,14 @@ function FilaSerie({
             aria-label={`Editar repeticiones: ${repsMostrado || "sin registrar"}`}
           >
             <span className={etiqueta}>reps</span>
-            <span className={valor}>{repsMostrado || "—"}</span>
+            <span className={valor}>{repsMostrado}</span>
           </button>
         ) : (
           <label className={caja}>
             <span className={`${etiqueta} absolute top-[7px]`}>reps</span>
             <input
               className={campo}
-              placeholder={serie.repsPrescrito || "—"}
+              placeholder={serie.repsPrescrito}
               value={serie.reps}
               onChange={(e) => onCambiarReps(e.target.value)}
               aria-label="Repeticiones (admite 8+3)"
@@ -290,7 +289,7 @@ function FilaSerie({
         <span className={`${etiqueta} absolute top-[7px]`}>{esTecnica ? "técnica" : "rir"}</span>
         <input
           className={campo}
-          placeholder={serie.rirPrescrito || "—"}
+          placeholder={serie.rirPrescrito}
           value={serie.rir}
           onChange={(e) => onCambiarRir(e.target.value)}
           aria-label={esTecnica ? "Técnica" : "RIR"}
@@ -756,7 +755,7 @@ export default function SesionEnCurso({
       insight = "Has completado todas las series de hoy.";
     }
     if (!insight && !sesionAnterior) {
-      insight = "Primera vez que registras este entreno — la próxima vez podrás comparar tu progreso.";
+      insight = "Primera vez que registras este entreno. La próxima vez podrás comparar tu progreso.";
     }
   }
 
@@ -795,7 +794,7 @@ export default function SesionEnCurso({
           minute: "2-digit",
         });
         const seguir = confirm(
-          `Este entreno ya está registrado hoy a las ${hora} — probablemente lo ha apuntado el cliente desde su móvil.\n\n` +
+          `Este entreno ya está registrado hoy a las ${hora}: probablemente lo ha apuntado el cliente desde su móvil.\n\n` +
             "Si guardas, quedarán dos sesiones del mismo entreno y le contarán doble el volumen y la adherencia.\n\n" +
             "¿Guardar de todas formas?"
         );
@@ -1119,7 +1118,7 @@ export default function SesionEnCurso({
           />
         </section>
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
         {/* Únicas dos acciones — cada una guarda y navega a su destino,
          * no hay un "Guardar" aparte. */}

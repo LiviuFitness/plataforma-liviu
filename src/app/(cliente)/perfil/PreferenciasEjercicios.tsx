@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
@@ -77,7 +78,7 @@ export default function PreferenciasEjercicios({
         <button className="ghost w-full" onClick={() => setAbierto(true)}>
           {excluidos.size === 0
             ? "Gestionar ejercicios"
-            : `${excluidos.size} ejercicio${excluidos.size === 1 ? "" : "s"} a evitar — gestionar`}
+            : `${excluidos.size} ejercicio${excluidos.size === 1 ? "" : "s"} a evitar · gestionar`}
         </button>
       </section>
 
@@ -117,7 +118,7 @@ export default function PreferenciasEjercicios({
               ))}
             </div>
 
-            {error && <div className="text-peligro text-[13.5px] mb-2">— {error}</div>}
+            {error && <div className="text-peligro text-[13.5px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
             <div className="overflow-y-auto flex-1">
               {filtrados.map((e) => {

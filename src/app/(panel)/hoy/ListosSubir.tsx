@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUp, Check } from "lucide-react";
+import { ArrowUp, Check, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar } from "@/componentes/ui";
 import type { ListoParaSubir } from "@/lib/listosSubir";
@@ -99,7 +99,7 @@ export default function ListosSubir({
           );
         })}
       </div>
-      {error && <div className="text-peligro text-[12.5px] mb-2">— {error}</div>}
+      {error && <div className="text-peligro text-[12.5px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
       <div className="text-atenuado text-[12px] mb-6 leading-snug">
         «Subir» suma el salto a sus series efectivas de ese ejercicio, esta semana y las siguientes.
       </div>

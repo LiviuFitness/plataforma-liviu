@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Check, MessageSquareText } from "lucide-react";
+import { CalendarClock, Check, MessageSquareText, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta } from "@/componentes/ui";
 import type { PreguntaRevision, RespuestaRevision } from "@/lib/tipos";
@@ -145,7 +145,7 @@ export default function CuestionarioSemanal({
             <div key={p.id} className="border-b border-borde last:border-0 py-2">
               <div className="text-atenuado text-[12.5px]">{p.texto}</div>
               <div className="text-[13.5px] mt-0.5">
-                {respuestasPorPregunta.get(p.id) || "—"}
+                {respuestasPorPregunta.get(p.id) || "Sin responder"}
               </div>
             </div>
           ))}
@@ -178,7 +178,7 @@ export default function CuestionarioSemanal({
               />
             </div>
           ))}
-          {error && <div className="text-peligro text-[13.5px] mb-2">— {error}</div>}
+          {error && <div className="text-peligro text-[13.5px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
           <button className="cta !mb-0" onClick={enviar} disabled={guardando}>
             {guardando ? "Guardando…" : "Enviar respuestas"}
           </button>

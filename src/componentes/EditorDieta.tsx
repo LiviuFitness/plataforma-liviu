@@ -19,7 +19,7 @@ import {
   type ComidaEstructurada,
   type ItemComida,
 } from "@/lib/dietas";
-import { ArrowDown, ArrowUp, Copy, CopyPlus, MoreHorizontal, Sparkles, Split, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Copy, CopyPlus, MoreHorizontal, Sparkles, Split, X, AlertCircle } from "lucide-react";
 import { infoComida } from "@/lib/infoComida";
 import { IconoTarjeta } from "@/componentes/ui";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
@@ -473,7 +473,7 @@ export default function EditorDieta({
               </p>
             </>
           )}
-          {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+          {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
           <button className="ghost w-full" onClick={crearDieta} disabled={guardando}>
             + Crear desde cero
           </button>
@@ -488,7 +488,7 @@ export default function EditorDieta({
         {clienteId && plantillas && (
           <AsignarPlantilla tipo="dieta" plantillas={plantillas} clienteId={clienteId} />
         )}
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="ghost w-full" onClick={crearDieta} disabled={guardando}>
           {guardando ? "Creando…" : "+ Crear dieta desde cero"}
         </button>
@@ -723,7 +723,7 @@ export default function EditorDieta({
               <Sparkles size={14} /> Generar automáticamente
             </button>
             {avisoGeneracion[ci] && (
-              <div className="text-aviso text-[12px] mt-1.5">— {avisoGeneracion[ci]}</div>
+              <div className="text-aviso text-[12px] mt-1.5">{avisoGeneracion[ci]}</div>
             )}
 
             <button
@@ -855,7 +855,7 @@ export default function EditorDieta({
         + Añadir comida
       </button>
 
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
       <button className="cta" onClick={guardar} disabled={guardando || !sucio}>
         {ok ? "Guardado ✓" : guardando ? "Guardando…" : "Guardar dieta"}
       </button>

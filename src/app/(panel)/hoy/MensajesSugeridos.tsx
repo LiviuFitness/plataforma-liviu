@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Bell, Check, Pencil, Send, Trophy } from "lucide-react";
+import { Bell, Check, Pencil, Send, Trophy, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { IconoTarjeta } from "@/componentes/ui";
 import { avisarMensaje } from "@/lib/avisos";
@@ -141,7 +141,7 @@ export default function MensajesSugeridos({ items }: { items: Sugerencia[] }) {
             </div>
           );
         })}
-        {error && <div className="text-peligro text-[12.5px]">— {error}</div>}
+        {error && <div className="text-peligro text-[12.5px] flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
       </div>
     </>
   );

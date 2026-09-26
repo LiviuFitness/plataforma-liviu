@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Check, Plus, StickyNote, Trash2 } from "lucide-react";
+import { CalendarClock, Check, Plus, StickyNote, Trash2, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 
 export interface NotaCliente {
@@ -239,7 +239,7 @@ function HojaNota({
             </button>
           )}
         </div>
-        {error && <div className="text-peligro text-[13px] mb-2">— {error}</div>}
+        {error && <div className="text-peligro text-[13px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-0" onClick={guardar} disabled={guardando || !texto.trim()}>
           {guardando ? "Guardando…" : fecha ? `Guardar y recordar el ${fechaCorta(fecha)}` : "Guardar nota"}
         </button>

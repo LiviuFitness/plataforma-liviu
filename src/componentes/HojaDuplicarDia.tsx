@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check } from "lucide-react";
+import { Check, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import type { DiaUI } from "@/lib/tipos";
 
@@ -187,7 +187,7 @@ export default function HojaDuplicarDia({
           </button>
         )}
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-0" onClick={duplicar} disabled={trabajando}>
           {trabajando ? "Duplicando…" : "Duplicar día"}
         </button>

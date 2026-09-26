@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -64,7 +65,7 @@ export default function PaginaRestablecer() {
           onChange={(e) => setRepetida(e.target.value)}
         />
         {error && (
-          <div className="text-peligro text-[13.5px] mb-3">— {error}</div>
+          <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>
         )}
         <button className="cta" type="submit" disabled={cargando}>
           {cargando ? "Guardando…" : "Guardar y entrar"}

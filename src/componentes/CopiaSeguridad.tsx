@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, ShieldCheck } from "lucide-react";
+import { Download, ShieldCheck, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 
 /**
@@ -121,8 +121,8 @@ export default function CopiaSeguridad() {
     <div className="fila-ajuste">
       <div className="titulo-tarjeta">Copia de seguridad</div>
       <p className="text-texto-2 text-[13px] leading-relaxed mb-3">
-        Descarga todo lo que hay en la base de datos —clientes, rutinas, dietas,
-        entrenos, medidas, hábitos, mensajes y leads— en un solo fichero. El plan
+        Descarga todo lo que hay en la base de datos (clientes, rutinas, dietas,
+        entrenos, medidas, hábitos, mensajes y leads) en un solo fichero. El plan
         gratuito de Supabase no permite volver atrás en el tiempo, así que esta es
         la única forma de recuperar algo si se borra por error. Guárdalo donde
         guardes tus cosas importantes y hazlo de vez en cuando.
@@ -139,7 +139,7 @@ export default function CopiaSeguridad() {
         )}
       </button>
 
-      {error && <div className="text-peligro text-[13.5px] mt-2">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mt-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
       {resumen && (
         <div className="mt-3 flex gap-2 text-[12.5px] text-atenuado leading-relaxed">

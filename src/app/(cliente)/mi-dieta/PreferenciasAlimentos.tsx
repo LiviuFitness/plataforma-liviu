@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { CATEGORIAS_ALIMENTO, type Alimento } from "@/lib/dietas";
@@ -76,7 +77,7 @@ export default function PreferenciasAlimentos({
         <button className="ghost w-full" onClick={() => setAbierto(true)}>
           {excluidos.size === 0
             ? "Gestionar alimentos"
-            : `${excluidos.size} alimento${excluidos.size === 1 ? "" : "s"} excluido${excluidos.size === 1 ? "" : "s"} — gestionar`}
+            : `${excluidos.size} alimento${excluidos.size === 1 ? "" : "s"} excluido${excluidos.size === 1 ? "" : "s"} · gestionar`}
         </button>
       </section>
 
@@ -120,7 +121,7 @@ export default function PreferenciasAlimentos({
               })}
             </div>
 
-            {error && <div className="text-peligro text-[13.5px] mb-2">— {error}</div>}
+            {error && <div className="text-peligro text-[13.5px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
             <div className="overflow-y-auto flex-1">
               {filtrados.map((a) => {

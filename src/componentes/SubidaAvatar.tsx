@@ -1,5 +1,6 @@
 "use client";
 
+import { AlertCircle } from "lucide-react";
 import { useRef, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { redimensionarImagen } from "@/lib/imagen";
@@ -88,7 +89,7 @@ export default function SubidaAvatar({
         className="hidden"
         onChange={elegirArchivo}
       />
-      {error && <div className="text-peligro text-[12.5px] mt-1.5">— {error}</div>}
+      {error && <div className="text-peligro text-[12.5px] mt-1.5 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
     </div>
   );
 }

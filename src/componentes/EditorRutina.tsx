@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, BookmarkPlus, Check, GripVertical, Play } from "lucide-react";
+import { ArrowLeftRight, BookmarkPlus, Check, GripVertical, Play, AlertCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -368,7 +368,7 @@ export default function EditorRutina({
         {clienteId && plantillas && (
           <AsignarPlantilla tipo="rutina" plantillas={plantillas} clienteId={clienteId} />
         )}
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="ghost w-full" onClick={crearRutina} disabled={cargando}>
           {cargando ? "Creando…" : "+ Crear rutina desde cero"}
         </button>
@@ -660,7 +660,7 @@ export default function EditorRutina({
         );
       })}
 
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
       {!ordenando && (
         <button className="cta" onClick={anadirDia} disabled={cargando}>
           + Añadir día a la semana {semanaVista}
@@ -711,7 +711,7 @@ export default function EditorRutina({
       {volumen.length > 0 && (
         <section className="tarjeta">
           <div className="titulo-tarjeta">
-            VOLUMEN — SERIES EFECTIVAS · SEMANA {semanaVista}
+            VOLUMEN · SERIES EFECTIVAS · SEMANA {semanaVista}
           </div>
           {volumen.map(([grupo, n]) => (
             <div key={grupo} className="flex items-center gap-2.5 py-1.5">
@@ -863,7 +863,7 @@ function HojaIgualarSemanas({
             </div>
             {sobran.map((d, i) => (
               <div key={i} className="text-[13.5px] py-0.5">
-                <b>{d.nombre}</b> <span className="text-atenuado">— semana {d.semana}</span>
+                <b>{d.nombre}</b> <span className="text-atenuado">· semana {d.semana}</span>
               </div>
             ))}
             <p className="text-atenuado text-[12px] mt-2 leading-relaxed">
@@ -873,7 +873,7 @@ function HojaIgualarSemanas({
           </div>
         )}
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
         <button
           className="cta !mb-0"

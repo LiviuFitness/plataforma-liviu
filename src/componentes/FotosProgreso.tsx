@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Camera } from "lucide-react";
+import { Camera, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { redimensionarImagen } from "@/lib/imagen";
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
@@ -160,7 +160,7 @@ export default function FotosProgreso({
         />
       ))}
 
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
       <button
         className="cta"

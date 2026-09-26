@@ -61,7 +61,7 @@ export default function StepperNumero({
     return (
       <input
         className="campo-serie !text-[28px] !py-4 placeholder:text-atenuado/45"
-        placeholder={placeholder || "—"}
+        placeholder={placeholder || "0"}
         inputMode="decimal"
         autoFocus
         value={valor}
@@ -95,7 +95,7 @@ export default function StepperNumero({
         aria-label={`${etiqueta}: ${valor || placeholder || "sin valor"}. Toca para escribir un número exacto.`}
       >
         {valor.trim() !== "" ? valor : (
-          <span className="text-atenuado/50">{placeholder || "—"}</span>
+          <span className="text-atenuado/50">{placeholder || "0"}</span>
         )}
       </button>
       <button

@@ -47,7 +47,7 @@ export default async function PaginaAlta({
       <div className="relative">
       <div className="text-center mb-8">
         <Logo tamano={80} />
-        <div className="sub serifa mt-1">empieza tu seguimiento —</div>
+        <div className="sub serifa mt-1">Empieza tu seguimiento</div>
       </div>
 
       {valida ? (

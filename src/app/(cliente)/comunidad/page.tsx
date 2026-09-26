@@ -99,7 +99,7 @@ export default async function PaginaComunidad() {
       <GridLogros desbloqueados={[...misClaves]} />
 
       <section className="tarjeta">
-        <div className="titulo-tarjeta">RANKING DE CONSTANCIA — 4 semanas</div>
+        <div className="titulo-tarjeta">RANKING DE CONSTANCIA · 4 SEMANAS</div>
         {ranking && ranking.length > 0 ? (
           <div className="flex flex-col gap-2.5">
             {ranking.map((r, i) => (

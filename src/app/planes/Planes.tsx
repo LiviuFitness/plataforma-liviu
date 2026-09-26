@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { PLANES, type ClavePlan } from "@/lib/planes";
 
@@ -235,7 +235,7 @@ export default function Planes({ origen }: { origen: string | null }) {
           </span>
         </label>
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
         <button
           className="cta !mb-0 anim-pulsable"

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, Pencil, Search, Trash2 } from "lucide-react";
+import { Copy, Pencil, Search, Trash2, AlertCircle } from "lucide-react";
 import { copiarDieta, copiarRutina } from "@/lib/copiarPlan";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
@@ -154,7 +154,7 @@ export default function Plantillas({
   return (
     <>
       <h1 className="h1">Plantillas</h1>
-      <div className="sub mb-4">tu método, listo para asignar —</div>
+      <div className="sub mb-4">Tu método, listo para asignar</div>
 
       {asignadaOk && <div className="banner banner-accion mb-3.5">{asignadaOk}</div>}
       {recienCopiada && (
@@ -162,7 +162,7 @@ export default function Plantillas({
           Copia creada arriba de su lista. Cámbiale el nombre y ajústala.
         </div>
       )}
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
       {/* ---- Entreno ---- */}
       <div className="titulo-seccion mt-2">Entreno</div>

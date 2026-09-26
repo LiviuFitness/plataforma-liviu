@@ -64,7 +64,7 @@ export default function Leads({ leads }: { leads: Lead[] }) {
   return (
     <>
       <h1 className="h1">Leads</h1>
-      <div className="sub mb-4">quien ha dejado sus datos en /planes —</div>
+      <div className="sub mb-4">Quien ha dejado sus datos en /planes</div>
 
       {leads.length > 0 && (
         <div className="flex flex-wrap gap-2 mb-4">

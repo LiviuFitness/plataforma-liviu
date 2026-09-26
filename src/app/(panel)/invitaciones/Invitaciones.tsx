@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Copy, MessageCircle, RotateCw, Trash2 } from "lucide-react";
+import { Check, Copy, MessageCircle, RotateCw, Trash2, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { OBJETIVOS, type Invitacion } from "@/lib/tipos";
 import { URL_PUBLICA } from "@/lib/planes";
@@ -134,7 +134,7 @@ export default function Invitaciones({
   return (
     <>
       <h1 className="h1">Invitaciones</h1>
-      <div className="sub mb-4">el alta es solo por invitación —</div>
+      <div className="sub mb-4">El alta es solo por invitación</div>
 
       <div className="flex gap-2 mb-3">
         <button className={`tab ${modo === "una" ? "tab-activa" : ""}`} onClick={() => setModo("una")}>
@@ -194,7 +194,7 @@ export default function Invitaciones({
             <option value="trimestral">Plan trimestral</option>
           </select>
         </div>
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-2" type="submit" disabled={cargando}>
           {cargando ? "Creando…" : "Crear invitación"}
         </button>

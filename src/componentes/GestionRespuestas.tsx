@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Trash2, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Trash2, Zap, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 
 export interface RespuestaRapida {
@@ -156,7 +156,7 @@ export default function GestionRespuestas({
           Añadir
         </button>
       </div>
-      {error && <div className="text-peligro text-[13px] pb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13px] pb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
     </div>
   );
 }

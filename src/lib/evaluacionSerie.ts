@@ -11,7 +11,7 @@ export const INFO_EVALUACION_SERIE: Record<
 > = {
   cumplido: { etiqueta: "Objetivo cumplido", color: "var(--color-texto-2)" },
   superado: {
-    etiqueta: "Has superado el objetivo — quizás puedas subir el peso la próxima vez",
+    etiqueta: "Has superado el objetivo: quizás puedas subir el peso la próxima vez",
     color: "var(--color-acento)",
   },
   no_alcanzado: {

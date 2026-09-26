@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Scale } from "lucide-react";
+import { Plus, Scale, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { aNumero } from "@/lib/rutinas";
 import { IconoTarjeta } from "@/componentes/ui";
@@ -87,7 +87,7 @@ export default function RegistroPesoRapido({
             ✕
           </button>
         </div>
-        {error && <div className="text-peligro text-[13px] mt-2">— {error}</div>}
+        {error && <div className="text-peligro text-[13px] mt-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
       </div>
     );
   }

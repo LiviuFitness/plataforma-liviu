@@ -77,7 +77,7 @@ export default function CalculadoraDiscos({
             <div className="flex items-center justify-center gap-1 py-4 overflow-x-auto scroll-sin-barra">
               <div className="w-10 h-1.5 bg-borde-2 rounded-l-full shrink-0" />
               {resultado.porLado.length === 0 ? (
-                <span className="text-atenuado text-[12px] px-2">— sin discos —</span>
+                <span className="text-atenuado text-[12px] px-2">Sin discos</span>
               ) : (
                 resultado.porLado
                   .slice()
@@ -108,7 +108,7 @@ export default function CalculadoraDiscos({
             </div>
             {!resultado.exacto && (
               <p className="text-aviso text-[12px] mt-1">
-                No se puede llegar exacto con los discos estándar — es lo más
+                No se puede llegar exacto con los discos estándar: es lo más
                 cercano posible.
               </p>
             )}

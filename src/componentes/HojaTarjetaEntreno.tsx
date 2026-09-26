@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, Share2 } from "lucide-react";
+import { Download, Share2, AlertCircle } from "lucide-react";
 import { generarTarjetaEntreno, type DatosTarjeta } from "@/lib/tarjetaEntreno";
 
 /**
@@ -84,12 +84,12 @@ export default function HojaTarjetaEntreno({
             <img src={url} alt="Tarjeta de tu entreno" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full grid place-items-center text-atenuado text-[12.5px]">
-              {error ? "—" : "Creando tu tarjeta…"}
+              {error ? "" : "Creando tu tarjeta…"}
             </div>
           )}
         </div>
 
-        {error && <div className="text-peligro text-[13px] mb-3 text-center">— {error}</div>}
+        {error && <div className="text-peligro text-[13px] mb-3 text-center flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
         {puedeCompartir ? (
           <button className="cta anim-pulsable flex items-center justify-center gap-2" onClick={compartir}>

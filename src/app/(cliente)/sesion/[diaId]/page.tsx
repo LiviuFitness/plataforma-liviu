@@ -148,7 +148,7 @@ export default async function PaginaSesion({
                 rirRealizado: s.rir,
               })
             : null;
-          return { texto: `${carga || "—"}×${reps}`, estado };
+          return { texto: carga ? `${carga}×${reps}` : `${reps} reps`, estado };
         });
       if (items.length > 0) anterior.set(id, items);
     }

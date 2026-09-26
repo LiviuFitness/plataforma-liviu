@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Flame, MessageCircle, UtensilsCrossed } from "lucide-react";
+import { Flame, MessageCircle, UtensilsCrossed, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
 import { IconoTarjeta, Logo, type IconoApp } from "@/componentes/ui";
@@ -313,7 +313,7 @@ export default function OnboardingCliente({
         )}
 
         {error && (
-          <div className="text-peligro text-[13.5px] mt-4">— {error}</div>
+          <div className="text-peligro text-[13.5px] mt-4 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>
         )}
       </div>
 

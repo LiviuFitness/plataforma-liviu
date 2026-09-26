@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Pencil, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { r, r1, type Alimento, type Alternativa } from "@/lib/dietas";
 
@@ -40,7 +40,7 @@ export default function CatalogoAlimentos({
   return (
     <>
       <h1 className="h1 !mb-0">Alimentos</h1>
-      <div className="sub mb-4">catálogo y alternativas —</div>
+      <div className="sub mb-4">Catálogo y alternativas</div>
 
       <input
         className="input"
@@ -203,7 +203,7 @@ function HojaAlternativas({
           + Añadir alternativa
         </button>
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-0" onClick={guardar} disabled={guardando}>
           {guardando ? "Guardando…" : "Guardar alternativas"}
         </button>

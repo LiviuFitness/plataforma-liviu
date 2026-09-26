@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, Download } from "lucide-react";
+import { ArrowLeftRight, Download, AlertCircle } from "lucide-react";
 import type { EntradaFotosProgreso, Medida } from "@/lib/tipos";
 import { cargarImagen, FUENTE } from "@/lib/tarjetaEntreno";
 
@@ -200,7 +200,7 @@ export default function ComparadorFotos({
       <button className="ghost w-full flex items-center justify-center gap-2" onClick={guardar} disabled={guardando}>
         <Download size={15} /> {guardando ? "Preparando…" : "Guardar imagen lado a lado"}
       </button>
-      {error && <div className="text-peligro text-[12.5px] mt-1.5">— {error}</div>}
+      {error && <div className="text-peligro text-[12.5px] mt-1.5 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
     </section>
   );
 }

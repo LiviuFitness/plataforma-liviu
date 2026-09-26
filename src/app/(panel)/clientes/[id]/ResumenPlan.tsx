@@ -89,7 +89,7 @@ export default function ResumenPlan({
         <div className="tarjeta !mb-0 !p-3 min-w-0">
           <div className="titulo-tarjeta !text-[10px] !mb-1">Peso</div>
           <div className="num-grande !text-[21px] leading-none tabular-nums">
-            {pesoActual !== null ? kg(pesoActual) : "—"}
+            {pesoActual !== null ? kg(pesoActual) : "Sin peso"}
           </div>
           <div className="text-atenuado text-[11.5px] mt-1.5 leading-snug">
             {variacionMes === null

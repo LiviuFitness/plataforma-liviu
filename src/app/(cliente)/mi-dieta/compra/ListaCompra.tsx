@@ -81,7 +81,7 @@ export default function ListaCompra({
       const items = articulos.filter((a) => a.pasillo === p.clave && !hechos.has(a.alimentoId));
       if (items.length === 0) continue;
       lineas.push("", p.nombre.toUpperCase());
-      for (const a of items) lineas.push(`• ${a.nombre} — ${formatoCantidad(a.gramos)}`);
+      for (const a of items) lineas.push(`• ${a.nombre}: ${formatoCantidad(a.gramos)}`);
     }
     const texto = lineas.join("\n");
     try {
@@ -111,7 +111,7 @@ export default function ListaCompra({
       </Link>
 
       <h1 className="h1">Lista de la compra</h1>
-      <div className="sub mb-4">tu semana, sumada —</div>
+      <div className="sub mb-4">Tu semana, sumada</div>
 
       <div className="flex gap-2 mb-3">
         {DURACIONES_COMPRA.map((n) => (

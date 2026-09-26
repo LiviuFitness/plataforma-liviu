@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Scale } from "lucide-react";
+import { Scale, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { fechaCorta, IconoTarjeta } from "@/componentes/ui";
 import GraficaPeso from "@/componentes/GraficaPeso";
@@ -125,7 +125,7 @@ export default function MiProgreso({
   async function borrarSesion(id: string) {
     if (
       !confirm(
-        "¿Borrar esta sesión? Desaparecerá de tu historial, racha y récords — útil si la empezaste por error."
+        "¿Borrar esta sesión? Desaparecerá de tu historial, racha y récords. Útil si la empezaste por error."
       )
     )
       return;
@@ -137,7 +137,7 @@ export default function MiProgreso({
   return (
     <>
       <h1 className="h1">Mi progreso</h1>
-      <div className="sub mb-4">cada semana cuenta —</div>
+      <div className="sub mb-4">Cada semana cuenta</div>
 
       <CuestionarioSemanal
         clienteId={clienteId}
@@ -213,7 +213,7 @@ export default function MiProgreso({
           </button>
         </div>
         {error && (
-          <div className="text-peligro text-[13.5px] mt-2">— {error}</div>
+          <div className="text-peligro text-[13.5px] mt-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>
         )}
         <p className="text-atenuado text-[12px] mt-2">
           Pésate siempre en las mismas condiciones (por la mañana, en ayunas).

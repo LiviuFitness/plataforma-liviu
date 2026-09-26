@@ -122,7 +122,7 @@ export default function HiloChat({
             Icono={MessageCircle}
             color="var(--color-acento)"
             titulo={`Escríbele a ${nombreOtro}`}
-            descripcion={`Aquí puedes escribir a ${nombreOtro} cuando quieras — dudas sobre tu rutina, tu dieta o cómo te sientes.`}
+            descripcion={`Aquí puedes escribir a ${nombreOtro} cuando quieras: dudas sobre tu rutina, tu dieta o cómo te sientes.`}
           />
         )}
         {mensajes.map((m, i) => {

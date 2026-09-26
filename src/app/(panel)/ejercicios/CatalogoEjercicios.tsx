@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ExternalLink, Pencil, Plus, Repeat, X } from "lucide-react";
+import { ExternalLink, Pencil, Plus, Repeat, X, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import { esGif, miniaturaYoutube } from "@/lib/rutinas";
@@ -50,8 +50,8 @@ export default function CatalogoEjercicios({
       <h1 className="h1 !mb-0">Ejercicios</h1>
       <div className="sub mb-4">
         {sinVideo === 0
-          ? `los ${ejercicios.length} tienen vídeo —`
-          : `${sinVideo} de ${ejercicios.length} sin vídeo —`}
+          ? `Los ${ejercicios.length} tienen vídeo`
+          : `${sinVideo} de ${ejercicios.length} sin vídeo`}
       </div>
 
       <div className="flex gap-2 mb-3">
@@ -240,7 +240,7 @@ function HojaEjercicio({
           onCambio={onAlternativas}
         />
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-0" onClick={guardar} disabled={guardando || !valido}>
           {guardando ? "Guardando…" : "Guardar"}
         </button>
@@ -369,7 +369,7 @@ function AlternativasEjercicio({
           + Añadir alternativa
         </button>
       )}
-      {error && <div className="text-peligro text-[12.5px] mt-1.5">— {error}</div>}
+      {error && <div className="text-peligro text-[12.5px] mt-1.5 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
     </div>
   );
 }

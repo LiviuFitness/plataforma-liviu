@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Download, Share2 } from "lucide-react";
+import { Download, Share2, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { cargarInforme } from "@/lib/informeProgreso";
 import { generarTarjetaInforme } from "@/lib/tarjetaInforme";
@@ -89,12 +89,12 @@ export default function HojaInforme({
             <img src={url} alt={`Informe de progreso de ${pila}`} className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full grid place-items-center text-atenuado text-[12.5px] px-4 text-center">
-              {error ? "—" : "Sumando sus meses contigo…"}
+              {error ? "" : "Sumando sus meses contigo…"}
             </div>
           )}
         </div>
 
-        {error && <div className="text-peligro text-[13px] mb-3 text-center">— {error}</div>}
+        {error && <div className="text-peligro text-[13px] mb-3 text-center flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
         {puedeCompartir ? (
           <button className="cta !mb-0 flex items-center justify-center gap-2" onClick={compartir}>

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, FileText } from "lucide-react";
+import { Check, FileText, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar } from "@/componentes/ui";
 import HojaInforme from "@/componentes/HojaInforme";
@@ -186,7 +186,7 @@ function HojaCobro({
             aria-label="Otro importe en euros"
           />
         </div>
-        {error && <div className="text-peligro text-[13px] mb-2">— {error}</div>}
+        {error && <div className="text-peligro text-[13px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
         <button className="cta !mb-0" onClick={guardar} disabled={!valido || guardando}>
           {guardando ? "Guardando…" : valido ? `Marcar ${euros(valor!)} como pagado` : "Elige el importe"}
         </button>

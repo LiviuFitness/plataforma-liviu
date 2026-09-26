@@ -41,7 +41,7 @@ export const PLANES: Plan[] = [
     gancho: "Mi método completo dentro de la app, sin sesiones presenciales.",
     precio: "39 €",
     periodo: "al mes",
-    alterno: "o 99 € el trimestre — te ahorras un 15 %",
+    alterno: "o 99 € el trimestre (te ahorras un 15 %)",
     distintivo: "Sin lista de espera",
     incluye: [
       "Rutina y dieta asignadas según tu objetivo",

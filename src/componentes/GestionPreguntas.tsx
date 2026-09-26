@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowDown, ArrowUp, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Trash2, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import Switch from "@/componentes/Switch";
 
@@ -121,9 +121,9 @@ export default function GestionPreguntas({
         </Link>
       </div>
       <h1 className="h1 !mb-0">{titulo}</h1>
-      <div className="sub mb-4">{subtitulo} —</div>
+      <div className="sub mb-4 first-letter:uppercase">{subtitulo}</div>
 
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
       {preguntas.map((p, i) => (
         <div key={p.id} className="fila !items-start">

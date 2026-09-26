@@ -58,7 +58,7 @@ export default function TabHabitos({
   return (
     <section className="tarjeta">
       <div className="flex justify-between items-center mb-3">
-        <div className="titulo-tarjeta !mb-0">CONSISTENCIA — últimas 4 semanas</div>
+        <div className="titulo-tarjeta !mb-0">CONSISTENCIA · ÚLTIMAS 4 SEMANAS</div>
         <AnilloAdherencia valor={global} tamano={40} />
       </div>
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Copy, Link2, Plus, Unlink } from "lucide-react";
+import { AlertTriangle, Copy, Link2, Plus, Unlink, AlertCircle } from "lucide-react";
 
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -435,7 +435,7 @@ export default function EditorDia({
         + Añadir ejercicio
       </button>
 
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
       {/* Barra fija de guardado cuando hay cambios */}
       {sucio && (
@@ -645,7 +645,7 @@ function HojaBiblioteca({
               />
               {errorCrear && (
                 <div className="text-peligro text-[13.5px] mb-3">
-                  — {errorCrear}
+                  {errorCrear}
                 </div>
               )}
               <button
@@ -778,7 +778,7 @@ function HojaCopiarSemanas({
           </div>
         </button>
 
-        {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+        {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
         <button
           className="cta !mb-0"

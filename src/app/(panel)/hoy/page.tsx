@@ -471,7 +471,7 @@ export default async function PaginaHoy() {
   return (
     <>
       <h1 className="h1">Hoy</h1>
-      <div className="sub mb-4">{fecha} — así va tu estudio</div>
+      <div className="sub mb-4 first-letter:uppercase">{fecha} · así va tu estudio</div>
 
       {/* Las cifras, cada una con de qué habla. Un número solo ("6%") no
         * dice si eso es bueno, malo o normal. En el móvil van compactas en
@@ -617,7 +617,7 @@ export default async function PaginaHoy() {
           <div className="superficie px-4 mb-6">
             {enRiesgo.length === 0 && listosParaAvanzar.length === 0 && (
               <div className="text-atenuado text-[13.5px] py-4 text-center">
-                Nada pendiente — todos al día.
+                Nada pendiente: todos al día.
               </div>
             )}
 
@@ -788,7 +788,7 @@ export default async function PaginaHoy() {
                     <Trophy size={15} className="text-dorado shrink-0" />
                     <span className="flex-1 min-w-0 text-[13px] leading-snug">
                       <b>{rec.nombre.split(" ")[0]}</b>
-                      <span className="text-texto-2"> — {rec.ejercicio}</span>
+                      <span className="text-texto-2"> · {rec.ejercicio}</span>
                     </span>
                     <span className="shrink-0 text-[13px]">
                       <span className="text-atenuado">{Number(rec.kg_previo)} → </span>

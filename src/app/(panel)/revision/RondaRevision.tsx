@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowRight, Check, ChevronLeft, MessageCircle, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check, ChevronLeft, MessageCircle, UserRound, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar } from "@/componentes/ui";
 import type { Sugerencia } from "@/lib/revision";
@@ -184,7 +184,7 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
 
       <div className="grid grid-cols-3 gap-2 mb-3">
         <div className="tarjeta !mb-0 !p-3 min-w-0">
-          <div className="font-bold text-[17px] leading-tight">{f.pesoMedio !== null ? `${coma(f.pesoMedio)} kg` : "—"}</div>
+          <div className="font-bold text-[17px] leading-tight">{f.pesoMedio !== null ? `${coma(f.pesoMedio)} kg` : "Sin peso"}</div>
           <div className="text-atenuado text-[11px]">media semana</div>
           <div className="text-turquesa text-[11.5px] font-semibold">{f.pesoMedio !== null ? variacionTexto : "sin pesarse"}</div>
         </div>
@@ -199,7 +199,7 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
         </div>
         <div className="tarjeta !mb-0 !p-3 min-w-0">
           <div className="font-bold text-[17px] leading-tight">
-            {f.sensacion !== null ? `${CARAS[Math.round(f.sensacion)]} ${coma(f.sensacion)}` : "—"}
+            {f.sensacion !== null ? `${CARAS[Math.round(f.sensacion)]} ${coma(f.sensacion)}` : "Sin datos"}
           </div>
           <div className="text-atenuado text-[11px]">sensación</div>
         </div>
@@ -271,7 +271,7 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
         </section>
       ) : null}
 
-      {error && <div className="text-peligro text-[13px] mb-2">— {error}</div>}
+      {error && <div className="text-peligro text-[13px] mb-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
 
       {f.dieta && !yaAjustado && delta !== 0 ? (
         <button className="cta flex items-center justify-center gap-2" onClick={aplicarYSeguir} disabled={aplicando}>

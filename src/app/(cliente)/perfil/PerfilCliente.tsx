@@ -128,7 +128,7 @@ export default function PerfilCliente({
   return (
     <>
       <h1 className="h1">Perfil</h1>
-      <div className="sub mb-4">tus datos, bajo control —</div>
+      <div className="sub mb-4">Tus datos, bajo control</div>
 
       {/* Dashboard: racha, sesiones totales, peso actual */}
       <div className="grid grid-cols-3 gap-2.5 mb-3.5">
@@ -147,7 +147,7 @@ export default function PerfilCliente({
         <div className="tarjeta tarjeta-turquesa !mb-0 !p-3.5 flex flex-col items-center text-center gap-1.5">
           <IconoTarjeta Icono={Scale} color="var(--color-turquesa)" tamano={34} />
           <span className="num-grande !text-[19px]">
-            {ultimoPeso !== null ? pesoAnimado.toFixed(1) : "—"}
+            {ultimoPeso !== null ? pesoAnimado.toFixed(1).replace(".", ",") : "0"}
           </span>
           <span className="text-atenuado text-[10.5px] leading-tight">
             {ultimoPeso !== null ? "kg" : "sin peso"}
@@ -172,7 +172,7 @@ export default function PerfilCliente({
         </div>
         <div className="flex justify-between py-2 text-[14px]">
           <span className="text-atenuado">Objetivo</span>
-          <span>{perfil.objetivo ?? "—"}</span>
+          <span>{perfil.objetivo ?? "Sin definir"}</span>
         </div>
         <p className="text-atenuado text-[12px] mt-2">
           ¿Algún dato incorrecto? Pídele el cambio a tu entrenador.
@@ -240,7 +240,7 @@ export default function PerfilCliente({
               msgContrasena.ok ? "text-acento" : "text-peligro"
             }`}
           >
-            — {msgContrasena.texto}
+            {msgContrasena.texto}
           </div>
         )}
         <button

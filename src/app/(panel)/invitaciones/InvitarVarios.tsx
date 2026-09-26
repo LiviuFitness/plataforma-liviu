@@ -128,7 +128,7 @@ export default function InvitarVarios({
         </div>
       )}
 
-      {error && <div className="text-peligro text-[13.5px] mb-3">— {error}</div>}
+      {error && <div className="text-peligro text-[13.5px] mb-3 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
       <button className="cta !mb-2" onClick={crear} disabled={creando || validas.length === 0}>
         {creando
           ? "Creando…"

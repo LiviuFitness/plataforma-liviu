@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Ruler } from "lucide-react";
+import { Ruler, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { aNumero } from "@/lib/rutinas";
 import { fechaCorta, Sparkline } from "./ui";
@@ -200,17 +200,17 @@ export default function PanelMedidas({
       <div className="grid grid-cols-3 gap-px bg-borde border border-borde rounded-[12px] overflow-hidden mt-3">
         <Dato
           etiqueta="Cintura"
-          valor={valores.cintura ? `${valores.cintura.valor}` : "—"}
+          valor={valores.cintura ? `${valores.cintura.valor}`.replace(".", ",") : "Sin dato"}
           unidad="cm"
         />
         <Dato
           etiqueta="Cadera"
-          valor={valores.cadera ? `${valores.cadera.valor}` : "—"}
+          valor={valores.cadera ? `${valores.cadera.valor}`.replace(".", ",") : "Sin dato"}
           unidad="cm"
         />
         <Dato
           etiqueta="Cint./cad."
-          valor={whr !== null ? whr.toFixed(2) : "—"}
+          valor={whr !== null ? whr.toFixed(2).replace(".", ",") : "Sin dato"}
           ayuda="Índice cintura/cadera: se mueve durante una definición aunque el peso no baje."
         />
       </div>
@@ -278,7 +278,7 @@ export default function PanelMedidas({
                 {guardando ? "…" : "Guardar"}
               </button>
             </div>
-            {error && <div className="text-peligro text-[13.5px] mt-2">— {error}</div>}
+            {error && <div className="text-peligro text-[13.5px] mt-2 flex items-start gap-1.5"><AlertCircle size={14} className="shrink-0 mt-[3px]" /><span className="min-w-0">{error}</span></div>}
           </div>
         </div>
       )}
@@ -302,9 +302,15 @@ function Dato({
       <div className="text-[10px] uppercase tracking-[0.8px] text-atenuado font-semibold">
         {etiqueta}
       </div>
-      <div className="text-[18px] font-extrabold mt-0.5 tabular-nums tracking-[-0.3px]">
+      <div
+        className={
+          valor === "Sin dato"
+            ? "text-[13px] font-semibold text-atenuado mt-1.5"
+            : "text-[18px] font-extrabold mt-0.5 tabular-nums tracking-[-0.3px]"
+        }
+      >
         {valor}
-        {unidad && valor !== "—" && (
+        {unidad && valor !== "Sin dato" && (
           <span className="text-[11px] font-semibold text-atenuado ml-0.5">{unidad}</span>
         )}
       </div>
