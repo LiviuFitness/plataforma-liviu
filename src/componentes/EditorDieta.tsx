@@ -21,6 +21,7 @@ import {
 } from "@/lib/dietas";
 import { ArrowDown, ArrowUp, Copy, CopyPlus, MoreHorizontal, Sparkles, Split, X, AlertCircle } from "lucide-react";
 import { infoComida } from "@/lib/infoComida";
+import { avisarCambio } from "@/lib/avisos";
 import { IconoTarjeta } from "@/componentes/ui";
 import { generarComida, objetivoPorComida } from "@/lib/generadorDieta";
 import { INFO_MACRO, type Dieta } from "@/lib/tipos";
@@ -430,6 +431,7 @@ export default function EditorDieta({
     }
     setSucio(false);
     setOk(true);
+    if (clienteId) avisarCambio(clienteId, "dieta");
     router.refresh();
   }
 

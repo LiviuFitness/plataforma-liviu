@@ -1,6 +1,7 @@
 "use client";
 
 import { textoVisible } from "@/lib/guias";
+import { resumenMensaje } from "@/lib/fotoChat";
 import { Check, ChevronRight, MessageCircle, TrendingUp, UtensilsCrossed } from "lucide-react";
 import { IconoTarjeta, Sparkline } from "@/componentes/ui";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
@@ -49,6 +50,7 @@ export default function ResumenPlan({
   chatPendiente,
   ahora,
   abrir,
+  adherenciaDieta = null,
 }: {
   medidas: Medida[];
   diasEntrenados: boolean[];
@@ -62,6 +64,8 @@ export default function ResumenPlan({
   chatPendiente: boolean;
   ahora: number;
   abrir: (v: Vista) => void;
+  /** % de comidas marcadas como hechas en 7 días (null: no usa el check) */
+  adherenciaDieta?: number | null;
 }) {
   const conPeso = medidas.filter((m) => m.peso !== null);
   const pesos = conPeso.map((m) => Number(m.peso));
@@ -212,6 +216,15 @@ export default function ResumenPlan({
                     ? ` · ajuste ${haceDias(ultimaRevision.creado_en, ahora)}`
                     : ""}
                 </div>
+                {adherenciaDieta !== null && (
+                  <div
+                    className={`text-[12.5px] font-semibold ${
+                      adherenciaDieta >= 80 ? "text-verde" : adherenciaDieta >= 50 ? "text-aviso" : "text-peligro"
+                    }`}
+                  >
+                    Cumple el {adherenciaDieta} % de las comidas · 7 días
+                  </div>
+                )}
               </>
             ) : (
               <>
@@ -277,7 +290,7 @@ export default function ResumenPlan({
             </div>
             <div className="text-atenuado text-[12.5px] leading-snug break-words line-clamp-2">
               {ultimoMensaje
-                ? `${ultimoMensaje.remitente === "entrenador" ? "Tú: " : ""}${textoVisible(ultimoMensaje.texto)}`
+                ? `${ultimoMensaje.remitente === "entrenador" ? "Tú: " : ""}${resumenMensaje(textoVisible(ultimoMensaje.texto), ultimoMensaje.imagen)}`
                 : "Sin mensajes todavía"}
             </div>
           </div>

@@ -1,5 +1,6 @@
 "use client";
 
+import { avisarCambio } from "@/lib/avisos";
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftRight, BookmarkPlus, Check, GripVertical, Play, AlertCircle } from "lucide-react";
@@ -355,6 +356,7 @@ export default function EditorRutina({
       return false;
     }
     setDias((d) => d.map((x, i) => (i === indice ? dia : x)));
+    if (clienteId) avisarCambio(clienteId, "rutina");
     return true;
   }
 

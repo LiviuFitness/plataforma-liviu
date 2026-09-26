@@ -91,6 +91,7 @@ export default function FichaCliente({
   respuestasRapidas,
   notas,
   guias,
+  adherenciaDieta,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -124,6 +125,8 @@ export default function FichaCliente({
   respuestasRapidas: string[];
   notas: NotaCliente[];
   guias: { id: string; titulo: string }[];
+  /** % de comidas marcadas en 7 días, o null si no usa el check */
+  adherenciaDieta: number | null;
 }) {
   const router = useRouter();
   const parametros = useSearchParams();
@@ -257,6 +260,7 @@ export default function FichaCliente({
           chatPendiente={chatPendiente}
           ahora={ahora}
           abrir={abrir}
+          adherenciaDieta={adherenciaDieta}
           notasConFecha={<NotasCliente clienteId={perfil.id} nombre={perfil.nombre} notas={notas} />}
         />
       </>

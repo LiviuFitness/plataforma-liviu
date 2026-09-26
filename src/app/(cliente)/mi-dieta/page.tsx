@@ -79,7 +79,10 @@ export default async function PaginaMiDieta() {
     equivPorAlimento.set(e.alimento_id, lista);
   }
 
-  const [{ data: catalogo }, { data: exclusiones }] = await Promise.all([
+  /* Comidas marcadas hoy (fecha de Madrid: de madrugada sigue siendo
+   * el día en que se cena, no el siguiente del servidor en UTC) */
+  const hoyMadrid = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+  const [{ data: catalogo }, { data: exclusiones }, { data: hechasHoy }] = await Promise.all([
     supabase
       .from("alimentos")
       .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria")
@@ -89,6 +92,7 @@ export default async function PaginaMiDieta() {
       .from("alimentos_excluidos")
       .select("alimento_id")
       .eq("cliente_id", user.id),
+    supabase.from("comidas_hechas").select("comida").eq("cliente_id", user.id).eq("fecha", hoyMadrid),
   ]);
 
   return (
@@ -121,6 +125,11 @@ export default async function PaginaMiDieta() {
             entreno={entreno}
             descanso={descanso}
             equivalencias={equivPorAlimento}
+            registro={{
+              clienteId: user.id,
+              fecha: hoyMadrid,
+              hechas: (hechasHoy ?? []).map((h) => h.comida as string),
+            }}
           />
         </>
       )}

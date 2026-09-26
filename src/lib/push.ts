@@ -11,7 +11,7 @@ import { createClient } from "@supabase/supabase-js";
  * navegador.
  */
 
-export type TipoAviso = "mensajes" | "entreno" | "peso";
+export type TipoAviso = "mensajes" | "entreno" | "peso" | "cambios" | "revision" | "cobros";
 
 export interface Aviso {
   titulo: string;

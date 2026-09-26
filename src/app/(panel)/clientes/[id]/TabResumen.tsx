@@ -39,6 +39,7 @@ export default function TabResumen({
   ahora,
   abrir,
   notasConFecha,
+  adherenciaDieta = null,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -56,6 +57,7 @@ export default function TabResumen({
   abrir: (v: Vista) => void;
   /** Las notas con recordatorio, justo debajo de la nota fija */
   notasConFecha?: React.ReactNode;
+  adherenciaDieta?: number | null;
 }) {
   const router = useRouter();
   /* --- Notas privadas con autoguardado (debounce) --- */
@@ -208,6 +210,7 @@ export default function TabResumen({
         chatPendiente={chatPendiente}
         ahora={ahora}
         abrir={abrir}
+        adherenciaDieta={adherenciaDieta}
       />
 
       {respuestasAlta.length > 0 && (

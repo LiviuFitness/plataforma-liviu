@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BookOpen, ChevronRight, MessageCircle, Send, Zap } from "lucide-react";
+import { BookOpen, Camera, ChevronRight, MessageCircle, Send, X, Zap } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import EstadoVacio from "@/componentes/EstadoVacio";
 import VisorGuia from "@/componentes/VisorGuia";
 import { leerGuia, mensajeDeGuia } from "@/lib/guias";
 import { avisarMensaje } from "@/lib/avisos";
+import { reducirFoto } from "@/lib/fotoChat";
 import type { Mensaje } from "@/lib/tipos";
 
 const INTERVALO_SONDEO_MS = 8000;
@@ -53,6 +54,13 @@ export default function HiloChat({
   const cuadroRef = useRef<HTMLTextAreaElement>(null);
   const [guiaAbierta, setGuiaAbierta] = useState<string | null>(null);
   const [eligiendoGuia, setEligiendoGuia] = useState(false);
+  /* Fotos: ruta del bucket → URL firmada (caduca en 1 h; se piden al
+   * ver el mensaje) y la que está abierta a pantalla completa */
+  const [urlsFotos, setUrlsFotos] = useState<Record<string, string>>({});
+  const [fotoAbierta, setFotoAbierta] = useState<string | null>(null);
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [errorFoto, setErrorFoto] = useState("");
+  const selectorFoto = useRef<HTMLInputElement>(null);
   /* Las respuestas rápidas se ven con el cuadro vacío y se van en cuanto
    * se escribe: así no roban sitio a lo que estás redactando. */
   const verRapidas = respuestasRapidas.length > 0 && texto.trim() === "";
@@ -67,6 +75,63 @@ export default function HiloChat({
   }, [mensajesIniciales]);
 
   const mensajes = [...mensajesIniciales, ...pendientes];
+
+  /* Firma las fotos que aún no tienen URL */
+  const rutasSinUrl = mensajes
+    .map((m) => m.imagen)
+    .filter((r): r is string => !!r && !r.startsWith("blob:") && !urlsFotos[r]);
+  const claveRutas = rutasSinUrl.join("|");
+  useEffect(() => {
+    if (!claveRutas) return;
+    const rutas = claveRutas.split("|");
+    crearClienteNavegador()
+      .storage.from("chat")
+      .createSignedUrls(rutas, 3600)
+      .then(({ data }) => {
+        const nuevas: Record<string, string> = {};
+        (data ?? []).forEach((u, i) => u.signedUrl && (nuevas[rutas[i]] = u.signedUrl));
+        setUrlsFotos((prev) => ({ ...prev, ...nuevas }));
+      });
+  }, [claveRutas]);
+
+  async function enviarFoto(archivo: File) {
+    setErrorFoto("");
+    setSubiendoFoto(true);
+    const pie = texto.trim();
+    const local = URL.createObjectURL(archivo);
+    const temporal: Mensaje = {
+      id: `tmp-${Date.now()}`,
+      cliente_id: clienteId,
+      remitente: remitentePropio,
+      texto: pie,
+      imagen: local,
+      creado_en: new Date().toISOString(),
+    };
+    setPendientes((prev) => [...prev, temporal]);
+    setTexto("");
+    const supabase = crearClienteNavegador();
+    const ruta = `${clienteId}/${crypto.randomUUID()}.jpg`;
+    const reducida = await reducirFoto(archivo);
+    const { error: e1 } = await supabase.storage
+      .from("chat")
+      .upload(ruta, reducida, { contentType: reducida.type || "image/jpeg" });
+    const { error: e2 } = e1
+      ? { error: e1 }
+      : await supabase
+          .from("mensajes")
+          .insert({ cliente_id: clienteId, remitente: remitentePropio, texto: pie, imagen: ruta });
+    setSubiendoFoto(false);
+    if (e1 || e2) {
+      setPendientes((prev) => prev.filter((m) => m.id !== temporal.id));
+      setTexto(pie);
+      setErrorFoto("No se pudo enviar la foto. Inténtalo de nuevo.");
+      return;
+    }
+    /* La del móvil sirve mientras llega la firmada */
+    setUrlsFotos((prev) => ({ ...prev, [ruta]: local }));
+    avisarMensaje(remitentePropio === "entrenador" ? [clienteId] : []);
+    router.refresh();
+  }
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ block: "end" });
@@ -112,6 +177,8 @@ export default function HiloChat({
     router.refresh();
   }
 
+  const urlDe = (ruta: string) => (ruta.startsWith("blob:") ? ruta : (urlsFotos[ruta] ?? null));
+
   return (
     <>
       {/* Espacio para que el último mensaje no quede tapado por la
@@ -146,6 +213,25 @@ export default function HiloChat({
                   : "self-start bg-campo border border-borde-2 text-texto-2"
               }`}
             >
+              {m.imagen && (
+                <button
+                  type="button"
+                  className="block -mx-2 -mt-0.5 mb-1 cursor-zoom-in"
+                  onClick={() => setFotoAbierta(urlDe(m.imagen!))}
+                  aria-label="Ver la foto en grande"
+                >
+                  {urlDe(m.imagen) ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- URL firmada que caduca
+                    <img
+                      src={urlDe(m.imagen)!}
+                      alt="Foto del chat"
+                      className="w-[220px] max-w-full aspect-square object-cover rounded-[12px]"
+                    />
+                  ) : (
+                    <span className="block w-[220px] max-w-full aspect-square rounded-[12px] bg-black/20" />
+                  )}
+                </button>
+              )}
               {(() => {
                 const guia = leerGuia(m.texto);
                 if (!guia) return m.texto;
@@ -206,7 +292,30 @@ export default function HiloChat({
             ))}
           </div>
         )}
+        {errorFoto && (
+          <div className="text-peligro text-[12.5px] bg-fondo/95 pt-1.5">{errorFoto}</div>
+        )}
         <div className="flex gap-2 items-end bg-fondo/95 backdrop-blur-md pt-2">
+          <input
+            ref={selectorFoto}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(e) => {
+              const archivo = e.target.files?.[0];
+              e.target.value = "";
+              if (archivo) void enviarFoto(archivo);
+            }}
+          />
+          <button
+            className="mini !w-11 !h-11 shrink-0"
+            onClick={() => selectorFoto.current?.click()}
+            disabled={subiendoFoto}
+            aria-label="Mandar una foto"
+            title="Mandar una foto"
+          >
+            <Camera size={17} className={subiendoFoto ? "animate-pulse" : ""} />
+          </button>
           {guias.length > 0 && (
             <button
               className="mini !w-11 !h-11 shrink-0"
@@ -243,6 +352,19 @@ export default function HiloChat({
       </div>
 
       {guiaAbierta && <VisorGuia id={guiaAbierta} onCerrar={() => setGuiaAbierta(null)} />}
+
+      {fotoAbierta && (
+        <div
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-3 anim-fondo-aparece"
+          onClick={() => setFotoAbierta(null)}
+        >
+          <button className="absolute top-4 right-4 mini" aria-label="Cerrar la foto">
+            <X size={18} />
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element -- URL firmada que caduca */}
+          <img src={fotoAbierta} alt="Foto del chat" className="max-w-full max-h-full object-contain rounded-[10px]" />
+        </div>
+      )}
 
       {eligiendoGuia && (
         <div

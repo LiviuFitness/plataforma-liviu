@@ -16,3 +16,19 @@ export function avisarMensaje(clienteIds: string[] = []) {
     /* sin aviso no pasa nada: el mensaje está guardado */
   });
 }
+
+/**
+ * Aviso al cliente de que su rutina o su dieta ha cambiado. El servidor
+ * lo manda como mucho una vez cada 30 minutos: si editas varios días
+ * seguidos, le llega uno solo.
+ */
+export function avisarCambio(clienteId: string, que: "rutina" | "dieta") {
+  void fetch("/api/avisos/cambio", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ clienteId, que }),
+    keepalive: true,
+  }).catch(() => {
+    /* sin aviso no pasa nada: el cambio está guardado */
+  });
+}

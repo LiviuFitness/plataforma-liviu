@@ -23,6 +23,8 @@ export interface FichaRonda {
   cuestionario: { pregunta: string; respuesta: string }[];
   foto: { url: string; fecha: string } | null;
   dieta: { id: string; kcal: number } | null;
+  /** % de comidas marcadas en 7 días (null: no usa el check) */
+  dietaPct: number | null;
   sugerencia: Sugerencia | null;
   /** Ajuste ya hecho esta semana (kcal), si lo hay. */
   ajustadoEstaSemana: number | null;
@@ -173,6 +175,12 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
           <div className="text-atenuado text-[12.5px] break-words">
             {f.objetivo ?? "Sin objetivo"}
             {f.dieta ? ` · ${f.dieta.kcal.toLocaleString("es-ES")} kcal` : " · sin dieta"}
+            {f.dietaPct !== null && (
+              <span className={f.dietaPct >= 80 ? "text-verde" : f.dietaPct >= 50 ? "text-aviso" : "text-peligro"}>
+                {" "}
+                · cumple {f.dietaPct} %
+              </span>
+            )}
           </div>
         </div>
         {revisado && (

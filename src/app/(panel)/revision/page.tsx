@@ -6,6 +6,7 @@ import {
   sugerenciaAjusteKcal,
 } from "@/lib/revision";
 import RondaRevision, { type FichaRonda } from "./RondaRevision";
+import { adherenciaDieta } from "@/lib/adherenciaDieta";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +36,7 @@ export default async function PaginaRevision() {
     { data: preguntas },
     { data: respuestas },
     { data: ajustes },
+    { data: comidasHechas },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -55,7 +57,7 @@ export default async function PaginaRevision() {
       .not("cliente_id", "is", null),
     supabase
       .from("dietas")
-      .select("id, cliente_id, kcal_obj")
+      .select("id, cliente_id, kcal_obj, dieta_comidas ( id )")
       .eq("activa", true)
       .eq("tipo", "entreno")
       .not("cliente_id", "is", null),
@@ -65,6 +67,10 @@ export default async function PaginaRevision() {
       .select("cliente_id, pregunta_id, semana, respuesta")
       .in("semana", [lunes, lunesPasado]),
     supabase.from("revisiones_kcal").select("cliente_id, delta").gte("creado_en", lunes),
+    supabase
+      .from("comidas_hechas")
+      .select("cliente_id, fecha")
+      .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 14)).toLocaleDateString("sv-SE")),
   ]);
 
   const textoPregunta = new Map((preguntas ?? []).map((p) => [p.id as string, p.texto as string]));
@@ -133,6 +139,13 @@ export default async function PaginaRevision() {
       cuestionario,
       foto: foto && firmadas.has(foto.ruta) ? { url: firmadas.get(foto.ruta)!, fecha: foto.fecha } : null,
       dieta: dieta ? { id: dieta.id as string, kcal: Number(dieta.kcal_obj) } : null,
+      dietaPct: dieta
+        ? adherenciaDieta(
+            (comidasHechas ?? []).filter((h) => h.cliente_id === c.id) as { fecha: string }[],
+            ((dieta.dieta_comidas ?? []) as unknown[]).length,
+            hoyISO
+          )
+        : null,
       sugerencia,
       ajustadoEstaSemana: ajuste ? Number(ajuste.delta) : null,
     };

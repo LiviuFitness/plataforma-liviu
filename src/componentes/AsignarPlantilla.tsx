@@ -1,5 +1,6 @@
 "use client";
 
+import { avisarCambio } from "@/lib/avisos";
 import { AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -60,6 +61,7 @@ export default function AsignarPlantilla({
       setError("No se pudo aplicar la plantilla. Inténtalo de nuevo.");
       return;
     }
+    avisarCambio(clienteId, tipo === "rutina" ? "rutina" : "dieta");
     /* No se suelta el bloqueo a propósito: hasta que router.refresh()
      * repinte, otra pulsación asignaría la plantilla dos veces. */
     router.refresh();

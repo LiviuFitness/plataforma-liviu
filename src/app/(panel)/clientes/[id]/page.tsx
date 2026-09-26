@@ -5,6 +5,7 @@ import { SELECT_DIETA_COMPLETA, type Alimento, type Alternativa } from "@/lib/di
 import { resolverFotosProgreso } from "@/lib/fotosProgreso";
 import { resolverProgresoEntreno } from "@/lib/progresoEntreno";
 import type { NotaCliente } from "@/componentes/NotasCliente";
+import { adherenciaDieta } from "@/lib/adherenciaDieta";
 import FichaCliente from "./FichaCliente";
 import type {
   Alerta,
@@ -71,6 +72,7 @@ export default async function PaginaFichaCliente({
     { data: respuestasRapidas },
     { data: notas },
     { data: guias },
+    { data: comidasHechas },
   ] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", id).maybeSingle(),
     supabase
@@ -182,6 +184,11 @@ export default async function PaginaFichaCliente({
       .order("creada_en", { ascending: false })
       .limit(50),
     supabase.from("guias").select("id, titulo").order("orden").order("creada_en"),
+    supabase
+      .from("comidas_hechas")
+      .select("fecha")
+      .eq("cliente_id", id)
+      .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 14)).toLocaleDateString("sv-SE")),
   ]);
 
   if (!perfil) notFound();
@@ -243,6 +250,11 @@ export default async function PaginaFichaCliente({
       respuestasRapidas={(respuestasRapidas ?? []).map((r) => r.texto as string)}
       notas={(notas ?? []) as NotaCliente[]}
       guias={(guias ?? []) as { id: string; titulo: string }[]}
+      adherenciaDieta={adherenciaDieta(
+        (comidasHechas ?? []) as { fecha: string }[],
+        ((dieta?.dieta_comidas ?? []) as unknown[]).length,
+        new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" })
+      )}
     />
   );
 }

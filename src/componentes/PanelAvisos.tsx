@@ -1,11 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellRing, Dumbbell, MessageCircle, Scale, Share, AlertCircle } from "lucide-react";
+import { AlertCircle, BellRing, ClipboardList, Dumbbell, MessageCircle, RefreshCw, Scale, Share, Wallet } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import Switch from "@/componentes/Switch";
 
-export type Avisos = { mensajes: boolean; entreno: boolean; peso: boolean };
+export type Avisos = {
+  mensajes: boolean;
+  entreno: boolean;
+  peso: boolean;
+  cambios?: boolean;
+  revision?: boolean;
+  cobros?: boolean;
+};
 
 const CLAVE_PUBLICA = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -117,11 +124,16 @@ export default function PanelAvisos({
   }
 
   const tipos: [keyof Avisos, typeof MessageCircle, string, string][] = paraEntrenador
-    ? [["mensajes", MessageCircle, "Mensajes de tus clientes", "Al momento"]]
+    ? [
+        ["mensajes", MessageCircle, "Mensajes de tus clientes", "Al momento"],
+        ["cobros", Wallet, "Cobros", "El día que renueva alguien, por la mañana"],
+      ]
     : [
         ["mensajes", MessageCircle, "Mensajes de tu entrenador", "Al momento"],
+        ["cambios", RefreshCw, "Cambios en tu rutina o dieta", "Cuando tu entrenador los guarda"],
         ["entreno", Dumbbell, "Recordatorio de entreno", "Si llevas 2 días sin entrenar, por la mañana"],
         ["peso", Scale, "Pesarte", "Los lunes por la mañana"],
+        ["revision", ClipboardList, "Cuestionario semanal", "Los domingos, si aún no lo has contestado"],
       ];
 
   return (
@@ -160,7 +172,7 @@ export default function PanelAvisos({
                 <div className="text-[14px] font-semibold leading-tight">{titulo}</div>
                 <div className="text-atenuado text-[12px]">{detalle}</div>
               </div>
-              <Switch checked={avisos[clave]} onChange={(v) => cambiar(clave, v)} label={titulo} />
+              <Switch checked={avisos[clave] !== false} onChange={(v) => cambiar(clave, v)} label={titulo} />
             </div>
           ))}
           <button className="text-atenuado text-[12.5px] underline underline-offset-2 mt-2.5 cursor-pointer" onClick={desactivar} disabled={trabajando}>

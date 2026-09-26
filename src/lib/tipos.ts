@@ -125,6 +125,8 @@ export interface Mensaje {
   cliente_id: string;
   remitente: "cliente" | "entrenador";
   texto: string;
+  /** Ruta de la foto en el bucket "chat", si el mensaje lleva foto. */
+  imagen?: string | null;
   creado_en: string;
 }
 

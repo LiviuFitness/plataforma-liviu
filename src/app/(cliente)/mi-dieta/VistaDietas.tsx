@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Dumbbell, Footprints, UtensilsCrossed } from "lucide-react";
 import {
   itemsDeOpcion,
@@ -27,14 +28,42 @@ export default function VistaDietas({
   entreno,
   descanso,
   equivalencias,
+  registro,
 }: {
   entreno: PlanDieta | null;
   descanso: PlanDieta | null;
   equivalencias: Map<string, Alternativa[]>;
+  /** Para marcar comidas hechas (solo en la app del cliente, no en la
+   * vista previa del entrenador). */
+  registro?: { clienteId: string; fecha: string; hechas: string[] };
 }) {
   const [tipo, setTipo] = useState<"entreno" | "descanso">(
     entreno ? "entreno" : "descanso"
   );
+  const [hechas, setHechas] = useState<Set<string>>(() => new Set(registro?.hechas ?? []));
+
+  /** Se guarda al momento; si falla, vuelve a como estaba */
+  async function alternarHecha(nombre: string) {
+    if (!registro) return;
+    const estaba = hechas.has(nombre);
+    const nuevo = new Set(hechas);
+    if (estaba) nuevo.delete(nombre);
+    else nuevo.add(nombre);
+    setHechas(nuevo);
+    if (!estaba && "vibrate" in navigator) navigator.vibrate(10);
+    const supabase = crearClienteNavegador();
+    const { error } = estaba
+      ? await supabase
+          .from("comidas_hechas")
+          .delete()
+          .eq("cliente_id", registro.clienteId)
+          .eq("fecha", registro.fecha)
+          .eq("comida", nombre)
+      : await supabase
+          .from("comidas_hechas")
+          .upsert({ cliente_id: registro.clienteId, fecha: registro.fecha, comida: nombre });
+    if (error) setHechas(hechas);
+  }
   const plan = tipo === "entreno" ? entreno : descanso;
   const hayAmbas = !!entreno && !!descanso;
   const kcalAnimado = useCountUp(plan?.dieta.kcal_obj ?? 0);
@@ -154,8 +183,24 @@ export default function VistaDietas({
         </section>
       )}
 
+      {registro && comidas.length > 0 && (
+        <div className="flex items-center justify-between gap-2 mb-2.5 px-0.5">
+          <span className="text-[13px] text-texto-2">
+            <b className="text-verde">{comidas.filter((c) => hechas.has(c.nombre)).length}</b> de {comidas.length}{" "}
+            comidas hechas hoy
+          </span>
+          <span className="text-atenuado text-[12px]">Toca ✓ al terminar cada una</span>
+        </div>
+      )}
+
       {comidas.map((c) => (
-        <MiDietaComida key={c.id} comida={c} equivalencias={equivalencias} />
+        <MiDietaComida
+          key={c.id}
+          comida={c}
+          equivalencias={equivalencias}
+          hecha={hechas.has(c.nombre)}
+          onAlternarHecha={registro ? () => alternarHecha(c.nombre) : undefined}
+        />
       ))}
 
       <p className="text-atenuado text-[12.5px]">

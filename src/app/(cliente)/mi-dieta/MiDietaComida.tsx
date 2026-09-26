@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeftRight, ChevronDown, ChevronRight } from "lucide-react";
+import { ArrowLeftRight, Check, ChevronDown, ChevronRight } from "lucide-react";
 import {
   itemsDeOpcion,
   macrosDe,
@@ -42,9 +42,14 @@ interface DatosSustitucion {
 export default function MiDietaComida({
   comida,
   equivalencias,
+  hecha,
+  onAlternarHecha,
 }: {
   comida: ComidaEstructurada;
   equivalencias: Map<string, Alternativa[]>;
+  /** Marcada como hecha hoy (solo en la app del cliente). */
+  hecha?: boolean;
+  onAlternarHecha?: () => void;
 }) {
   const [expandida, setExpandida] = useState(true);
   /* Opción A o B de la comida, si tiene las dos */
@@ -85,10 +90,11 @@ export default function MiDietaComida({
          * derecha: el degradado la apaga antes de llegar al nombre y deja
          * el lado izquierdo en el velo liso de siempre, así el texto no
          * depende de lo clara que salga la imagen. */}
+        <div className="relative">
         <button
           className={`relative overflow-hidden flex items-center gap-3 px-4 pt-3.5 pb-3 w-full text-left anim-pulsable ${
             expandida ? "border-b border-borde" : ""
-          }`}
+          } ${onAlternarHecha ? "!pr-[58px]" : ""}`}
           style={{ background: velo }}
           onClick={() => setExpandida((v) => !v)}
           aria-expanded={expandida}
@@ -143,11 +149,29 @@ export default function MiDietaComida({
               {r(total.kcal)} kcal
             </span>
           )}
-          <ChevronDown
-            size={16}
-            className={`icono-rotable text-atenuado shrink-0 relative ${expandida ? "icono-rotable-abierto" : ""}`}
-          />
+          {!onAlternarHecha && (
+            <ChevronDown
+              size={16}
+              className={`icono-rotable text-atenuado shrink-0 relative ${expandida ? "icono-rotable-abierto" : ""}`}
+            />
+          )}
         </button>
+        {/* Marcar la comida como hecha: fuera del botón de plegar (un botón
+          * no puede ir dentro de otro), encima de su esquina derecha */}
+        {onAlternarHecha && (
+          <button
+            type="button"
+            className={`absolute right-3.5 top-1/2 -translate-y-1/2 w-[34px] h-[34px] rounded-full grid place-items-center border-2 transition-colors anim-pulsable ${
+              hecha ? "bg-verde border-verde text-fondo anim-pop" : "bg-fondo/60 border-verde/50 text-verde/70"
+            }`}
+            onClick={onAlternarHecha}
+            aria-pressed={!!hecha}
+            aria-label={hecha ? `Desmarcar ${comida.nombre}` : `Marcar ${comida.nombre} como hecha`}
+          >
+            <Check size={17} strokeWidth={3} />
+          </button>
+        )}
+        </div>
 
         <div className={`acordeon ${expandida ? "acordeon-abierto" : ""}`}>
           <div>

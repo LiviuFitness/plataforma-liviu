@@ -1,6 +1,7 @@
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { clienteServicio, enviarAvisos, pushDisponible } from "@/lib/push";
 import { textoVisible } from "@/lib/guias";
+import { resumenMensaje } from "@/lib/fotoChat";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +35,15 @@ export async function POST(request: Request) {
     if (ids.length === 0) return Response.json({ ok: true, enviados: 0 });
     const { data: ultimos } = await db
       .from("mensajes")
-      .select("cliente_id, texto, creado_en")
+      .select("cliente_id, texto, imagen, creado_en")
       .in("cliente_id", ids)
       .eq("remitente", "entrenador")
       .gte("creado_en", new Date(Date.now() - 5 * 60 * 1000).toISOString())
       .order("creado_en", { ascending: false });
     const texto = new Map<string, string>();
-    for (const m of ultimos ?? []) if (!texto.has(m.cliente_id)) texto.set(m.cliente_id, m.texto);
+    for (const m of ultimos ?? []) {
+      if (!texto.has(m.cliente_id)) texto.set(m.cliente_id, resumenMensaje(m.texto, m.imagen));
+    }
     const pila = String(yo.nombre ?? "Tu entrenador").split(" ")[0];
     enviados = await enviarAvisos(ids, "mensajes", (id) =>
       texto.has(id)
@@ -55,7 +58,7 @@ export async function POST(request: Request) {
   } else {
     const { data: ultimo } = await db
       .from("mensajes")
-      .select("texto")
+      .select("texto, imagen")
       .eq("cliente_id", usuario.id)
       .eq("remitente", "cliente")
       .order("creado_en", { ascending: false })
@@ -68,7 +71,7 @@ export async function POST(request: Request) {
       "mensajes",
       () => ({
         titulo: `${yo.nombre} te ha escrito`,
-        cuerpo: recortar(textoVisible(ultimo.texto)),
+        cuerpo: recortar(resumenMensaje(textoVisible(ultimo.texto), ultimo.imagen)),
         url: `/clientes/${usuario.id}?vista=chat`,
         etiqueta: `chat-${usuario.id}`,
       })
