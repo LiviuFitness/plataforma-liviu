@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft, ChevronRight, Eye, FileText } from "lucide-react";
-import { AnilloAdherencia } from "@/componentes/ui";
+import { AnilloAdherencia, Avatar } from "@/componentes/ui";
 import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
 import TabResumen from "./TabResumen";
@@ -203,7 +203,9 @@ export default function FichaCliente({
           <ArrowLeft size={14} /> Clientes
         </Link>
         <div className="flex justify-between items-center gap-3 mb-4">
-          <div className="min-w-0">
+          <div className="min-w-0 flex items-start gap-3">
+            <Avatar nombre={perfil.nombre} tamano={52} foto={perfil.avatar_url} />
+            <div className="min-w-0">
             <h1 className="h1 break-words">{perfil.nombre}</h1>
             <div className="sub !mb-0 break-words">
               {perfil.objetivo ?? "Sin objetivo"}
@@ -218,6 +220,7 @@ export default function FichaCliente({
                 {perfil.estado === "baja" ? "De baja" : "Pausado"}
               </span>
             )}
+            </div>
           </div>
           <div className="flex flex-col items-center gap-1 shrink-0">
             <AnilloAdherencia valor={adherencia} tamano={52} />
@@ -254,9 +257,8 @@ export default function FichaCliente({
           chatPendiente={chatPendiente}
           ahora={ahora}
           abrir={abrir}
+          notasConFecha={<NotasCliente clienteId={perfil.id} nombre={perfil.nombre} notas={notas} />}
         />
-
-        <NotasCliente clienteId={perfil.id} nombre={perfil.nombre} notas={notas} />
       </>
     );
   }

@@ -38,7 +38,7 @@ export default async function PaginaRevision() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nombre, objetivo, objetivo_ritmo_semanal_pct")
+      .select("id, nombre, objetivo, objetivo_ritmo_semanal_pct, avatar_url")
       .eq("rol", "cliente")
       .eq("estado", "activo")
       .order("nombre"),
@@ -122,6 +122,7 @@ export default async function PaginaRevision() {
     return {
       id: c.id as string,
       nombre: c.nombre as string,
+      avatar: (c.avatar_url as string | null) ?? null,
       objetivo: (c.objetivo as string | null) ?? null,
       pesoMedio: ultima?.mediaPeso ?? null,
       variacionPct: ultima?.variacionPct ?? null,

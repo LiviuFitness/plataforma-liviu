@@ -41,14 +41,17 @@ export function IconoTarjeta({
   );
 }
 
-/** Círculo de iniciales — identidad neutra para listas largas (panel de
- * entrenador), sin depender de una foto ni de un anillo de progreso. */
+/** Círculo con la foto del cliente si la ha subido, o sus iniciales —
+ * para las listas del panel de entrenador. */
 export function Avatar({
   nombre,
   tamano = 36,
+  foto,
 }: {
   nombre: string;
   tamano?: number;
+  /** Foto de perfil del cliente, si la ha subido. */
+  foto?: string | null;
 }) {
   const iniciales = nombre
     .trim()
@@ -58,10 +61,19 @@ export function Avatar({
     .join("");
   return (
     <span
-      className="rounded-full bg-campo border border-borde-2 text-atenuado font-bold flex items-center justify-center shrink-0"
+      className="relative rounded-full bg-campo border border-borde-2 text-atenuado font-bold flex items-center justify-center shrink-0 overflow-hidden"
       style={{ width: tamano, height: tamano, fontSize: tamano * 0.38 }}
     >
       {iniciales || "?"}
+      {/* La foto va encima de las iniciales como fondo: si no carga (la
+        * borró, sin red…) se siguen viendo las iniciales, sin icono roto */}
+      {foto && (
+        <span
+          aria-hidden
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url("${foto}")` }}
+        />
+      )}
     </span>
   );
 }

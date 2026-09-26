@@ -16,7 +16,14 @@ const kg = (n: number) => String(n).replace(".", ",");
  * semana y las siguientes, cada una sobre su propio peso). Si no lo
  * subes, deja de salir cuando deje de cumplirse.
  */
-export default function ListosSubir({ items }: { items: ListoParaSubir[] }) {
+export default function ListosSubir({
+  items,
+  fotos = {},
+}: {
+  items: ListoParaSubir[];
+  /** Foto de perfil de cada cliente por id */
+  fotos?: Record<string, string | null>;
+}) {
   const router = useRouter();
   const [subidos, setSubidos] = useState<Set<string>>(new Set());
   const [trabajando, setTrabajando] = useState<string | null>(null);
@@ -62,7 +69,7 @@ export default function ListosSubir({ items }: { items: ListoParaSubir[] }) {
           return (
             <div key={it.clave} className="fila">
               <Link href={`/clientes/${it.clienteId}?vista=entreno`} className="shrink-0">
-                <Avatar nombre={it.nombre} tamano={34} />
+                <Avatar nombre={it.nombre} tamano={34} foto={fotos[it.clienteId]} />
               </Link>
               <Link href={`/clientes/${it.clienteId}?vista=entreno`} className="flex-1 min-w-0">
                 <div className="text-[13px] leading-tight break-words">

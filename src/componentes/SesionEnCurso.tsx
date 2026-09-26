@@ -998,7 +998,7 @@ export default function SesionEnCurso({
         <div className="grid grid-cols-2 gap-3 mb-2 text-center">
           <div>
             <div className="num-grande !text-[32px] tabular-nums">
-              {tonelaje >= 1000 ? `${(tonelaje / 1000).toFixed(1)}t` : tonelajeAnimado}
+              {tonelaje >= 1000 ? `${(tonelaje / 1000).toFixed(1).replace(".", ",")} t` : tonelajeAnimado}
             </div>
             <div className="texto-secundario mt-1">
               {tonelaje >= 1000 ? "levantadas" : "kg movidos"}
@@ -1048,7 +1048,7 @@ export default function SesionEnCurso({
                 <span className="min-w-0 leading-tight break-words">{r.nombre}</span>
                 <span className="shrink-0">
                   <span className="text-atenuado">{r.antes} kg → </span>
-                  <b className="text-dorado">{r.kg} kg</b>
+                  <b className="text-dorado cifra-record text-[18px]">{String(r.kg).replace(".", ",")} kg</b>
                 </span>
               </div>
             ))}
@@ -1607,7 +1607,8 @@ export default function SesionEnCurso({
           <div className="tarjeta tarjeta-dorado anim-destello !mb-0 !py-2.5 flex items-center gap-2.5">
             <Trophy size={18} className="text-dorado shrink-0" />
             <div className="flex-1 min-w-0 text-[13px]">
-              <b>¡Nuevo récord!</b> {prToast.nombre} · {prToast.kg} kg
+              <b>¡Nuevo récord!</b> {prToast.nombre} ·{" "}
+              <span className="cifra-record text-dorado text-[16px]">{String(prToast.kg).replace(".", ",")} kg</span>
             </div>
           </div>
         </div>

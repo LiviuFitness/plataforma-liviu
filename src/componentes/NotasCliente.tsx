@@ -101,9 +101,9 @@ export default function NotasCliente({
 
   return (
     <>
-      <div className="flex items-center justify-between mt-6">
+      <div className="flex items-center justify-between mt-2">
         <div className="titulo-seccion !mb-0 flex items-center gap-1.5">
-          <StickyNote size={15} /> Notas
+          <StickyNote size={15} /> Notas con fecha
         </div>
         <button className="chip !text-acento !border-acento/40 flex items-center gap-1" onClick={() => setCreando(true)}>
           <Plus size={13} /> Nota

@@ -38,6 +38,7 @@ export default function TabResumen({
   chatPendiente,
   ahora,
   abrir,
+  notasConFecha,
 }: {
   perfil: Perfil;
   medidas: Medida[];
@@ -53,6 +54,8 @@ export default function TabResumen({
   chatPendiente: boolean;
   ahora: number;
   abrir: (v: Vista) => void;
+  /** Las notas con recordatorio, justo debajo de la nota fija */
+  notasConFecha?: React.ReactNode;
 }) {
   const router = useRouter();
   /* --- Notas privadas con autoguardado (debounce) --- */
@@ -223,7 +226,7 @@ export default function TabResumen({
 
       <section className="tarjeta">
         <div className="titulo-tarjeta flex justify-between">
-          <span>Notas del entrenador</span>
+          <span>Nota fija</span>
           <span className="text-[11px] normal-case tracking-normal">
             {estadoNotas === "guardando" && "Guardando…"}
             {estadoNotas === "ok" && "Guardado ✓"}
@@ -232,11 +235,16 @@ export default function TabResumen({
         <textarea
           className="input resize-y"
           rows={3}
-          placeholder="Escribe una nota interna… (el cliente no la ve)"
+          placeholder="Lo que no cambia: lesiones, preferencias, horarios… (el cliente no la ve)"
           value={notas}
           onChange={(e) => cambiarNotas(e.target.value)}
         />
       </section>
+
+      {/* Antes había dos sitios para notas que no se hablaban entre sí:
+        * la nota fija y las notas con fecha van juntas, antes de los
+        * datos del cliente, que se tocan una vez y ya. */}
+      {notasConFecha}
 
       {/* Los datos del cliente se rellenan una vez y luego estorban:
        * esto es la pestaña "Resumen", no un formulario. Plegado. */}

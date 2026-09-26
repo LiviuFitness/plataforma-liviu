@@ -11,6 +11,7 @@ import type { Sugerencia } from "@/lib/revision";
 export interface FichaRonda {
   id: string;
   nombre: string;
+  avatar: string | null;
   objetivo: string | null;
   /** Media de la última semana cerrada y su variación. */
   pesoMedio: number | null;
@@ -166,7 +167,7 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
       </div>
 
       <div className="flex items-center gap-3 mb-4">
-        <Avatar nombre={f.nombre} tamano={44} />
+        <Avatar nombre={f.nombre} tamano={44} foto={f.avatar} />
         <div className="min-w-0 flex-1">
           <div className="font-bold text-[20px] leading-tight break-words">{f.nombre}</div>
           <div className="text-atenuado text-[12.5px] break-words">

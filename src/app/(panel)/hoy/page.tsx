@@ -66,7 +66,7 @@ export default async function PaginaHoy() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nombre, fecha_alta, objetivo, plan")
+      .select("id, nombre, fecha_alta, objetivo, plan, avatar_url")
       .eq("rol", "cliente")
       .eq("estado", "activo")
       .order("nombre"),
@@ -151,6 +151,7 @@ export default async function PaginaHoy() {
   ]);
 
   const listaClientes = clientes ?? [];
+  const fotoDe = new Map(listaClientes.map((c) => [c.id as string, (c.avatar_url as string | null) ?? null]));
   const listaAlertas = (alertas ?? []) as Alerta[];
 
   // Adherencia media de los clientes activos
@@ -400,6 +401,7 @@ export default async function PaginaHoy() {
       cuando: cuandoRenueva(r!),
       pronto: r!.enDias <= 1,
       meses: r!.meses,
+      foto: fotoDe.get(clienteId) ?? null,
       pagoId: pago?.id ?? null,
       pagoImporte: pago?.importe ?? null,
       ultimoImporte: suyos[0]?.importe ?? null,
@@ -621,7 +623,7 @@ export default async function PaginaHoy() {
 
             {enRiesgo.map((r) => (
               <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
-                <Avatar nombre={r.nombre} tamano={34} />
+                <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.clienteId)} />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-[14.5px] leading-tight flex items-center gap-2">
                     {r.nombre}
@@ -635,7 +637,7 @@ export default async function PaginaHoy() {
 
             {listosParaAvanzar.map((a, i) => (
               <Link key={`av-${i}`} href={`/clientes/${a.cliente_id}`} className="fila">
-                <Avatar nombre={a.nombre} tamano={34} />
+                <Avatar nombre={a.nombre} tamano={34} foto={fotoDe.get(a.cliente_id)} />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-[14.5px] leading-tight">{a.nombre}</div>
                   <div className="text-texto-2 text-[12.5px] break-words">{a.mensaje}</div>
@@ -665,7 +667,7 @@ export default async function PaginaHoy() {
                 <div className="titulo-seccion">Listos para subir</div>
                 <span className="text-atenuado text-[12px]">tope del rango 2 veces</span>
               </div>
-              <ListosSubir items={listos} />
+              <ListosSubir items={listos} fotos={Object.fromEntries(fotoDe)} />
             </>
           )}
 
@@ -682,7 +684,7 @@ export default async function PaginaHoy() {
                     href={`/clientes/${r.clienteId}?vista=progreso`}
                     className="fila"
                   >
-                    <Avatar nombre={r.nombre} tamano={34} />
+                    <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.clienteId)} />
                     <div className="flex-1 min-w-0">
                       <div className="font-bold text-[14.5px] leading-tight break-words">
                         {r.nombre}
@@ -712,7 +714,7 @@ export default async function PaginaHoy() {
               <div className="superficie px-4 mb-6">
                 {esperandoRespuesta.map((c) => (
                   <Link key={c.id} href={`/clientes/${c.id}?vista=chat`} className="fila">
-                    <Avatar nombre={c.nombre} tamano={34} />
+                    <Avatar nombre={c.nombre} tamano={34} foto={fotoDe.get(c.id)} />
                     <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight">
                       {c.nombre}
                     </span>

@@ -15,6 +15,7 @@ export interface FilaRenovacion {
   cuando: string;
   pronto: boolean;
   meses: number;
+  foto: string | null;
   /** Pago ya apuntado para esta renovación (para poder deshacerlo). */
   pagoId: string | null;
   pagoImporte: number | null;
@@ -48,7 +49,7 @@ export default function RenuevanSemana({ filas }: { filas: FilaRenovacion[] }) {
         {filas.map((f) => (
           <div key={f.clienteId} className="fila !items-start">
             <Link href={`/clientes/${f.clienteId}`} className="shrink-0">
-              <Avatar nombre={f.nombre} tamano={34} />
+              <Avatar nombre={f.nombre} tamano={34} foto={f.foto} />
             </Link>
             <div className="flex-1 min-w-0">
               <Link href={`/clientes/${f.clienteId}`} className="block">

@@ -11,6 +11,7 @@ import {
 } from "@/lib/revision";
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
 import ComparadorFotos from "@/componentes/ComparadorFotos";
+import GraficaPeso from "@/componentes/GraficaPeso";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import PanelMedidas from "@/componentes/PanelMedidas";
@@ -129,10 +130,21 @@ export default function TabProgreso({
 
   const fmt = (v: number | null) => (v === null ? "—" : v);
   const fmtVariacion = (v: number | null) =>
-    v === null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(2)}%`;
+    v === null ? "—" : `${v > 0 ? "+" : ""}${v.toFixed(2).replace(".", ",")} %`;
+
+  const conPeso = medidas
+    .filter((m) => m.peso !== null)
+    .map((m) => ({ fecha: m.fecha, peso: Number(m.peso) }));
 
   return (
     <>
+      {conPeso.length >= 2 && (
+        <section className="tarjeta tarjeta-turquesa">
+          <div className="titulo-tarjeta">PESO</div>
+          <GraficaPeso medidas={conPeso} />
+        </section>
+      )}
+
       <section className="tarjeta">
         <div className="titulo-tarjeta flex justify-between">
           <span>REVISIÓN SEMANAL</span>
@@ -174,7 +186,7 @@ export default function TabProgreso({
           >
             <span>{fechaCorta(s.inicioSemana)}</span>
             <span className="font-bold text-acento">
-              {s.mediaPeso.toFixed(1)} kg
+              {s.mediaPeso.toFixed(1).replace(".", ",")} kg
               <span className="text-atenuado text-[11px]"> ({s.numRegistros})</span>
             </span>
             <span

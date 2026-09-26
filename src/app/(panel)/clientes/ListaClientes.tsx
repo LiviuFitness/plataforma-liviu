@@ -123,7 +123,9 @@ export default function ListaClientes({
 
       {mensajeVarios && (
         <HojaMensajeVarios
-          clientes={filas.filter((f) => f.activo).map((f) => ({ id: f.c.id, nombre: f.c.nombre }))}
+          clientes={filas
+            .filter((f) => f.activo)
+            .map((f) => ({ id: f.c.id, nombre: f.c.nombre, foto: f.c.avatar_url }))}
           /* Viene marcado lo que estabas viendo: con el filtro "Sin dieta"
            * puesto, el mensaje es para esos. Sin filtro, para todos. */
           preseleccion={filtrados.filter((f) => f.activo).map((f) => f.c.id)}
@@ -191,7 +193,7 @@ export default function ListaClientes({
                 href={`/clientes/${c.id}`}
                 className={`fila anim-pulsable ${activo ? "" : "opacity-60"}`}
               >
-                <Avatar nombre={c.nombre} tamano={38} />
+                <Avatar nombre={c.nombre} tamano={38} foto={c.avatar_url} />
                 <div className="flex-1 min-w-0">
                   <div className="font-bold text-[14.5px] flex items-center gap-2 leading-tight">
                     <span className="break-words min-w-0">{c.nombre}</span>

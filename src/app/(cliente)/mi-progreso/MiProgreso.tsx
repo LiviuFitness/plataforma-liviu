@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Scale } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
-import { fechaCorta, IconoTarjeta, Sparkline } from "@/componentes/ui";
+import { fechaCorta, IconoTarjeta } from "@/componentes/ui";
+import GraficaPeso from "@/componentes/GraficaPeso";
 import { aNumero } from "@/lib/rutinas";
 import { useCountUp } from "@/lib/useCountUp";
 import FotosProgreso from "@/componentes/FotosProgreso";
@@ -176,7 +177,7 @@ export default function MiProgreso({
                   className="num-grande !text-[26px]"
                   style={{ color: "var(--color-turquesa)" }}
                 >
-                  {pesoAnimado.toFixed(1)}
+                  {pesoAnimado.toFixed(1).replace(".", ",")}
                 </span>
                 <span className="text-atenuado text-[13px]">kg</span>
               </div>
@@ -185,11 +186,15 @@ export default function MiProgreso({
             )}
           </div>
           {pesos.length >= 2 && (
-            <span className="texto-secundario shrink-0">Inicio {pesos[0]} kg</span>
+            <span className="texto-secundario shrink-0">Inicio {String(pesos[0]).replace(".", ",")} kg</span>
           )}
         </div>
         <div className="mt-2 mb-3">
-          <Sparkline datos={pesos} color="var(--color-turquesa)" />
+          <GraficaPeso
+            medidas={medidas
+              .filter((m) => m.peso !== null)
+              .map((m) => ({ fecha: m.fecha, peso: Number(m.peso) }))}
+          />
         </div>
         <div className="flex gap-2">
           <input
@@ -222,7 +227,7 @@ export default function MiProgreso({
           <div className="titulo-tarjeta">ESTA SEMANA</div>
           <div className="text-[14px] text-texto-2">
             Media de peso{" "}
-            <b className="text-white">{semanaActual.mediaPeso.toFixed(1)} kg</b>
+            <b className="text-white">{semanaActual.mediaPeso.toFixed(1).replace(".", ",")} kg</b>
             {" · "}
             <span
               className={
@@ -234,7 +239,7 @@ export default function MiProgreso({
               }
             >
               {semanaActual.variacionPct > 0 ? "+" : ""}
-              {semanaActual.variacionPct.toFixed(2)}% respecto a la semana pasada
+              {semanaActual.variacionPct.toFixed(2).replace(".", ",")} % respecto a la semana pasada
             </span>
           </div>
         </section>

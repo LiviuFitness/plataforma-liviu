@@ -10,6 +10,7 @@ import { avisarMensaje } from "@/lib/avisos";
 interface Destinatario {
   id: string;
   nombre: string;
+  foto?: string | null;
 }
 
 /** "{nombre}" se cambia por el nombre de pila de cada uno. */
@@ -145,7 +146,7 @@ export default function HojaMensajeVarios({
                     onClick={() => alternar(c.id)}
                     aria-pressed={marcado}
                   >
-                    <Avatar nombre={c.nombre} tamano={30} />
+                    <Avatar nombre={c.nombre} tamano={30} foto={c.foto} />
                     <span className="flex-1 min-w-0 text-[14px] break-words">{c.nombre}</span>
                     <span
                       className={`w-[22px] h-[22px] rounded-[7px] grid place-items-center shrink-0 border ${

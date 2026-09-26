@@ -18,6 +18,8 @@ import IconoMancuerna from "@/componentes/IconoMancuerna";
 import WidgetHabitos from "./WidgetHabitos";
 import WidgetLogros from "./WidgetLogros";
 import TarjetaSemanaPasada from "./TarjetaSemanaPasada";
+import AnillosSemana from "./AnillosSemana";
+import Celebracion from "./Celebracion";
 import { resumenSemanaPasada, type SesionResumen } from "@/lib/resumenSemana";
 import { semanaHabitosCompleta } from "@/lib/habitos";
 import { logrosCumplidos } from "@/lib/logros";
@@ -361,6 +363,25 @@ export default async function PaginaInicio() {
   const hoySemana = (new Date().getDay() + 6) % 7;
   const hechosSemana = diasEntrenados.filter(Boolean).length;
 
+  /* Anillos de la semana: entrenos, hábitos (cada hábito activo, cada
+   * día que ya ha pasado, hoy incluido) y pesajes (3 por semana) */
+  const lunesISO = inicioSemana.toLocaleDateString("sv-SE");
+  const habitosActivos = (habitos ?? []).filter((h) => h.activo);
+  const idsActivos = new Set(habitosActivos.map((h) => h.id));
+  const anillos = {
+    entrenos: { hechos: hechosSemana, objetivo: objetivoSemana },
+    habitos: {
+      hechos: (registrosHabitos ?? []).filter(
+        (r) => r.completado && r.fecha >= lunesISO && idsActivos.has(r.habito_id)
+      ).length,
+      objetivo: habitosActivos.length * (hoySemana + 1),
+    },
+    pesajes: {
+      hechos: new Set(listaMedidas.filter((m) => m.fecha >= lunesISO).map((m) => m.fecha)).size,
+      objetivo: 3,
+    },
+  };
+
   /* Lunes y martes: el cierre de la semana anterior */
   const semanaPasada =
     hoySemana <= 1
@@ -466,6 +487,10 @@ export default async function PaginaInicio() {
   return (
     <>
       <MarcarAvisosVistos avisoRutina={avisoRutina} avisoDieta={avisoDieta} />
+      <Celebracion
+        nuevos={nuevosLogros}
+        semanaCumplida={objetivoSemana > 0 && hechosSemana >= objetivoSemana ? lunesISO : null}
+      />
 
       {/* 1. Saludo, con la fecha: es lo que da sentido a "tu entreno de hoy" */}
       <div className="text-atenuado text-[13px] first-letter:uppercase">{fechaHoy}</div>
@@ -575,6 +600,8 @@ export default async function PaginaInicio() {
           </p>
         </section>
       )}
+
+      {proximoDia && <AnillosSemana datos={anillos} />}
 
       {semanaPasada && <TarjetaSemanaPasada r={semanaPasada} />}
 

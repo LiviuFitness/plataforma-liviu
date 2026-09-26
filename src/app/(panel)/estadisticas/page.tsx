@@ -24,7 +24,7 @@ function mesesEntre(desde: string, hasta: string): number {
 export default async function PaginaEstadisticas() {
   const supabase = await crearClienteServidor();
   const [{ data: clientes }, { data: pagos }] = await Promise.all([
-    supabase.from("profiles").select("id, nombre, fecha_alta, estado").eq("rol", "cliente"),
+    supabase.from("profiles").select("id, nombre, fecha_alta, estado, avatar_url").eq("rol", "cliente"),
     supabase.from("pagos").select("importe, fecha"),
   ]);
 
@@ -69,7 +69,13 @@ export default async function PaginaEstadisticas() {
       const alta = String(c.fecha_alta).slice(0, 10);
       const [a, m] = alta.split("-").map(Number);
       const meses = (hoy.getFullYear() - a) * 12 + (hoy.getMonth() + 1 - m);
-      return { id: c.id as string, nombre: c.nombre as string, meses, dia: Number(alta.slice(8)) };
+      return {
+        id: c.id as string,
+        nombre: c.nombre as string,
+        foto: (c.avatar_url as string | null) ?? null,
+        meses,
+        dia: Number(alta.slice(8)),
+      };
     })
     .filter((x) => x.meses === 3 || x.meses === 6 || (x.meses >= 12 && x.meses % 6 === 0))
     .sort((a, b) => a.dia - b.dia);
@@ -166,7 +172,7 @@ export default async function PaginaEstadisticas() {
           <div className="superficie px-4 mb-6">
             {aniversarios.map((a) => (
               <Link key={a.id} href={`/clientes/${a.id}`} className="fila">
-                <Avatar nombre={a.nombre} tamano={30} />
+                <Avatar nombre={a.nombre} tamano={30} foto={a.foto} />
                 <span className="flex-1 min-w-0 text-[14px] break-words">
                   {a.nombre}
                   <span className="text-atenuado text-[12px]"> · el {a.dia}</span>

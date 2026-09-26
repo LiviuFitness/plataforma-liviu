@@ -1,4 +1,4 @@
-import { ACENTO, DORADO, FUENTE, cargarImagen, lineas, redondeado } from "@/lib/tarjetaEntreno";
+import { ACENTO, CIFRAS, DORADO, FUENTE, cargarImagen, lineas, redondeado } from "@/lib/tarjetaEntreno";
 import type { DatosInforme } from "@/lib/informeProgreso";
 
 /**
@@ -56,6 +56,8 @@ export async function generarTarjetaInforme(d: DatosInforme): Promise<Blob | nul
     await Promise.all([
       document.fonts.load(`800 80px ${FUENTE}`),
       document.fonts.load(`600 34px ${FUENTE}`),
+      document.fonts.load(`700 72px ${CIFRAS}`),
+      document.fonts.load(`italic 800 40px ${CIFRAS}`),
     ]);
   } catch {
     /* sin la fuente se dibuja con la de sistema */
@@ -145,11 +147,11 @@ export async function generarTarjetaInforme(d: DatosInforme): Promise<Blob | nul
     ctx.strokeStyle = "#1e252b";
     ctx.lineWidth = 3;
     ctx.stroke();
-    let tam = hayFotos ? 58 : 72;
-    ctx.font = `800 ${tam}px ${FUENTE}`;
-    while (ctx.measureText(valor).width > anchoC - 60 && tam > 34) {
+    let tam = hayFotos ? 70 : 88;
+    ctx.font = `700 ${tam}px ${CIFRAS}`;
+    while (ctx.measureText(valor).width > anchoC - 60 && tam > 40) {
       tam -= 2;
-      ctx.font = `800 ${tam}px ${FUENTE}`;
+      ctx.font = `700 ${tam}px ${CIFRAS}`;
     }
     ctx.fillStyle = "#ffffff";
     ctx.fillText(valor, x + 30, y + altoC / 2 + 8);
@@ -181,7 +183,7 @@ export async function generarTarjetaInforme(d: DatosInforme): Promise<Blob | nul
     ctx.letterSpacing = "0px";
     lista.forEach((r, i) => {
       const yl = y + 112 + i * 56;
-      ctx.font = `800 34px ${FUENTE}`;
+      ctx.font = `italic 800 40px ${CIFRAS}`;
       const kg = `${coma(r.antes)} → ${coma(r.ahora)} kg`;
       const anchoKg = ctx.measureText(kg).width;
       ctx.fillStyle = DORADO;

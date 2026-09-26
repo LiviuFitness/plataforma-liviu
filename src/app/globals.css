@@ -33,6 +33,9 @@
   /* Tipografía limpia única: Inter (variable, self-hosted) */
   --font-display: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
   --font-cuerpo: "Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif;
+  /* Solo para cifras grandes (kg, kcal, euros, cuentas): condensada y
+   * deportiva, a juego con el logo en cursiva. El texto sigue en Inter. */
+  --font-cifras: "Barlow Condensed", "Inter Variable", "Inter", -apple-system, sans-serif;
 }
 
 /* Resplandor ambiental de la marca. Antes era un solo foco al 10% por
@@ -102,10 +105,18 @@ body {
     letter-spacing: -0.4px;
   }
   .num-grande {
-    font-family: var(--font-display);
+    font-family: var(--font-cifras);
+    font-weight: 700;
+    font-size: 26px;
+    letter-spacing: 0.2px;
+    line-height: 1.05;
+  }
+  /* Récords: la misma cifra, en cursiva y más gruesa, como el logo */
+  .cifra-record {
+    font-family: var(--font-cifras);
     font-weight: 800;
-    font-size: 24px;
-    letter-spacing: -0.3px;
+    font-style: italic;
+    letter-spacing: 0.3px;
   }
   .serifa {
     color: var(--color-atenuado);
@@ -870,6 +881,46 @@ body {
   .anim-pulsable:active {
     transform: scale(0.97);
   }
+}
+
+/* Celebración: halo dorado que gira despacio detrás de la medalla */
+@keyframes brillo-girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.celebracion-brillo {
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    rgba(226, 180, 41, 0.55),
+    transparent 30%,
+    transparent 50%,
+    rgba(226, 180, 41, 0.4),
+    transparent 80%
+  );
+  filter: blur(6px);
+  animation: brillo-girar 6s linear infinite;
+}
+
+/* Cambio de pantalla: fundido corto (ver template.tsx) */
+@keyframes pagina-entrar {
+  from {
+    opacity: 0;
+  }
+}
+.anim-pagina {
+  animation: pagina-entrar 0.22s ease-out;
+}
+
+/* Anillos de la semana: se llenan al entrar */
+@keyframes anillo-llenar {
+  from {
+    stroke-dasharray: 0 var(--c);
+  }
+}
+.anillo-progreso {
+  animation: anillo-llenar 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

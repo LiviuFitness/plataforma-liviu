@@ -19,6 +19,8 @@ export interface DatosTarjeta {
 const ANCHO = 1080;
 const ALTO = 1920;
 export const FUENTE = '"Inter Variable", "Inter", -apple-system, "Segoe UI", sans-serif';
+/** Cifras grandes: la condensada deportiva de la app */
+export const CIFRAS = '"Barlow Condensed", "Inter Variable", "Inter", -apple-system, sans-serif';
 export const ACENTO = "#29abe2";
 export const DORADO = "#e2b429";
 
@@ -93,6 +95,8 @@ export async function generarTarjetaEntreno(d: DatosTarjeta): Promise<Blob | nul
     await Promise.all([
       document.fonts.load(`800 120px ${FUENTE}`),
       document.fonts.load(`600 40px ${FUENTE}`),
+      document.fonts.load(`700 96px ${CIFRAS}`),
+      document.fonts.load(`italic 800 40px ${CIFRAS}`),
     ]);
   } catch {
     /* sin la fuente se dibuja con la de sistema: la tarjeta sigue saliendo */
@@ -164,11 +168,11 @@ export async function generarTarjetaEntreno(d: DatosTarjeta): Promise<Blob | nul
     ctx.lineWidth = 3;
     ctx.stroke();
     ctx.fillStyle = "#ffffff";
-    let tam = 76;
-    ctx.font = `800 ${tam}px ${FUENTE}`;
-    while (ctx.measureText(valor).width > anchoCelda - PAD * 2 && tam > 40) {
+    let tam = 96;
+    ctx.font = `700 ${tam}px ${CIFRAS}`;
+    while (ctx.measureText(valor).width > anchoCelda - PAD * 2 && tam > 48) {
       tam -= 2;
-      ctx.font = `800 ${tam}px ${FUENTE}`;
+      ctx.font = `700 ${tam}px ${CIFRAS}`;
     }
     ctx.fillText(valor, x + PAD, yc + 100);
     ctx.fillStyle = "#8a949c";
@@ -200,7 +204,7 @@ export async function generarTarjetaEntreno(d: DatosTarjeta): Promise<Blob | nul
     ctx.letterSpacing = "0px";
     lista.forEach((r, i) => {
       const yl = y + 132 + i * 66;
-      ctx.font = `800 38px ${FUENTE}`;
+      ctx.font = `italic 800 46px ${CIFRAS}`;
       const kg = kgTexto(r.kg);
       const anchoKg = ctx.measureText(kg).width;
       ctx.fillStyle = DORADO;
