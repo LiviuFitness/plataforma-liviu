@@ -317,7 +317,17 @@ export async function POST(request: Request) {
   const { data: guardados, error } = await clienteServicio()
     .from("asistente_mensajes")
     .insert([
-      { cliente_id: usuario.id, rol: "cliente", texto: pregunta, creado_en: new Date(ahora).toISOString() },
+      /* Las dos filas con las mismas columnas: al insertar varias a la vez,
+       * lo que falta en una llega como NULL (no como su valor por defecto)
+       * y "derivado" no admite NULL — se perdían las dos. */
+      {
+        cliente_id: usuario.id,
+        rol: "cliente",
+        texto: pregunta,
+        alternativas: null,
+        derivado: false,
+        creado_en: new Date(ahora).toISOString(),
+      },
       {
         cliente_id: usuario.id,
         rol: "asistente",
