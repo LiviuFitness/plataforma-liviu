@@ -74,7 +74,7 @@ export default async function PaginaSesion({
   if (!user) redirect("/login");
 
   // RLS garantiza que el cliente solo puede leer días de SU rutina
-  const [{ data: dia }, { data: previas }] = await Promise.all([
+  const [{ data: dia }, { data: previas }, { data: perfilComunidad }] = await Promise.all([
     supabase
       .from("rutina_dias")
       .select(
@@ -98,6 +98,7 @@ export default async function PaginaSesion({
       .eq("cliente_id", user.id)
       .order("fecha_inicio", { ascending: false })
       .limit(30),
+    supabase.from("profiles").select("visible_en_comunidad").eq("id", user.id).maybeSingle(),
   ]);
 
   if (!dia) notFound();
@@ -254,6 +255,7 @@ export default async function PaginaSesion({
   return (
     <SesionEnCurso
       conIA={!!process.env.ANTHROPIC_API_KEY}
+      visibleComunidad={perfilComunidad?.visible_en_comunidad === true}
       clienteId={user.id}
       diaId={dia.id}
       nombreDia={dia.nombre}

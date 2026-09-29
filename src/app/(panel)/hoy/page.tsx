@@ -10,6 +10,7 @@ import {
   TrendingDown,
   TrendingUp,
   Trophy,
+  Users,
 } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar, IconoTarjeta, PuntoEstado } from "@/componentes/ui";
@@ -71,6 +72,7 @@ export default async function PaginaHoy() {
     { data: rutinasActivas },
     { data: sesionesSeries },
     { data: comidasRecientes },
+    { count: compartidos },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -162,7 +164,13 @@ export default async function PaginaHoy() {
       .select("cliente_id, fecha")
       .gte("fecha", new Date(new Date().setDate(new Date().getDate() - 21)).toLocaleDateString("sv-SE"))
       .limit(5000),
+    /* Entrenos compartidos en la comunidad en 7 días */
+    supabase
+      .from("entrenos_compartidos")
+      .select("id", { count: "exact", head: true })
+      .gte("creado_en", new Date(new Date().setDate(new Date().getDate() - 7)).toISOString()),
   ]);
+  const compartidosSemana = compartidos ?? 0;
 
   const listaClientes = clientes ?? [];
   const fotoDe = new Map(listaClientes.map((c) => [c.id as string, (c.avatar_url as string | null) ?? null]));
@@ -750,6 +758,16 @@ export default async function PaginaHoy() {
         </div>
 
         <div>
+          {compartidosSemana > 0 && (
+            <Link href="/muro" className="fila anim-pulsable !py-3 mb-4">
+              <Users size={17} className="text-acento shrink-0" />
+              <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
+                {compartidosSemana} {compartidosSemana === 1 ? "entreno compartido" : "entrenos compartidos"} en la comunidad esta semana
+              </div>
+              <ChevronRight size={16} className="text-atenuado shrink-0" />
+            </Link>
+          )}
+
           <div className="titulo-seccion">La semana</div>
           <div className="superficie px-4 mb-6">
             {listaClientes.length === 0 ? (

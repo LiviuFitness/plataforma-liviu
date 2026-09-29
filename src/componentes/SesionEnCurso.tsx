@@ -21,6 +21,7 @@ import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import BarraDescanso from "@/componentes/BarraDescanso";
 import HojaCoachEntreno from "@/componentes/HojaCoachEntreno";
+import CompartirComunidad, { leerOpcionesCompartir, type OpcionesCompartir } from "@/componentes/CompartirComunidad";
 import HojaTarjetaEntreno from "@/componentes/HojaTarjetaEntreno";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
@@ -343,6 +344,7 @@ export default function SesionEnCurso({
   analisisHref = "/mi-progreso",
   avisarSiDuplicada = false,
   conIA = false,
+  visibleComunidad,
 }: {
   clienteId: string;
   diaId: string;
@@ -367,6 +369,8 @@ export default function SesionEnCurso({
   avisarSiDuplicada?: boolean;
   /** "Pregúntame" (IA) en cada ejercicio: solo el cliente, si la IA está activa */
   conIA?: boolean;
+  /** Si es visible en la comunidad (solo el cliente: sin esto no se ofrece compartir) */
+  visibleComunidad?: boolean;
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
@@ -396,6 +400,12 @@ export default function SesionEnCurso({
   const [historialPara, setHistorialPara] = useState<number | null>(null);
   const [notaPara, setNotaPara] = useState<number | null>(null);
   const [coachPara, setCoachPara] = useState<number | null>(null);
+  /* Compartir en la comunidad al guardar (lo último elegido en este móvil) */
+  const [visible, setVisible] = useState(!!visibleComunidad);
+  const [compartir, setCompartir] = useState<OpcionesCompartir>(() =>
+    typeof window === "undefined" ? { activo: true, kilos: false, mensaje: "" } : leerOpcionesCompartir()
+  );
+  const fechaGuardada = useRef<string | null>(null);
   /* Notas propias editadas en esta sesión (ejercicioId → texto) */
   const [notasEditadas, setNotasEditadas] = useState<Record<string, string | null>>({});
 
@@ -877,7 +887,8 @@ export default function SesionEnCurso({
       }
     }
 
-    const fechaInicio = new Date(inicio ?? Date.now()).toISOString();
+    const fechaInicio = (inicio !== null ? new Date(inicio) : new Date()).toISOString();
+    fechaGuardada.current = fechaInicio;
     const haySustitutos = ejercicios.some((e) => e.sustituto);
     const paquete: SesionParaSubir = {
       id: `${clienteId}:${fechaInicio}`,
@@ -942,10 +953,32 @@ export default function SesionEnCurso({
       setAccionGuardando(null);
       return;
     }
+    await publicarEnComunidad();
     /* No se limpia el estado a propósito: los botones siguen bloqueados
      * mientras Next prepara la pantalla de destino. */
     router.push(destino);
     router.refresh();
+  }
+
+  /** Publica el entreno ya guardado. Si falla, no pasa nada: el entreno
+   * está guardado igual. */
+  async function publicarEnComunidad() {
+    if (visibleComunidad === undefined || nombreCliente || !visible || !compartir.activo || completadas === 0) return;
+    if (!fechaGuardada.current) return;
+    await crearClienteNavegador()
+      .rpc("compartir_entreno", {
+        p_fecha_inicio: fechaGuardada.current,
+        p_nombre_dia: nombreDia,
+        p_duracion_seg: transcurrido,
+        p_series: completadas,
+        p_tonelaje_kg: compartir.kilos ? Math.round(tonelaje) : null,
+        p_records: records.map((r) => ({ nombre: r.nombre, kg: compartir.kilos ? r.kg : null })),
+        p_mensaje: compartir.mensaje.trim() || null,
+      })
+      .then(
+        () => {},
+        () => {}
+      );
   }
 
   function salir() {
@@ -1130,6 +1163,15 @@ export default function SesionEnCurso({
             <Sparkles size={15} className="text-acento shrink-0 mt-0.5" />
             <span>{insight}</span>
           </div>
+        )}
+
+        {!nombreCliente && visibleComunidad !== undefined && completadas > 0 && (
+          <CompartirComunidad
+            visible={visible}
+            onVisible={() => setVisible(true)}
+            opciones={compartir}
+            onCambio={setCompartir}
+          />
         )}
 
         {/* Solo el cliente: compartir su entreno en historias. En la

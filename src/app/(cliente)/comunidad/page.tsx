@@ -8,6 +8,8 @@ import EstadoVacio from "@/componentes/EstadoVacio";
 import GridLogros from "@/componentes/GridLogros";
 import RetoMes from "./RetoMes";
 
+import PestanasComunidad from "./PestanasComunidad";
+import MuroEntrenos, { type EntrenoMuro } from "@/componentes/MuroEntrenos";
 export const dynamic = "force-dynamic";
 
 const ETIQUETA_LOGRO = new Map(CATALOGO_LOGROS.map((l) => [l.clave, l]));
@@ -38,6 +40,7 @@ export default async function PaginaComunidad() {
     { data: reto },
     { data: misSesiones },
     { data: rutina },
+    { data: muro },
   ] = await Promise.all([
     supabase.from("profiles").select("visible_en_comunidad").eq("id", user.id).maybeSingle(),
     supabase.from("logros_desbloqueados").select("clave").eq("cliente_id", user.id),
@@ -58,6 +61,7 @@ export default async function PaginaComunidad() {
       .order("creada_en", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase.from("v_comunidad_entrenos").select("*"),
   ]);
 
   /* Mi reto: mis días entrenados este mes frente a mi objetivo */
@@ -88,74 +92,91 @@ export default async function PaginaComunidad() {
         </div>
       )}
 
-      <RetoMes
-        hoyISO={hoyMadrid}
-        misEntrenos={misDias}
-        miObjetivo={miObjetivo}
-        yoId={user.id}
-        participantes={((reto ?? []) as { cliente_id: string; nombre: string; entrenos: number; objetivo: number }[])}
-      />
-
-      <GridLogros desbloqueados={[...misClaves]} />
-
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">RANKING DE CONSTANCIA · 4 SEMANAS</div>
-        {ranking && ranking.length > 0 ? (
-          <div className="flex flex-col gap-2.5">
-            {ranking.map((r, i) => (
-              <div key={r.cliente_id} className="flex items-center gap-3">
-                <span className="text-atenuado text-[13px] w-4 shrink-0 tabular-nums">
-                  {i + 1}
-                </span>
-                <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight break-words">
-                  {r.cliente_id === user.id ? "Tú" : r.nombre}
-                </span>
-                <AnilloAdherencia valor={r.adherencia} tamano={32} />
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EstadoVacio
-            Icono={Users}
-            titulo="Todavía no hay datos suficientes"
-            descripcion="En cuanto varios clientes lleven unas semanas registrando entrenos, aquí aparecerá el ranking de constancia."
+      <PestanasComunidad
+        entrenos={
+          <MuroEntrenos
+            iniciales={(muro ?? []) as EntrenoMuro[]}
+            yoId={user.id}
+            puedoReaccionar={perfil?.visible_en_comunidad === true}
           />
-        )}
-      </section>
+        }
+        reto={
+          <>
+            <RetoMes
+              hoyISO={hoyMadrid}
+              misEntrenos={misDias}
+              miObjetivo={miObjetivo}
+              yoId={user.id}
+              participantes={((reto ?? []) as { cliente_id: string; nombre: string; entrenos: number; objetivo: number }[])}
+            />
 
-      <section className="tarjeta">
-        <div className="titulo-tarjeta">ÚLTIMOS LOGROS DE LA COMUNIDAD</div>
-        {feed && feed.length > 0 ? (
-          <div className="flex flex-col">
-            {feed.map((f) => {
-              const info = ETIQUETA_LOGRO.get(f.clave);
-              return (
-                <div
-                  key={f.id}
-                  className="flex items-center gap-2.5 py-2 border-b border-borde last:border-0"
-                >
-                  {info && (
-                    <info.Icono size={17} strokeWidth={1.75} className="text-dorado shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0 text-[13.5px]">
-                    <b>{f.nombre}</b> consiguió: {info?.etiqueta ?? f.clave}
-                  </div>
-                  <span className="text-atenuado text-[11.5px] shrink-0">
-                    {haceCuanto(f.creado_en)}
-                  </span>
+            <section className="tarjeta">
+              <div className="titulo-tarjeta">RANKING DE CONSTANCIA · 4 SEMANAS</div>
+              {ranking && ranking.length > 0 ? (
+                <div className="flex flex-col gap-2.5">
+                  {ranking.map((r, i) => (
+                    <div key={r.cliente_id} className="flex items-center gap-3">
+                      <span className="text-atenuado text-[13px] w-4 shrink-0 tabular-nums">
+                        {i + 1}
+                      </span>
+                      <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight break-words">
+                        {r.cliente_id === user.id ? "Tú" : r.nombre}
+                      </span>
+                      <AnilloAdherencia valor={r.adherencia} tamano={32} />
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <EstadoVacio
-            Icono={Trophy}
-            color="var(--color-dorado)"
-            titulo="Todavía no hay logros compartidos"
-            descripcion="Cuando algún cliente de la comunidad desbloquee un logro, aparecerá aquí."
-          />
-        )}
-      </section>
+              ) : (
+                <EstadoVacio
+                  Icono={Users}
+                  titulo="Todavía no hay datos suficientes"
+                  descripcion="En cuanto varios clientes lleven unas semanas registrando entrenos, aquí aparecerá el ranking de constancia."
+                />
+              )}
+            </section>
+
+          </>
+        }
+        logros={
+          <>
+            <GridLogros desbloqueados={[...misClaves]} />
+
+            <section className="tarjeta">
+              <div className="titulo-tarjeta">ÚLTIMOS LOGROS DE LA COMUNIDAD</div>
+              {feed && feed.length > 0 ? (
+                <div className="flex flex-col">
+                  {feed.map((f) => {
+                    const info = ETIQUETA_LOGRO.get(f.clave);
+                    return (
+                      <div
+                        key={f.id}
+                        className="flex items-center gap-2.5 py-2 border-b border-borde last:border-0"
+                      >
+                        {info && (
+                          <info.Icono size={17} strokeWidth={1.75} className="text-dorado shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0 text-[13.5px]">
+                          <b>{f.nombre}</b> consiguió: {info?.etiqueta ?? f.clave}
+                        </div>
+                        <span className="text-atenuado text-[11.5px] shrink-0">
+                          {haceCuanto(f.creado_en)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <EstadoVacio
+                  Icono={Trophy}
+                  color="var(--color-dorado)"
+                  titulo="Todavía no hay logros compartidos"
+                  descripcion="Cuando algún cliente de la comunidad desbloquee un logro, aparecerá aquí."
+                />
+              )}
+            </section>
+          </>
+        }
+      />
     </>
   );
 }

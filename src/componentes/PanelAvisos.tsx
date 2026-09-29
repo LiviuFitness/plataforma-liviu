@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, BellRing, ClipboardList, Dumbbell, MessageCircle, RefreshCw, Scale, Share, Wallet } from "lucide-react";
+import { AlertCircle, BellRing, ClipboardList, Dumbbell, Flame, MessageCircle, RefreshCw, Scale, Share, Wallet } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import Switch from "@/componentes/Switch";
 
@@ -12,6 +12,7 @@ export type Avisos = {
   cambios?: boolean;
   revision?: boolean;
   cobros?: boolean;
+  comunidad?: boolean;
 };
 
 const CLAVE_PUBLICA = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
@@ -134,6 +135,7 @@ export default function PanelAvisos({
         ["entreno", Dumbbell, "Recordatorio de entreno", "Si llevas 2 días sin entrenar, por la mañana"],
         ["peso", Scale, "Pesarte", "Los lunes por la mañana"],
         ["revision", ClipboardList, "Cuestionario semanal", "Los domingos, si aún no lo has contestado"],
+        ["comunidad", Flame, "Reacciones a tus entrenos", "Cuando alguien reacciona a lo que compartes"],
       ];
 
   return (
