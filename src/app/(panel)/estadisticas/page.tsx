@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar } from "@/componentes/ui";
+import GastoIA from "@/componentes/GastoIA";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +24,14 @@ function mesesEntre(desde: string, hasta: string): number {
  */
 export default async function PaginaEstadisticas() {
   const supabase = await crearClienteServidor();
-  const [{ data: clientes }, { data: pagos }] = await Promise.all([
+  /* Gasto de la IA: este mes y el pasado */
+  const ahoraIA = new Date();
+  const inicioMesIA = new Date(ahoraIA.getFullYear(), ahoraIA.getMonth(), 1);
+  const inicioPasadoIA = new Date(ahoraIA.getFullYear(), ahoraIA.getMonth() - 1, 1);
+  const [{ data: clientes }, { data: pagos }, { data: usoIA }] = await Promise.all([
     supabase.from("profiles").select("id, nombre, fecha_alta, estado, avatar_url").eq("rol", "cliente"),
     supabase.from("pagos").select("importe, fecha"),
+    supabase.from("ia_uso").select("etiqueta, coste_usd, creado_en").gte("creado_en", inicioPasadoIA.toISOString()),
   ]);
 
   const hoy = new Date();
@@ -165,6 +171,16 @@ export default async function PaginaEstadisticas() {
           ))}
         </div>
       </section>
+
+      {process.env.ANTHROPIC_API_KEY && (
+        <GastoIA
+          filas={(usoIA ?? []).filter((u) => new Date(u.creado_en as string) >= inicioMesIA) as { etiqueta: string; coste_usd: number }[]}
+          mesPasado={(usoIA ?? [])
+            .filter((u) => new Date(u.creado_en as string) < inicioMesIA)
+            .reduce((a, u) => a + Number(u.coste_usd), 0)}
+          nombreMes={nombreMes}
+        />
+      )}
 
       {aniversarios.length > 0 && (
         <>

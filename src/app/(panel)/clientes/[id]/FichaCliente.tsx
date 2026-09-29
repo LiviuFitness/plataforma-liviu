@@ -9,6 +9,8 @@ import EditorRutina from "@/componentes/EditorRutina";
 import EditorDieta from "@/componentes/EditorDieta";
 import TabResumen from "./TabResumen";
 import TabProgreso from "./TabProgreso";
+import HistorialAjustes from "./HistorialAjustes";
+import SiguienteMesociclo from "@/componentes/SiguienteMesociclo";
 import TabHabitos from "./TabHabitos";
 import HiloChat from "@/componentes/HiloChat";
 import VistaComoCliente from "@/componentes/VistaComoCliente";
@@ -318,6 +320,10 @@ export default function FichaCliente({
         />
       )}
 
+      {vista === "entreno" && rutina && !editandoDia && (
+        <SiguienteMesociclo rutina={rutina} clienteId={perfil.id} />
+      )}
+
       {vista === "entreno" && (
         <EditorRutina
           rutina={rutina}
@@ -381,6 +387,7 @@ export default function FichaCliente({
               objetivo: perfil.objetivo,
             }}
           />
+          <HistorialAjustes revisiones={revisiones} medidas={medidas} />
         </>
       )}
 

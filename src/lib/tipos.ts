@@ -140,6 +140,15 @@ export interface RevisionKcal {
   delta: number;
   motivo: string | null;
   creado_en: string;
+  /** Alimentos que cambiaron (ajustes en gramos, desde oct 2026) */
+  cambios?: {
+    tipo: "entreno" | "descanso";
+    comida: string;
+    alimento: string;
+    opcion: 0 | 1;
+    antes: number;
+    despues: number;
+  }[] | null;
 }
 
 /** Pregunta del cuestionario semanal (configurable por el entrenador). */

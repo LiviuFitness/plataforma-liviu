@@ -42,7 +42,14 @@ interface FilaDia {
 export async function copiarRutina(
   supabase: Supabase,
   rutinaId: string,
-  destino: { nombre: string; cliente_id: string | null; es_plantilla: boolean; activa: boolean }
+  destino: { nombre: string; cliente_id: string | null; es_plantilla: boolean; activa: boolean },
+  opciones: {
+    /** Semana en la que empieza la copia (por defecto, la del original) */
+    semanaInicial?: number;
+    /** Factor por el que multiplicar los kg pautados de cada ejercicio
+     * (ejercicio_id → factor): "siguiente mesociclo" */
+    factorKg?: Map<string, number>;
+  } = {}
 ): Promise<string | null> {
   const { data: origen, error } = await supabase
     .from("rutinas")
@@ -62,7 +69,7 @@ export async function copiarRutina(
       ...destino,
       notas: origen.notas,
       /* Una plantilla empieza siempre por la semana 1 */
-      semana_actual: destino.es_plantilla ? 1 : origen.semana_actual,
+      semana_actual: opciones.semanaInicial ?? (destino.es_plantilla ? 1 : origen.semana_actual),
     })
     .select("id")
     .single();
@@ -124,7 +131,12 @@ export async function copiarRutina(
   const idEj = new Map(ejNuevos.map((e) => [`${e.dia_id}:${e.orden}`, e.id as string]));
 
   const series = ejercicios.flatMap(({ dia, e, i }) =>
-    (e.series_prescritas ?? []).map((s) => ({ ...s, rutina_ejercicio_id: idEj.get(`${dia}:${i}`)! }))
+    (e.series_prescritas ?? []).map((s) => {
+      const f = opciones.factorKg?.get(e.ejercicio_id);
+      /* Kilos redondeados al medio kilo */
+      const kg = f && s.kg !== null ? Math.round(Number(s.kg) * f * 2) / 2 : s.kg;
+      return { ...s, kg, rutina_ejercicio_id: idEj.get(`${dia}:${i}`)! };
+    })
   );
   if (series.length > 0) {
     const { error: e4 } = await supabase.from("series_prescritas").insert(series);
