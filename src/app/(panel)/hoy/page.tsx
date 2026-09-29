@@ -11,6 +11,9 @@ import {
   TrendingUp,
   Trophy,
   Users,
+  Dumbbell,
+  ListChecks,
+  UtensilsCrossed,
 } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar, IconoTarjeta, PuntoEstado } from "@/componentes/ui";
@@ -24,6 +27,7 @@ import RenuevanSemana, { type FilaRenovacion } from "./RenuevanSemana";
 import ListosSubir from "./ListosSubir";
 import MensajesSugeridos from "./MensajesSugeridos";
 import Recordatorios, { type Recordatorio } from "./Recordatorios";
+import GrupoPanel from "@/componentes/GrupoPanel";
 
 interface RecordSemana {
   cliente_id: string;
@@ -73,6 +77,7 @@ export default async function PaginaHoy() {
     { data: sesionesSeries },
     { data: comidasRecientes },
     { count: compartidos },
+    { data: rutinasMeso },
   ] = await Promise.all([
     supabase
       .from("profiles")
@@ -169,10 +174,46 @@ export default async function PaginaHoy() {
       .from("entrenos_compartidos")
       .select("id", { count: "exact", head: true })
       .gte("creado_en", new Date(new Date().setDate(new Date().getDate() - 7)).toISOString()),
+    /* Mesociclos: semanas de cada rutina activa, para ver quién termina */
+    supabase
+      .from("rutinas")
+      .select("id, nombre, semana_actual, cliente_id, rutina_dias ( id, semana )")
+      .eq("activa", true)
+      .eq("es_plantilla", false)
+      .not("cliente_id", "is", null),
   ]);
   const compartidosSemana = compartidos ?? 0;
 
   const listaClientes = clientes ?? [];
+
+  /* Terminan mesociclo: en la penúltima semana de una rutina de 4 o más
+   * (o ya en la última). Se quita solo al cambiarle la rutina. */
+  const activosIds = new Set(listaClientes.map((c) => c.id as string));
+  const rutinasFin = (rutinasMeso ?? [])
+    .map((r) => {
+      const dias = (r.rutina_dias ?? []) as { id: string; semana: number }[];
+      return { ...r, dias, total: Math.max(0, ...dias.map((d) => d.semana)) };
+    })
+    .filter((r) => activosIds.has(r.cliente_id as string) && r.total >= 4 && Number(r.semana_actual) >= r.total - 1);
+  const diasPenultima = rutinasFin.flatMap((r) => r.dias.filter((d) => d.semana === r.total - 1).map((d) => d.id));
+  const { data: sesionesPenultima } = diasPenultima.length
+    ? await supabase.from("sesiones").select("dia_id").in("dia_id", diasPenultima)
+    : { data: [] as { dia_id: string }[] };
+  const hechosPenultima = new Set((sesionesPenultima ?? []).map((x) => x.dia_id as string));
+  const mesociclos = rutinasFin.map((r) => {
+    const penultima = r.dias.filter((d) => d.semana === r.total - 1);
+    const completa = penultima.length > 0 && penultima.every((d) => hechosPenultima.has(d.id));
+    return {
+      clienteId: r.cliente_id as string,
+      nombre: (listaClientes.find((c) => c.id === r.cliente_id)?.nombre as string) ?? "Cliente",
+      estado:
+        Number(r.semana_actual) >= r.total
+          ? `En la última semana (${r.total} de ${r.total})`
+          : completa
+            ? `Semana ${r.total - 1} de ${r.total} completada · le queda 1`
+            : `En la semana ${r.total - 1} de ${r.total}`,
+    };
+  });
   const fotoDe = new Map(listaClientes.map((c) => [c.id as string, (c.avatar_url as string | null) ?? null]));
   const listaAlertas = (alertas ?? []) as Alerta[];
 
@@ -567,274 +608,304 @@ export default async function PaginaHoy() {
         </div>
       </div>
 
-      {/* Siempre visible: también es la puerta a las estadísticas */}
-      <section className="tarjeta tarjeta-verde !p-4 !mb-5">
-          <div className="flex items-center gap-3">
-            <IconoTarjeta Icono={Wallet} color="var(--color-verde)" tamano={38} />
-            <div className="flex-1 min-w-0">
-              <div className="titulo-tarjeta !mb-0.5">{nombreMes.toUpperCase()}</div>
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="num-grande !text-[26px]" style={{ color: "var(--color-verde)" }}>
-                  {euros(cobradoMes)}
-                </span>
-                <span className="text-atenuado text-[12.5px]">cobrados</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-between gap-3 flex-wrap text-[12.5px] mt-3 pt-3 border-t border-borde">
-            <span className="text-atenuado">
-              {sinCobrar.length === 0 ? (
-                "Nada pendiente esta semana"
-              ) : (
-                <>
-                  Pendiente{" "}
-                  {pendienteImporte > 0 && <b className="text-aviso">{euros(pendienteImporte)} </b>}·{" "}
-                  {sinCobrar.length} {sinCobrar.length === 1 ? "cliente" : "clientes"}
-                </>
-              )}
-            </span>
-            <span className="text-atenuado first-letter:uppercase">
-              {mesAnteriorFecha.toLocaleDateString("es-ES", { month: "long" })}: {euros(cobradoAnterior)}
-            </span>
-          </div>
-          <Link href="/estadisticas" className="text-acento text-[13px] font-semibold inline-flex items-center gap-1 mt-2.5">
-            Ver estadísticas del negocio <ChevronRight size={14} />
-          </Link>
-        </section>
-
-      {/* La revisión semanal: destacada lunes y martes, discreta el resto */}
-      <Link
-        href="/revision"
-        className={`tarjeta !p-4 mb-5 flex items-center gap-3 anim-pulsable ${
-          (hoyFecha.getDay() + 6) % 7 <= 1 ? "tarjeta-acento" : ""
-        }`}
-      >
-        <ClipboardCheck size={20} className="text-acento shrink-0" />
-        <div className="flex-1 min-w-0">
-          <div className="font-bold text-[14.5px]">Ronda de revisión semanal</div>
-          <div className="text-atenuado text-[12.5px]">
-            {listaClientes.length} {listaClientes.length === 1 ? "cliente" : "clientes"}, uno tras otro, con su ajuste de kcal
-          </div>
-        </div>
-        <ChevronRight size={16} className="text-atenuado shrink-0" />
-      </Link>
-
-      {/* Un lead sin contestar es lo único que caduca de verdad */}
-      {(leadsNuevos ?? 0) > 0 && (
-        <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-5 flex items-center gap-3">
-          <Inbox size={20} className="text-acento shrink-0" />
-          <div className="flex-1 min-w-0">
-            <div className="font-bold text-[14.5px]">
-              {leadsNuevos} {leadsNuevos === 1 ? "lead nuevo" : "leads nuevos"} sin
-              contestar
-            </div>
-            <div className="text-atenuado text-[12.5px]">del QR de planes</div>
-          </div>
-          <ChevronRight size={16} className="text-atenuado shrink-0" />
-        </Link>
-      )}
-
-      {/* Dos columnas en escritorio: a la izquierda lo que pide hacer
-        * algo, a la derecha el pulso del estudio. Antes era una sola
-        * columna de 760 px en mitad de la pantalla. En móvil se apila. */}
+      {/* Todo agrupado por tema, cada grupo con su título: así se sabe de
+        * un vistazo dónde está cada cosa. En escritorio, dos columnas: a la
+        * izquierda lo que pide hacer algo hoy; en el móvil se apila. */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] lg:gap-x-5">
         <div>
-          <div className="titulo-seccion">Para hoy</div>
-          <div className="superficie px-4 mb-6">
-            {enRiesgo.length === 0 && listosParaAvanzar.length === 0 && (
-              <div className="text-atenuado text-[13.5px] py-4 text-center">
-                Nada pendiente: todos al día.
-              </div>
-            )}
-
-            {enRiesgo.map((r) => (
-              <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
-                <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.clienteId)} />
+          <GrupoPanel titulo="PARA HOY" Icono={ListChecks}>
+            {/* Un lead sin contestar es lo único que caduca de verdad */}
+            {(leadsNuevos ?? 0) > 0 && (
+              <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-5 flex items-center gap-3">
+                <Inbox size={20} className="text-acento shrink-0" />
                 <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[14.5px] leading-tight flex items-center gap-2">
-                    {r.nombre}
-                    <PuntoEstado nivel={r.score >= 5 ? "riesgo" : "atencion"} />
+                  <div className="font-bold text-[14.5px]">
+                    {leadsNuevos} {leadsNuevos === 1 ? "lead nuevo" : "leads nuevos"} sin
+                    contestar
                   </div>
-                  <div className="text-texto-2 text-[12.5px] break-words">{r.motivos[0]}</div>
+                  <div className="text-atenuado text-[12.5px]">del QR de planes</div>
                 </div>
                 <ChevronRight size={16} className="text-atenuado shrink-0" />
               </Link>
-            ))}
-
-            {listosParaAvanzar.map((a, i) => (
-              <Link key={`av-${i}`} href={`/clientes/${a.cliente_id}`} className="fila">
-                <Avatar nombre={a.nombre} tamano={34} foto={fotoDe.get(a.cliente_id)} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[14.5px] leading-tight">{a.nombre}</div>
-                  <div className="text-texto-2 text-[12.5px] break-words">{a.mensaje}</div>
+            )}
+            <div className="superficie px-4 mb-6">
+              {enRiesgo.length === 0 && listosParaAvanzar.length === 0 && (
+                <div className="text-atenuado text-[13.5px] py-4 text-center">
+                  Nada pendiente: todos al día.
                 </div>
-                <CalendarCheck size={17} className="text-acento shrink-0" />
-              </Link>
-            ))}
-          </div>
+              )}
 
-          <Recordatorios items={recordatorios} />
-
-          <MensajesSugeridos items={enfrian} titulo="Se están enfriando" />
-          <MensajesSugeridos items={alegrias} titulo="Mensajes sugeridos" />
-
-          {filasRenovacion.length > 0 && (
-            <>
-              <div className="flex items-baseline justify-between">
-                <div className="titulo-seccion">Renuevan esta semana</div>
-                <span className="text-atenuado text-[12px]">próximos 7 días</span>
-              </div>
-              <RenuevanSemana filas={filasRenovacion} />
-            </>
-          )}
-
-          {listos.length > 0 && (
-            <>
-              <div className="flex items-baseline justify-between">
-                <div className="titulo-seccion">Listos para subir</div>
-                <span className="text-atenuado text-[12px]">tope del rango 2 veces</span>
-              </div>
-              <ListosSubir items={listos} fotos={Object.fromEntries(fotoDe)} />
-            </>
-          )}
-
-          {tocaRevisar.length > 0 && (
-            <>
-              <div className="flex items-baseline justify-between">
-                <div className="titulo-seccion">Toca revisar la dieta</div>
-                <span className="text-atenuado text-[12px]">4 semanas o más</span>
-              </div>
-              <div className="superficie px-4 mb-6">
-                {tocaRevisar.map((r) => (
-                  <Link
-                    key={r.clienteId}
-                    href={`/clientes/${r.clienteId}?vista=progreso`}
-                    className="fila"
-                  >
-                    <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.clienteId)} />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-bold text-[14.5px] leading-tight break-words">
-                        {r.nombre}
-                      </div>
-                      <div className="text-texto-2 text-[12.5px] leading-snug break-words">
-                        {r.nuncaAjustada
-                          ? `Sin ajustes desde que empezó, hace ${r.dias} días`
-                          : `Último ajuste hace ${r.dias} días`}{" "}
-                        · {r.kcal.toLocaleString("es-ES")} kcal
-                      </div>
-                      {r.estancadoSemanas > 0 && (
-                        <div className="text-aviso text-[12px] font-semibold">
-                          Peso estancado {r.estancadoSemanas} semanas
-                        </div>
-                      )}
+              {enRiesgo.map((r) => (
+                <Link key={r.clienteId} href={`/clientes/${r.clienteId}`} className="fila">
+                  <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.clienteId)} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-[14.5px] leading-tight flex items-center gap-2">
+                      {r.nombre}
+                      <PuntoEstado nivel={r.score >= 5 ? "riesgo" : "atencion"} />
                     </div>
-                    <CalendarClock size={17} className="text-aviso shrink-0" />
-                  </Link>
-                ))}
-              </div>
-            </>
+                    <div className="text-texto-2 text-[12.5px] break-words">{r.motivos[0]}</div>
+                  </div>
+                  <ChevronRight size={16} className="text-atenuado shrink-0" />
+                </Link>
+              ))}
+
+              {listosParaAvanzar.map((a, i) => (
+                <Link key={`av-${i}`} href={`/clientes/${a.cliente_id}`} className="fila">
+                  <Avatar nombre={a.nombre} tamano={34} foto={fotoDe.get(a.cliente_id)} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-[14.5px] leading-tight">{a.nombre}</div>
+                    <div className="text-texto-2 text-[12.5px] break-words">{a.mensaje}</div>
+                  </div>
+                  <CalendarCheck size={17} className="text-acento shrink-0" />
+                </Link>
+              ))}
+            </div>
+            <Recordatorios items={recordatorios} />
+          </GrupoPanel>
+
+          {(esperandoRespuesta.length > 0 || enfrian.length > 0 || alegrias.length > 0) && (
+            <GrupoPanel titulo="CLIENTES" Icono={Users}>
+            {esperandoRespuesta.length > 0 && (
+              <>
+                <div className="titulo-seccion">Te han escrito</div>
+                <div className="superficie px-4 mb-6">
+                  {esperandoRespuesta.map((c) => (
+                    <Link key={c.id} href={`/clientes/${c.id}?vista=chat`} className="fila">
+                      <Avatar nombre={c.nombre} tamano={34} foto={fotoDe.get(c.id)} />
+                      <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight">
+                        {c.nombre}
+                      </span>
+                      <MessageCircle
+                        size={16}
+                        className="text-acento shrink-0"
+                        fill="currentColor"
+                      />
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+              <MensajesSugeridos items={enfrian} titulo="Se están enfriando" />
+              <MensajesSugeridos items={alegrias} titulo="Mensajes sugeridos" />
+            </GrupoPanel>
           )}
 
-          {esperandoRespuesta.length > 0 && (
-            <>
-              <div className="titulo-seccion">Te han escrito</div>
-              <div className="superficie px-4 mb-6">
-                {esperandoRespuesta.map((c) => (
-                  <Link key={c.id} href={`/clientes/${c.id}?vista=chat`} className="fila">
-                    <Avatar nombre={c.nombre} tamano={34} foto={fotoDe.get(c.id)} />
-                    <span className="flex-1 min-w-0 text-[14px] font-semibold leading-tight">
-                      {c.nombre}
-                    </span>
-                    <MessageCircle
-                      size={16}
-                      className="text-acento shrink-0"
-                      fill="currentColor"
-                    />
-                  </Link>
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-
-        <div>
-          {compartidosSemana > 0 && (
-            <Link href="/muro" className="fila anim-pulsable !py-3 mb-4">
-              <Users size={17} className="text-acento shrink-0" />
-              <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
-                {compartidosSemana} {compartidosSemana === 1 ? "entreno compartido" : "entrenos compartidos"} en la comunidad esta semana
+          <GrupoPanel titulo="DIETA" Icono={UtensilsCrossed} color="var(--color-verde)">
+            {/* La revisión semanal: destacada lunes y martes, discreta el resto */}
+            <Link
+              href="/revision"
+              className={`tarjeta !p-4 mb-5 flex items-center gap-3 anim-pulsable ${
+                (hoyFecha.getDay() + 6) % 7 <= 1 ? "tarjeta-acento" : ""
+              }`}
+            >
+              <ClipboardCheck size={20} className="text-acento shrink-0" />
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-[14.5px]">Ronda de revisión semanal</div>
+                <div className="text-atenuado text-[12.5px]">
+                  {listaClientes.length} {listaClientes.length === 1 ? "cliente" : "clientes"}, uno tras otro, con su ajuste de dieta
+                </div>
               </div>
               <ChevronRight size={16} className="text-atenuado shrink-0" />
             </Link>
-          )}
-
-          <div className="titulo-seccion">La semana</div>
-          <div className="superficie px-4 mb-6">
-            {listaClientes.length === 0 ? (
-              <div className="text-atenuado text-[13.5px] py-3">
-                Sin clientes todavía. Crea la primera desde Clientes › Invitaciones.
-              </div>
-            ) : (
+            {tocaRevisar.length > 0 && (
               <>
-                <div className="flex items-center gap-2 py-2 border-b border-borde">
-                  <span className="flex-1" />
-                  {DIAS_SEMANA.map((d, i) => (
-                    <span
-                      key={i}
-                      className="w-5 text-center text-atenuado text-[10.5px] font-bold"
+                <div className="flex items-baseline justify-between">
+                  <div className="titulo-seccion">Toca revisar la dieta</div>
+                  <span className="text-atenuado text-[12px]">4 semanas o más</span>
+                </div>
+                <div className="superficie px-4 mb-6">
+                  {tocaRevisar.map((r) => (
+                    <Link
+                      key={r.clienteId}
+                      href={`/clientes/${r.clienteId}?vista=progreso`}
+                      className="fila"
                     >
-                      {d}
-                    </span>
+                      <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.clienteId)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-[14.5px] leading-tight break-words">
+                          {r.nombre}
+                        </div>
+                        <div className="text-texto-2 text-[12.5px] leading-snug break-words">
+                          {r.nuncaAjustada
+                            ? `Sin ajustes desde que empezó, hace ${r.dias} días`
+                            : `Último ajuste hace ${r.dias} días`}{" "}
+                          · {r.kcal.toLocaleString("es-ES")} kcal
+                        </div>
+                        {r.estancadoSemanas > 0 && (
+                          <div className="text-aviso text-[12px] font-semibold">
+                            Peso estancado {r.estancadoSemanas} semanas
+                          </div>
+                        )}
+                      </div>
+                      <CalendarClock size={17} className="text-aviso shrink-0" />
+                    </Link>
                   ))}
                 </div>
-                {listaClientes.map((c) => (
-                  <Link
-                    key={c.id}
-                    href={`/clientes/${c.id}`}
-                    className="flex items-center gap-2 py-2"
-                  >
-                    <span className="flex-1 min-w-0 text-[13px] leading-tight break-words">
-                      {c.nombre.split(" ")[0]}
-                    </span>
-                    {(semanaPorCliente.get(c.id) ?? []).map((hecho, i) => (
-                      <span
-                        key={i}
-                        className="w-5 h-5 rounded-[6px] shrink-0"
-                        style={{
-                          background: hecho ? "var(--color-acento)" : "var(--color-campo)",
-                          border: hecho ? "none" : "1px solid var(--color-borde-2)",
-                          opacity: hecho ? 0.9 : 1,
-                        }}
-                      />
-                    ))}
-                  </Link>
-                ))}
-                <Link href="/clientes" className="fila text-acento text-[13px] !border-b-0">
-                  Ver todos →
-                </Link>
               </>
             )}
-          </div>
+          </GrupoPanel>
+        </div>
 
-          {recordsSemana.length > 0 && (
-            <>
-              <div className="titulo-seccion">Récords de la semana</div>
-              <div className="superficie px-4 mb-6">
-                {recordsSemana.slice(0, 5).map((rec, i) => (
-                  <Link key={i} href={`/clientes/${rec.cliente_id}?vista=progreso`} className="fila">
-                    <Trophy size={15} className="text-dorado shrink-0" />
-                    <span className="flex-1 min-w-0 text-[13px] leading-snug">
-                      <b>{rec.nombre.split(" ")[0]}</b>
-                      <span className="text-texto-2"> · {rec.ejercicio}</span>
-                    </span>
-                    <span className="shrink-0 text-[13px]">
-                      <span className="text-atenuado">{Number(rec.kg_previo)} → </span>
-                      <b className="text-dorado">{Number(rec.kg_nuevo)} kg</b>
-                    </span>
+        <div>
+          <GrupoPanel titulo="ENTRENAMIENTO" Icono={Dumbbell}>
+            {mesociclos.length > 0 && (
+              <>
+                <div className="flex items-baseline justify-between">
+                  <div className="titulo-seccion">Terminan mesociclo</div>
+                  <span className="text-atenuado text-[12px]">prepara el siguiente</span>
+                </div>
+                <div className="superficie px-4 mb-6">
+                  {mesociclos.map((m) => (
+                    <Link key={m.clienteId} href={`/clientes/${m.clienteId}?vista=entreno`} className="fila">
+                      <Avatar nombre={m.nombre} tamano={34} foto={fotoDe.get(m.clienteId)} />
+                      <div className="flex-1 min-w-0">
+                        <div className="font-bold text-[14.5px] leading-tight break-words">{m.nombre}</div>
+                        <div className="text-texto-2 text-[12.5px] leading-snug break-words">{m.estado}</div>
+                      </div>
+                      <span className="text-acento text-[12.5px] font-semibold shrink-0 flex items-center gap-0.5">
+                        Rutina <ChevronRight size={14} />
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+            {listos.length > 0 && (
+              <>
+                <div className="flex items-baseline justify-between">
+                  <div className="titulo-seccion">Listos para subir</div>
+                  <span className="text-atenuado text-[12px]">tope del rango 2 veces</span>
+                </div>
+                <ListosSubir items={listos} fotos={Object.fromEntries(fotoDe)} />
+              </>
+            )}
+            <div className="titulo-seccion">La semana</div>
+            <div className="superficie px-4 mb-6">
+              {listaClientes.length === 0 ? (
+                <div className="text-atenuado text-[13.5px] py-3">
+                  Sin clientes todavía. Crea la primera desde Clientes › Invitaciones.
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 py-2 border-b border-borde">
+                    <span className="flex-1" />
+                    {DIAS_SEMANA.map((d, i) => (
+                      <span
+                        key={i}
+                        className="w-5 text-center text-atenuado text-[10.5px] font-bold"
+                      >
+                        {d}
+                      </span>
+                    ))}
+                  </div>
+                  {listaClientes.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/clientes/${c.id}`}
+                      className="flex items-center gap-2 py-2"
+                    >
+                      <span className="flex-1 min-w-0 text-[13px] leading-tight break-words">
+                        {c.nombre.split(" ")[0]}
+                      </span>
+                      {(semanaPorCliente.get(c.id) ?? []).map((hecho, i) => (
+                        <span
+                          key={i}
+                          className="w-5 h-5 rounded-[6px] shrink-0"
+                          style={{
+                            background: hecho ? "var(--color-acento)" : "var(--color-campo)",
+                            border: hecho ? "none" : "1px solid var(--color-borde-2)",
+                            opacity: hecho ? 0.9 : 1,
+                          }}
+                        />
+                      ))}
+                    </Link>
+                  ))}
+                  <Link href="/clientes" className="fila text-acento text-[13px] !border-b-0">
+                    Ver todos →
                   </Link>
-                ))}
-              </div>
-            </>
+                </>
+              )}
+            </div>
+            {recordsSemana.length > 0 && (
+              <>
+                <div className="titulo-seccion">Récords de la semana</div>
+                <div className="superficie px-4 mb-6">
+                  {recordsSemana.slice(0, 5).map((rec, i) => (
+                    <Link key={i} href={`/clientes/${rec.cliente_id}?vista=progreso`} className="fila">
+                      <Trophy size={15} className="text-dorado shrink-0" />
+                      <span className="flex-1 min-w-0 text-[13px] leading-snug">
+                        <b>{rec.nombre.split(" ")[0]}</b>
+                        <span className="text-texto-2"> · {rec.ejercicio}</span>
+                      </span>
+                      <span className="shrink-0 text-[13px]">
+                        <span className="text-atenuado">{String(Number(rec.kg_previo)).replace(".", ",")} → </span>
+                        <b className="text-dorado">{String(Number(rec.kg_nuevo)).replace(".", ",")} kg</b>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              </>
+            )}
+          </GrupoPanel>
+
+          <GrupoPanel titulo="NEGOCIO" Icono={Wallet} color="var(--color-verde)">
+            {/* Siempre visible: también es la puerta a las estadísticas */}
+            <section className="tarjeta tarjeta-verde !p-4 !mb-5">
+                <div className="flex items-center gap-3">
+                  <IconoTarjeta Icono={Wallet} color="var(--color-verde)" tamano={38} />
+                  <div className="flex-1 min-w-0">
+                    <div className="titulo-tarjeta !mb-0.5">{nombreMes.toUpperCase()}</div>
+                    <div className="flex items-baseline gap-2 flex-wrap">
+                      <span className="num-grande !text-[26px]" style={{ color: "var(--color-verde)" }}>
+                        {euros(cobradoMes)}
+                      </span>
+                      <span className="text-atenuado text-[12.5px]">cobrados</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex justify-between gap-3 flex-wrap text-[12.5px] mt-3 pt-3 border-t border-borde">
+                  <span className="text-atenuado">
+                    {sinCobrar.length === 0 ? (
+                      "Nada pendiente esta semana"
+                    ) : (
+                      <>
+                        Pendiente{" "}
+                        {pendienteImporte > 0 && <b className="text-aviso">{euros(pendienteImporte)} </b>}·{" "}
+                        {sinCobrar.length} {sinCobrar.length === 1 ? "cliente" : "clientes"}
+                      </>
+                    )}
+                  </span>
+                  <span className="text-atenuado first-letter:uppercase">
+                    {mesAnteriorFecha.toLocaleDateString("es-ES", { month: "long" })}: {euros(cobradoAnterior)}
+                  </span>
+                </div>
+                <Link href="/estadisticas" className="text-acento text-[13px] font-semibold inline-flex items-center gap-1 mt-2.5">
+                  Ver estadísticas del negocio <ChevronRight size={14} />
+                </Link>
+              </section>
+            {filasRenovacion.length > 0 && (
+              <>
+                <div className="flex items-baseline justify-between">
+                  <div className="titulo-seccion">Renuevan esta semana</div>
+                  <span className="text-atenuado text-[12px]">próximos 7 días</span>
+                </div>
+                <RenuevanSemana filas={filasRenovacion} />
+              </>
+            )}
+          </GrupoPanel>
+
+          {compartidosSemana > 0 && (
+            <GrupoPanel titulo="COMUNIDAD" Icono={Users} color="var(--color-morado)">
+            {compartidosSemana > 0 && (
+              <Link href="/muro" className="fila anim-pulsable !py-3 mb-6">
+                <Users size={17} className="text-acento shrink-0" />
+                <div className="flex-1 min-w-0 text-[13.5px] text-texto-2">
+                  {compartidosSemana} {compartidosSemana === 1 ? "entreno compartido" : "entrenos compartidos"} en la comunidad esta semana
+                </div>
+                <ChevronRight size={16} className="text-atenuado shrink-0" />
+              </Link>
+            )}
+            </GrupoPanel>
           )}
         </div>
       </div>

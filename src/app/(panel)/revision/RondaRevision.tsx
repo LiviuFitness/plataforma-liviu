@@ -8,7 +8,11 @@ import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Avatar } from "@/componentes/ui";
 import type { Sugerencia } from "@/lib/revision";
 import type { RevisionIA } from "@/lib/iaTipos";
-import { avisarMensaje } from "@/lib/avisos";
+import { avisarCambio, avisarMensaje } from "@/lib/avisos";
+import { aplicarAjuste, proponerAjuste } from "@/lib/ajusteDieta";
+import type { ComidaEstructurada } from "@/lib/dietas";
+import type { Dieta } from "@/lib/tipos";
+import VistaAjuste from "./VistaAjuste";
 import RevisionConIA from "./RevisionConIA";
 
 export interface FichaRonda {
@@ -31,10 +35,15 @@ export interface FichaRonda {
   sugerencia: Sugerencia | null;
   /** Ajuste ya hecho esta semana (kcal), si lo hay. */
   ajustadoEstaSemana: number | null;
+  /** Sus dietas completas, para proponer los gramos del ajuste */
+  planes: {
+    entreno: { dieta: Dieta; comidas: ComidaEstructurada[] } | null;
+    descanso: { dieta: Dieta; comidas: ComidaEstructurada[] } | null;
+  };
 }
 
 const CARAS = ["", "😖", "😕", "😐", "🙂", "🔥"];
-const OPCIONES = [-150, -100, 0, 100, 150];
+const OPCIONES = [-200, -150, -100, 0, 100, 150, 200];
 const coma = (n: number, d = 1) => n.toFixed(d).replace(".", ",");
 
 function claveSemana(): string {
@@ -97,6 +106,11 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
   const f = fichas[Math.min(i, fichas.length - 1)];
   const hechos = fichas.filter((x) => x.ajustadoEstaSemana !== null || revisados.has(x.id)).length;
   const delta = elegido[f.id] ?? ia[f.id]?.datos?.delta_kcal ?? f.sugerencia?.deltaKcal ?? 0;
+  /* Los gramos que cambian con ese ajuste, en sus dos dietas */
+  const propuestas =
+    delta !== 0 && f.ajustadoEstaSemana === null
+      ? [f.planes.entreno, f.planes.descanso].filter((x) => x !== null).map((x) => proponerAjuste(x, delta))
+      : [];
   const conMensaje = !!mensajeIA[f.id]?.trim() && enviarIA[f.id] !== false && !mensajeEnviado.has(f.id);
 
   async function pedirRevisionIA(rehacer = false) {
@@ -157,28 +171,24 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
     }
     setAplicando(true);
     setError("");
-    const kcalNuevo = Math.max(800, f.dieta.kcal + delta);
-    const supabase = crearClienteNavegador();
-    const { error } = await supabase.from("dietas").update({ kcal_obj: kcalNuevo }).eq("id", f.dieta.id);
-    if (!error) {
-      await supabase.from("revisiones_kcal").insert({
-        cliente_id: f.id,
-        dieta_id: f.dieta.id,
-        kcal_anterior: f.dieta.kcal,
-        kcal_nuevo: kcalNuevo,
-        delta,
-        motivo: f.sugerencia?.texto ?? "Revisión semanal",
-      });
-    }
-    if (error) {
+    const ok = await aplicarAjuste(crearClienteNavegador(), {
+      clienteId: f.id,
+      dietaEntreno: f.dieta,
+      propuestas,
+      delta,
+      motivo: f.sugerencia?.texto ?? "Revisión semanal",
+    });
+    if (ok) avisarCambio(f.id, "dieta");
+    if (!ok) {
       setAplicando(false);
-      setError("No se pudo aplicar. Inténtalo de nuevo.");
+      setError("No se pudo aplicar del todo. Revisa su dieta y vuelve a intentarlo.");
+      router.refresh();
       return;
     }
     const enviado = await enviarMensajeIA();
     setAplicando(false);
     if (!enviado) {
-      setError("Kcal aplicadas, pero el mensaje no se pudo enviar. Inténtalo otra vez.");
+      setError("Ajuste aplicado, pero el mensaje no se pudo enviar. Inténtalo otra vez.");
       router.refresh();
       return;
     }
@@ -329,7 +339,7 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
 
       {f.dieta ? (
         <section className="tarjeta tarjeta-acento !p-3.5">
-          <div className="titulo-tarjeta">AJUSTE DE KCAL</div>
+          <div className="titulo-tarjeta">AJUSTE DE LA DIETA</div>
           {yaAjustado ? (
             <div className="text-[13px] text-texto-2">
               Ya ajustada esta semana ({f.ajustadoEstaSemana! > 0 ? "+" : ""}
@@ -360,6 +370,15 @@ export default function RondaRevision({ fichas }: { fichas: FichaRonda[] }) {
                   </button>
                 ))}
               </div>
+              <VistaAjuste key={`${f.id}:${delta}`} propuestas={propuestas} />
+              {delta !== 0 && (
+                <Link
+                  href={`/clientes/${f.id}?vista=dieta`}
+                  className="text-acento text-[12.5px] font-semibold inline-flex items-center gap-1 mt-2"
+                >
+                  Prefiero ajustarla a mano <ArrowRight size={13} />
+                </Link>
+              )}
             </>
           )}
         </section>

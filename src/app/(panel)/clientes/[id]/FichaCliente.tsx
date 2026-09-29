@@ -15,7 +15,7 @@ import VistaComoCliente from "@/componentes/VistaComoCliente";
 import NotasCliente, { type NotaCliente } from "@/componentes/NotasCliente";
 import HojaInforme from "@/componentes/HojaInforme";
 import ListaArranque, { type PasoArranque } from "./ListaArranque";
-import type { Alimento, Alternativa } from "@/lib/dietas";
+import type { Alimento, Alternativa, ComidaEstructurada } from "@/lib/dietas";
 import type { ProgresoEntreno } from "@/lib/progresoEntreno";
 import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
 import type {
@@ -411,6 +411,12 @@ export default function FichaCliente({
             perfil={perfil}
             dietaId={dieta?.id ?? null}
             dietaKcal={dieta?.kcal_obj ?? null}
+            planes={[dieta, dietaDescanso]
+              .filter((d): d is Dieta => !!d)
+              .map((d) => ({
+                dieta: d,
+                comidas: ((d.dieta_comidas ?? []) as unknown as ComidaEstructurada[]).slice().sort((a, b) => a.orden - b.orden),
+              }))}
             entradasFotos={entradasFotos}
             progresoEntreno={progresoEntreno}
             revisiones={revisiones}

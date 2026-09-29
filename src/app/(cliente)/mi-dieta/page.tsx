@@ -13,6 +13,7 @@ import VistaDietas, { type PlanDieta } from "./VistaDietas";
 import PreferenciasAlimentos from "./PreferenciasAlimentos";
 import AsistenteDieta from "./AsistenteDieta";
 import EscanerProducto from "./EscanerProducto";
+import AvisoAjuste, { type CambioVisible } from "./AvisoAjuste";
 import EstadoVacio from "@/componentes/EstadoVacio";
 
 export const dynamic = "force-dynamic";
@@ -84,7 +85,7 @@ export default async function PaginaMiDieta() {
   /* Comidas marcadas hoy (fecha de Madrid: de madrugada sigue siendo
    * el día en que se cena, no el siguiente del servidor en UTC) */
   const hoyMadrid = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
-  const [{ data: catalogo }, { data: exclusiones }, { data: hechasHoy }] = await Promise.all([
+  const [{ data: catalogo }, { data: exclusiones }, { data: hechasHoy }, { data: ultimoAjuste }] = await Promise.all([
     supabase
       .from("alimentos")
       .select("id, nombre, kcal_100, prot_100, carb_100, gras_100, fibra_100, categoria")
@@ -95,12 +96,30 @@ export default async function PaginaMiDieta() {
       .select("alimento_id")
       .eq("cliente_id", user.id),
     supabase.from("comidas_hechas").select("comida").eq("cliente_id", user.id).eq("fecha", hoyMadrid),
+    /* El último ajuste de cantidades (de las 2 últimas semanas) */
+    supabase
+      .from("revisiones_kcal")
+      .select("id, creado_en, cambios")
+      .eq("cliente_id", user.id)
+      .not("cambios", "is", null)
+      .gte("creado_en", new Date(new Date().setDate(new Date().getDate() - 14)).toISOString())
+      .order("creado_en", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   return (
     <>
       <h1 className="h1">Mi dieta</h1>
       <div className="sub mb-4">Tu plan de hoy</div>
+
+      {ultimoAjuste && (
+        <AvisoAjuste
+          id={ultimoAjuste.id as string}
+          fecha={ultimoAjuste.creado_en as string}
+          cambios={(ultimoAjuste.cambios ?? []) as CambioVisible[]}
+        />
+      )}
 
       {!entreno && !descanso ? (
         <section className="tarjeta">

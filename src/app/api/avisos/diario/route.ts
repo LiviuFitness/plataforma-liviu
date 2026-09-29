@@ -1,6 +1,7 @@
 import { clienteServicio, enviarAvisos, pushDisponible } from "@/lib/push";
 import { proximaRenovacion } from "@/lib/renovaciones";
 import type { Plan } from "@/lib/tipos";
+import { calcularRevisionSemanal, ritmoPorDefecto, sugerenciaAjusteKcal } from "@/lib/revision";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,10 @@ const DIA = 86400000;
  *  · Cuestionario: los domingos, a quien aún no ha contestado el de
  *    esa semana (así el lunes, en la ronda, están todas las respuestas).
  *  · Cobros: al entrenador, si hoy renueva alguien que aún no ha pagado.
+ *  · Ajustes de dieta: los lunes, al entrenador, quién se ha salido del
+ *    ritmo de su objetivo (el ajuste en gramos le espera en la ronda).
+ *  · Fin de mesociclo: al entrenador, cuando un cliente termina la
+ *    penúltima semana de su rutina (una sola vez por rutina).
  */
 export async function GET(request: Request) {
   const secreto = process.env.CRON_SECRET;
@@ -145,8 +150,92 @@ export async function GET(request: Request) {
     }
   }
 
+  const { data: entrenadores } = await db.from("profiles").select("id").eq("rol", "entrenador");
+  const idsEntrenador = (entrenadores ?? []).map((e) => e.id as string);
+
+  /* Ajustes de dieta, los lunes */
+  let enviadosAjustes = 0;
+  if (esLunes && idsEntrenador.length > 0) {
+    const lunesISO = hoyMadrid;
+    const [{ data: perfiles }, { data: medidas }, { data: ajustados }, { data: conDieta }] = await Promise.all([
+      db.from("profiles").select("id, nombre, objetivo, objetivo_ritmo_semanal_pct").eq("rol", "cliente").eq("estado", "activo"),
+      db
+        .from("medidas")
+        .select("cliente_id, fecha, peso")
+        .not("peso", "is", null)
+        .gte("fecha", new Date(ahora - 42 * DIA).toISOString().slice(0, 10)),
+      db.from("revisiones_kcal").select("cliente_id").gte("creado_en", `${lunesISO}T00:00:00`),
+      db.from("dietas").select("cliente_id").eq("activa", true).eq("tipo", "entreno").not("cliente_id", "is", null),
+    ]);
+    const yaAjustados = new Set((ajustados ?? []).map((x) => x.cliente_id as string));
+    const tienenDieta = new Set((conDieta ?? []).map((x) => x.cliente_id as string));
+    const fuera = (perfiles ?? []).filter((c) => {
+      if (yaAjustados.has(c.id) || !tienenDieta.has(c.id)) return false;
+      const semanas = calcularRevisionSemanal(
+        (medidas ?? [])
+          .filter((m) => m.cliente_id === c.id)
+          .map((m) => ({ fecha: String(m.fecha), peso: Number(m.peso) }))
+      ).filter((x) => x.inicioSemana < lunesISO);
+      const ultimaSemana = semanas[semanas.length - 1];
+      if (!ultimaSemana) return false;
+      const ritmo = (c.objetivo_ritmo_semanal_pct as number | null) ?? ritmoPorDefecto(c.objetivo as string | null);
+      return sugerenciaAjusteKcal(ultimaSemana.variacionPct, ritmo) !== null;
+    });
+    if (fuera.length > 0) {
+      const nombres = fuera.map((c) => String(c.nombre).split(" ")[0]);
+      const lista = nombres.length <= 3 ? nombres.join(", ").replace(/, ([^,]*)$/, " y $1") : `${nombres.slice(0, 3).join(", ")} y ${nombres.length - 3} más`;
+      enviadosAjustes = await enviarAvisos(idsEntrenador, "revision", () => ({
+        titulo: fuera.length === 1 ? "1 ajuste de dieta preparado" : `${fuera.length} ajustes de dieta preparados`,
+        cuerpo: `${lista} ${fuera.length === 1 ? "se ha salido" : "se han salido"} del ritmo de su objetivo. Revísalo en la ronda: los gramos ya están calculados.`,
+        url: "/revision",
+        etiqueta: "ajustes",
+      }));
+    }
+  }
+
+  /* Fin de mesociclo: terminó la penúltima semana de su rutina */
+  let enviadosMesociclo = 0;
+  if (idsEntrenador.length > 0) {
+    const { data: rutinasMeso } = await db
+      .from("rutinas")
+      .select("id, nombre, semana_actual, cliente_id, aviso_fin_meso_en, rutina_dias ( id, semana )")
+      .eq("activa", true)
+      .eq("es_plantilla", false)
+      .not("cliente_id", "is", null)
+      .is("aviso_fin_meso_en", null);
+    const activos = new Set((clientes ?? []).map((c) => c.id as string));
+    const candidatas = (rutinasMeso ?? []).filter((r) => {
+      const dias = (r.rutina_dias ?? []) as { id: string; semana: number }[];
+      const total = Math.max(0, ...dias.map((d) => d.semana));
+      return activos.has(r.cliente_id as string) && total >= 4 && Number(r.semana_actual) >= total - 1;
+    });
+    if (candidatas.length > 0) {
+      /* ¿Tiene hecho cada día de la penúltima semana? (o ya está en la última) */
+      const idsDias = candidatas.flatMap((r) => ((r.rutina_dias ?? []) as { id: string }[]).map((d) => d.id));
+      const { data: hechas } = await db.from("sesiones").select("dia_id").in("dia_id", idsDias);
+      const conSesion = new Set((hechas ?? []).map((x) => x.dia_id as string));
+      for (const r of candidatas) {
+        const dias = (r.rutina_dias ?? []) as { id: string; semana: number }[];
+        const total = Math.max(...dias.map((d) => d.semana));
+        const penultima = dias.filter((d) => d.semana === total - 1);
+        const terminada = Number(r.semana_actual) >= total || (penultima.length > 0 && penultima.every((d) => conSesion.has(d.id)));
+        if (!terminada) continue;
+        const n = await enviarAvisos(idsEntrenador, "revision", () => ({
+          titulo: `Nuevo mesociclo para ${pila.get(r.cliente_id as string) ?? "un cliente"}`,
+          cuerpo: `Ha terminado la semana ${total - 1} de ${total} de «${r.nombre}». Prepárale el siguiente.`,
+          url: `/clientes/${r.cliente_id}?vista=entreno`,
+          etiqueta: `mesociclo-${r.id}`,
+        }));
+        enviadosMesociclo += n;
+        await db.from("rutinas").update({ aviso_fin_meso_en: new Date().toISOString() }).eq("id", r.id);
+      }
+    }
+  }
+
   return Response.json({
     ok: true,
+    ajustes: enviadosAjustes,
+    mesociclo: enviadosMesociclo,
     entreno: enviadosEntreno,
     peso: enviadosPeso,
     revision: enviadosRevision,

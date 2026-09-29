@@ -3,6 +3,11 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import { aplicarAjuste as aplicarAjusteDieta, proponerAjuste } from "@/lib/ajusteDieta";
+import { avisarCambio } from "@/lib/avisos";
+import type { ComidaEstructurada } from "@/lib/dietas";
+import type { Dieta } from "@/lib/tipos";
+import VistaAjuste from "@/app/(panel)/revision/VistaAjuste";
 import { fechaCorta } from "@/componentes/ui";
 import {
   calcularRevisionSemanal,
@@ -33,6 +38,7 @@ export default function TabProgreso({
   perfil,
   dietaId,
   dietaKcal,
+  planes,
   entradasFotos,
   progresoEntreno,
   revisiones,
@@ -43,6 +49,8 @@ export default function TabProgreso({
   perfil: Perfil;
   dietaId: string | null;
   dietaKcal: number | null;
+  /** Sus dietas completas, para proponer los gramos del ajuste */
+  planes: { dieta: Dieta; comidas: ComidaEstructurada[] }[];
   entradasFotos: EntradaFotosProgreso[];
   progresoEntreno: ProgresoEntreno;
   revisiones: RevisionKcal[];
@@ -100,29 +108,24 @@ export default function TabProgreso({
       .eq("id", clienteId);
   }
 
+  /* El ajuste en gramos concretos de sus dietas (igual que en la ronda) */
+  const propuestas = sugerencia && !ajusteAplicado ? planes.map((p) => proponerAjuste(p, sugerencia.deltaKcal)) : [];
+
   async function aplicarAjuste() {
     if (!dietaId || !sugerencia || dietaKcal === null) return;
     setAplicando(true);
-    const kcalNuevo = Math.max(800, dietaKcal + sugerencia.deltaKcal);
-    const supabase = crearClienteNavegador();
-    const { error } = await supabase
-      .from("dietas")
-      .update({ kcal_obj: kcalNuevo })
-      .eq("id", dietaId);
-    if (!error) {
-      // Deja rastro visible para el cliente en Mi Progreso — así no hace
-      // falta que Liviu se lo diga a mano cada vez.
-      await supabase.from("revisiones_kcal").insert({
-        cliente_id: clienteId,
-        dieta_id: dietaId,
-        kcal_anterior: dietaKcal,
-        kcal_nuevo: kcalNuevo,
-        delta: sugerencia.deltaKcal,
-        motivo: sugerencia.texto,
-      });
-    }
+    // Deja rastro visible para el cliente (Mi dieta y Mi Progreso): así
+    // no hace falta que Liviu se lo diga a mano cada vez.
+    const ok = await aplicarAjusteDieta(crearClienteNavegador(), {
+      clienteId,
+      dietaEntreno: { id: dietaId, kcal: dietaKcal },
+      propuestas,
+      delta: sugerencia.deltaKcal,
+      motivo: sugerencia.texto,
+    });
     setAplicando(false);
-    if (!error) {
+    if (ok) {
+      avisarCambio(clienteId, "dieta");
       setAjusteAplicado(true);
       router.refresh();
     }
@@ -210,6 +213,7 @@ export default function TabProgreso({
             <div className="text-[13px] text-texto-2 mb-2">
               ⚠️ {sugerencia.texto}
             </div>
+            {!ajusteAplicado && <VistaAjuste propuestas={propuestas} />}
             {dietaId && dietaKcal !== null ? (
               <button
                 className="cta cta-mini !mb-0"
@@ -220,7 +224,7 @@ export default function TabProgreso({
                   ? "Ajuste aplicado ✓"
                   : aplicando
                     ? "Aplicando…"
-                    : `Aplicar (${sugerencia.deltaKcal > 0 ? "+" : ""}${sugerencia.deltaKcal} kcal)`}
+                    : `Aplicar los cambios (${sugerencia.deltaKcal > 0 ? "+" : ""}${sugerencia.deltaKcal} kcal)`}
               </button>
             ) : (
               <div className="text-atenuado text-[12px]">

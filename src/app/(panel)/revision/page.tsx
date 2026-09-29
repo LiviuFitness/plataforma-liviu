@@ -8,6 +8,8 @@ import {
 import RondaRevision, { type FichaRonda } from "./RondaRevision";
 import { adherenciaDieta } from "@/lib/adherenciaDieta";
 
+import { SELECT_DIETA_COMPLETA, type ComidaEstructurada } from "@/lib/dietas";
+import type { Dieta } from "@/lib/tipos";
 export const dynamic = "force-dynamic";
 
 const DIA = 86400000;
@@ -55,11 +57,11 @@ export default async function PaginaRevision() {
       .select("cliente_id, semana_actual, rutina_dias ( semana )")
       .eq("activa", true)
       .not("cliente_id", "is", null),
+    /* Las dos dietas completas: el ajuste propone gramos concretos */
     supabase
       .from("dietas")
-      .select("id, cliente_id, kcal_obj, dieta_comidas ( id )")
+      .select(SELECT_DIETA_COMPLETA)
       .eq("activa", true)
-      .eq("tipo", "entreno")
       .not("cliente_id", "is", null),
     supabase.from("preguntas_revision").select("id, texto, orden").eq("activa", true).order("orden"),
     supabase
@@ -112,7 +114,14 @@ export default async function PaginaRevision() {
     const objetivo = rutina
       ? ((rutina.rutina_dias ?? []) as { semana: number }[]).filter((d) => d.semana === rutina.semana_actual).length
       : 0;
-    const dieta = (dietas ?? []).find((d) => d.cliente_id === c.id) ?? null;
+    const susDietas = ((dietas ?? []) as unknown as Dieta[]).filter((d) => d.cliente_id === c.id);
+    const plan = (tipo: "entreno" | "descanso") => {
+      const d = susDietas.find((x) => x.tipo === tipo);
+      if (!d) return null;
+      const comidas = ((d.dieta_comidas ?? []) as unknown as ComidaEstructurada[]).slice().sort((a, b) => a.orden - b.orden);
+      return { dieta: d, comidas };
+    };
+    const dieta = susDietas.find((d) => d.tipo === "entreno") ?? null;
 
     /* Sus respuestas: las de esta semana si ya contestó, si no las de la pasada */
     const suyasResp = (respuestas ?? []).filter((r) => r.cliente_id === c.id);
@@ -148,6 +157,7 @@ export default async function PaginaRevision() {
         : null,
       sugerencia,
       ajustadoEstaSemana: ajuste ? Number(ajuste.delta) : null,
+      planes: { entreno: plan("entreno"), descanso: plan("descanso") },
     };
   });
 
