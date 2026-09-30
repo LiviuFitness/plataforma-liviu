@@ -176,7 +176,7 @@ export default function TabResumen({
        * accionable primero, luego su semana, su plan, cómo va, tus notas
        * y, al final, sus datos, que se tocan una vez y ya. */}
       {alertas.length > 0 && (
-        <GrupoPanel titulo="AHORA" Icono={AlertTriangle} color="var(--color-aviso)">
+        <GrupoPanel titulo="AHORA" Icono={AlertTriangle} color="var(--color-peligro)">
           <div className="flex flex-col gap-1.5 mb-3.5">
             {alertas.map((a, i) =>
               a.tipo === "semana_completa" && a.rutina_id && a.semana_destino ? (

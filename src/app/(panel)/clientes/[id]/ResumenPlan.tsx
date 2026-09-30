@@ -163,7 +163,7 @@ export default function ResumenPlan({
         </section>
       </GrupoPanel>
 
-      <GrupoPanel titulo="SU PLAN" Icono={ClipboardList}>
+      <GrupoPanel titulo="SU PLAN" Icono={ClipboardList} color="var(--color-verde)">
         {/* Lo que tiene pautado — cada fila abre su pestaña */}
         <div className="superficie px-4 mb-3.5">
           <button className="fila w-full text-left anim-pulsable" onClick={() => abrir("entreno")}>

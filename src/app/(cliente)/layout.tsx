@@ -86,7 +86,7 @@ export default async function LayoutCliente({
           {children}
         </main>
 
-        <BarraCliente chatSinLeer={hayChatSinLeer} revisionSinLeer={hayRevisionSinLeer} />
+        <BarraCliente chatSinLeer={mensajesSinLeer ?? 0} revisionSinLeer={hayRevisionSinLeer} />
       </div>
     </div>
   );

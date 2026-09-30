@@ -28,6 +28,20 @@ export default async function LayoutPanel({
   // Los clientes tienen su propia app en /inicio
   if (perfil?.rol !== "entrenador") redirect("/inicio");
 
+  /* Clientes cuyo último mensaje es suyo: esperan tu respuesta */
+  const { data: ultimos } = await supabase
+    .from("mensajes")
+    .select("cliente_id, remitente")
+    .order("creado_en", { ascending: false })
+    .limit(400);
+  const vistos = new Set<string>();
+  let esperando = 0;
+  for (const m of ultimos ?? []) {
+    if (vistos.has(m.cliente_id as string)) continue;
+    vistos.add(m.cliente_id as string);
+    if (m.remitente === "cliente") esperando++;
+  }
+
   return (
     /* La barra del panel es más baja que la del cliente (68 px frente a
      * 89): se redefine aquí para que el chat, que comparte componente,
@@ -51,7 +65,7 @@ export default async function LayoutPanel({
         {children}
       </main>
 
-      <BarraInferior />
+      <BarraInferior esperando={esperando} />
     </div>
   );
 }

@@ -14,6 +14,7 @@ import {
   Dumbbell,
   ListChecks,
   UtensilsCrossed,
+  Flame,
 } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar, IconoTarjeta, PuntoEstado } from "@/componentes/ui";
@@ -613,7 +614,7 @@ export default async function PaginaHoy() {
         * izquierda lo que pide hacer algo hoy; en el móvil se apila. */}
       <div className="grid grid-cols-1 lg:grid-cols-[1.25fr_1fr] lg:gap-x-5">
         <div>
-          <GrupoPanel titulo="PARA HOY" Icono={ListChecks}>
+          <GrupoPanel titulo="PARA HOY" Icono={ListChecks} color="var(--color-peligro)">
             {/* Un lead sin contestar es lo único que caduca de verdad */}
             {(leadsNuevos ?? 0) > 0 && (
               <Link href="/leads" className="tarjeta tarjeta-acento !p-4 mb-5 flex items-center gap-3">
@@ -664,7 +665,7 @@ export default async function PaginaHoy() {
           </GrupoPanel>
 
           {(esperandoRespuesta.length > 0 || enfrian.length > 0 || alegrias.length > 0) && (
-            <GrupoPanel titulo="CLIENTES" Icono={Users}>
+            <GrupoPanel titulo="CLIENTES" Icono={Users} color="var(--color-turquesa)">
             {esperandoRespuesta.length > 0 && (
               <>
                 <div className="titulo-seccion">Te han escrito</div>
@@ -695,10 +696,10 @@ export default async function PaginaHoy() {
             <Link
               href="/revision"
               className={`tarjeta !p-4 mb-5 flex items-center gap-3 anim-pulsable ${
-                (hoyFecha.getDay() + 6) % 7 <= 1 ? "tarjeta-acento" : ""
+                (hoyFecha.getDay() + 6) % 7 <= 1 ? "tarjeta-verde" : ""
               }`}
             >
-              <ClipboardCheck size={20} className="text-acento shrink-0" />
+              <ClipboardCheck size={20} className="text-verde shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="font-bold text-[14.5px]">Ronda de revisión semanal</div>
                 <div className="text-atenuado text-[12.5px]">
@@ -848,15 +849,15 @@ export default async function PaginaHoy() {
             )}
           </GrupoPanel>
 
-          <GrupoPanel titulo="NEGOCIO" Icono={Wallet} color="var(--color-verde)">
+          <GrupoPanel titulo="NEGOCIO" Icono={Wallet} color="var(--color-dorado)">
             {/* Siempre visible: también es la puerta a las estadísticas */}
-            <section className="tarjeta tarjeta-verde !p-4 !mb-5">
+            <section className="tarjeta tarjeta-dorado !p-4 !mb-5">
                 <div className="flex items-center gap-3">
-                  <IconoTarjeta Icono={Wallet} color="var(--color-verde)" tamano={38} />
+                  <IconoTarjeta Icono={Wallet} color="var(--color-dorado)" tamano={38} />
                   <div className="flex-1 min-w-0">
                     <div className="titulo-tarjeta !mb-0.5">{nombreMes.toUpperCase()}</div>
                     <div className="flex items-baseline gap-2 flex-wrap">
-                      <span className="num-grande !text-[26px]" style={{ color: "var(--color-verde)" }}>
+                      <span className="num-grande !text-[26px]" style={{ color: "var(--color-dorado)" }}>
                         {euros(cobradoMes)}
                       </span>
                       <span className="text-atenuado text-[12.5px]">cobrados</span>
@@ -895,7 +896,7 @@ export default async function PaginaHoy() {
           </GrupoPanel>
 
           {compartidosSemana > 0 && (
-            <GrupoPanel titulo="COMUNIDAD" Icono={Users} color="var(--color-morado)">
+            <GrupoPanel titulo="COMUNIDAD" Icono={Flame} color="var(--color-naranja)">
             {compartidosSemana > 0 && (
               <Link href="/muro" className="fila anim-pulsable !py-3 mb-6">
                 <Users size={17} className="text-acento shrink-0" />
