@@ -177,6 +177,7 @@ export default function VistaDietas({
           <EstadoVacio
             Icono={UtensilsCrossed}
             color="var(--color-verde)"
+            imagen="/vacios/dieta.webp"
             titulo="Sin comidas definidas todavía"
             descripcion="En cuanto tu entrenador añada las comidas de este plan, aparecerán aquí con sus cantidades exactas."
           />

@@ -126,6 +126,7 @@ export default async function PaginaMiDieta() {
           <EstadoVacio
             Icono={UtensilsCrossed}
             color="var(--color-verde)"
+            imagen="/vacios/dieta.webp"
             titulo="Tu dieta está en el horno 🔥"
             descripcion="En cuanto tu entrenador te asigne el plan de comidas, aparecerá aquí con las cantidades exactas de cada alimento."
           />

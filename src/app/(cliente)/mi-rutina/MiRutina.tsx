@@ -74,6 +74,7 @@ export default function MiRutina({
         <EstadoVacio
           Icono={IconoMancuerna}
           color="var(--color-acento)"
+          imagen="/vacios/rutina.webp"
           titulo="Todavía no tienes rutina"
           descripcion="En cuanto tu entrenador te asigne el plan, aquí verás cada día con sus ejercicios y podrás empezar el que quieras."
         />

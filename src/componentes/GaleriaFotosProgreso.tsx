@@ -18,6 +18,7 @@ export default function GaleriaFotosProgreso({
     return (
       <EstadoVacio
         Icono={Camera}
+        imagen="/vacios/fotos.webp"
         titulo="Sin fotos de progreso todavía"
         descripcion="Sube una foto frontal, lateral y de espalda para comparar tu evolución mes a mes."
       />

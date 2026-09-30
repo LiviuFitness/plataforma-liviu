@@ -117,6 +117,7 @@ export default function MuroEntrenos({
       <section className="tarjeta">
         <EstadoVacio
           Icono={Dumbbell}
+          imagen="/vacios/comunidad.webp"
           titulo="Todavía nadie ha compartido un entreno"
           descripcion="Al terminar un entreno, activa «Compartir en la comunidad» y aparecerá aquí para que los demás te den 🔥."
         />

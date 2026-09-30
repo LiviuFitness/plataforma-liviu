@@ -233,6 +233,7 @@ export default function HiloChat({
           <EstadoVacio
             Icono={MessageCircle}
             color="var(--color-acento)"
+            imagen={remitentePropio === "cliente" ? "/vacios/chat.webp" : undefined}
             titulo={`Escríbele a ${nombreOtro}`}
             descripcion={`Aquí puedes escribir a ${nombreOtro} cuando quieras: dudas sobre tu rutina, tu dieta o cómo te sientes.`}
           />

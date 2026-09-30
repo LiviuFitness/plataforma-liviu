@@ -77,6 +77,7 @@ export default async function PaginaCompra() {
           <EstadoVacio
             Icono={ShoppingCart}
             color="var(--color-verde)"
+            imagen="/vacios/compra.webp"
             titulo="Todavía no hay nada que comprar"
             descripcion="En cuanto tu entrenador te asigne la dieta, aquí tendrás la lista de la semana entera, sumada y ordenada por pasillos del súper."
           />

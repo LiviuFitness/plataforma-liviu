@@ -32,6 +32,7 @@ export default function HistorialProgreso({
           <EstadoVacio
             Icono={Trophy}
             color="var(--color-dorado)"
+            imagen="/vacios/records.webp"
             titulo="Todavía no hay récords"
             descripcion="Completa tu primera sesión y las mejores marcas de cada ejercicio empezarán a aparecer aquí."
           />
@@ -88,6 +89,7 @@ export default function HistorialProgreso({
         {historial.length === 0 && (
           <EstadoVacio
             Icono={History}
+            imagen="/vacios/sesiones.webp"
             titulo="Sin sesiones todavía"
             descripcion="Cuando completes entrenamientos, aparecerán aquí con la fecha, las series hechas y cómo te sentiste."
           />
