@@ -1,9 +1,9 @@
 "use client";
 
 import { avisarCambio } from "@/lib/avisos";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, BookmarkPlus, Check, GripVertical, Play, AlertCircle } from "lucide-react";
+import { ArrowLeftRight, BookmarkPlus, CalendarRange, Check, GripVertical, Play, AlertCircle, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -26,6 +26,9 @@ import HojaGuardarPlantilla from "@/componentes/HojaGuardarPlantilla";
  * panel de volumen por músculo y editor de día estilo Hevy.
  * Se usa tanto en la ficha del cliente como en las plantillas.
  */
+/** Un mesociclo: toda rutina tiene como mínimo estas semanas */
+const MIN_SEMANAS = 12;
+
 export default function EditorRutina({
   rutina,
   plantillas,
@@ -67,9 +70,10 @@ export default function EditorRutina({
     nombreB: string;
   } | null>(null);
 
-  /* Semanas existentes (siempre al menos la 1) */
+  /* Semanas: como mínimo de la 1 a la 12 (un mesociclo) */
   const semanas = useMemo(() => {
-    const set = new Set<number>([1, semanaActual]);
+    const set = new Set<number>([semanaActual]);
+    for (let s = 1; s <= MIN_SEMANAS; s++) set.add(s);
     for (const d of dias) set.add(d.semana);
     return [...set].sort((a, b) => a - b);
   }, [dias, semanaActual]);
@@ -116,6 +120,85 @@ export default function EditorRutina({
     }
     return null;
   }
+
+  /* --- Mínimo 12 semanas: lo que falta se rellena solo ---
+   * 1. Las semanas sin ningún día se copian de la semana con días más
+   *    cercana por debajo (la 1 en una rutina nueva; la última en una
+   *    rutina que se amplía), con sus cargas.
+   * 2. Un día nuevo, al cerrarlo, pasa a las semanas siguientes que no
+   *    tienen día en esa posición.
+   * Nunca se pisa nada: solo se rellenan huecos. Un día borrado a
+   * propósito en una semana (una descarga, por ejemplo) no vuelve. */
+  const diasNuevos = useRef<Set<string>>(new Set());
+  const rellenando = useRef(false);
+  const [avisoSemanas, setAvisoSemanas] = useState("");
+
+  async function rellenarSemanas(actuales: DiaUI[], diaCerrado?: DiaUI) {
+    if (!rutina || rellenando.current) return;
+    const conDias = [...new Set(actuales.map((d) => d.semana))].sort((a, b) => a - b);
+    if (conDias.length === 0) return;
+    const total = Math.max(MIN_SEMANAS, ...conDias);
+    const supabase = crearClienteNavegador();
+    rellenando.current = true;
+    let cambio = false;
+    const rellenadas: { origen: number; semanas: number[] }[] = [];
+    try {
+      const porOrigen = new Map<number, number[]>();
+      for (let s = 1; s <= total; s++) {
+        if (conDias.includes(s)) continue;
+        const abajo = conDias.filter((c) => c < s);
+        const origen = abajo.length > 0 ? abajo[abajo.length - 1] : conDias[0];
+        porOrigen.set(origen, [...(porOrigen.get(origen) ?? []), s]);
+      }
+      for (const [origen, lista] of porOrigen) {
+        const { error: e } = await supabase.rpc("sincronizar_semana", {
+          p_rutina: rutina.id,
+          p_semana_origen: origen,
+          p_semanas: lista,
+          p_incluir_cargas: true,
+        });
+        if (!e) {
+          cambio = true;
+          rellenadas.push({ origen, semanas: lista });
+        }
+      }
+      if (diaCerrado && diasNuevos.current.has(diaCerrado.id)) {
+        diasNuevos.current.delete(diaCerrado.id);
+        const destino = conDias.filter(
+          (s) => s > diaCerrado.semana && !actuales.some((d) => d.semana === s && d.orden === diaCerrado.orden)
+        );
+        if (destino.length > 0) {
+          const { error: e } = await supabase.rpc("copiar_dia_a_semanas", {
+            p_dia: diaCerrado.id,
+            p_semanas: destino,
+            p_incluir_cargas: true,
+          });
+          if (!e) cambio = true;
+        }
+      }
+    } finally {
+      rellenando.current = false;
+    }
+    if (!cambio) return;
+    await recargarDias();
+    /* Lo de alrededor (el aviso de mesociclo, la ficha) cuenta las semanas nuevas */
+    router.refresh();
+    if (rellenadas.length > 0) {
+      const todas = rellenadas.flatMap((r) => r.semanas).sort((a, b) => a - b);
+      const origenes = [...new Set(rellenadas.map((r) => r.origen))];
+      const tramo = todas.length === 1 ? `La semana ${todas[0]}` : `Las semanas ${todas[0]} a ${todas[todas.length - 1]}`;
+      setAvisoSemanas(
+        `${tramo} ${todas.length === 1 ? "se ha rellenado" : "se han rellenado"} con la semana ${origenes.join(" y ")}. Para meter progresión, usa «Duplicar»; lo que cambies en una semana no se vuelve a pisar.`
+      );
+    }
+  }
+
+  /* Al abrir una rutina con días y menos de 12 semanas, se amplía */
+  useEffect(() => {
+    if (rutina && (rutina.dias ?? []).length > 0) void rellenarSemanas(rutina.dias);
+    // Solo al abrir cada rutina
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rutina?.id]);
 
   /* --- Crear la rutina del cliente si aún no existe --- */
   async function crearRutina() {
@@ -174,6 +257,7 @@ export default function EditorRutina({
       return;
     }
     const nuevo: DiaUI = { ...data, ejercicios: [] };
+    diasNuevos.current.add(nuevo.id);
     setDias((d) => [...d, nuevo]);
     abrirDia(dias.length); // índice dentro de `dias` (se añade al final)
   }
@@ -390,7 +474,11 @@ export default function EditorRutina({
         error={error}
         semanas={semanas}
         onGuardar={(d) => guardarDia(indiceAbierto, d)}
-        onVolver={() => abrirDia(null)}
+        onVolver={() => {
+          const cerrado = dias[indiceAbierto];
+          abrirDia(null);
+          void rellenarSemanas(dias, cerrado);
+        }}
         onEliminar={() => eliminarDia(dias[indiceAbierto])}
         onCopiado={() => {
           recargarDias();
@@ -421,6 +509,16 @@ export default function EditorRutina({
   /* --- Vista de semanas + días --- */
   return (
     <>
+      {avisoSemanas && (
+        <div className="banner banner-accion mb-3 !items-start">
+          <CalendarRange size={15} className="shrink-0 mt-0.5" />
+          <span className="min-w-0 flex-1 leading-snug">{avisoSemanas}</span>
+          <button className="shrink-0 cursor-pointer" onClick={() => setAvisoSemanas("")} aria-label="Cerrar aviso">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
       {/* Selector de semanas (microciclos) */}
       {/* Semanas arriba, acciones debajo, y nada deslizándose: en una
         * sola fila que se deslizaba, "Duplicar" salía cortado y "Igualar
