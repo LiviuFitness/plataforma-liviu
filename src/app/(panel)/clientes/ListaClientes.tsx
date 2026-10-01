@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Megaphone, MessageCircle, Search } from "lucide-react";
+import { Megaphone, MessageCircle, Search, UserPlus } from "lucide-react";
 import { Avatar, PuntoEstado } from "@/componentes/ui";
 import { estadoCliente } from "@/lib/estadoCliente";
 import HojaMensajeVarios from "@/componentes/HojaMensajeVarios";
+import HojaAnadirCliente from "./HojaAnadirCliente";
 import type { Perfil } from "@/lib/tipos";
 
 type Filtro = "todos" | "atencion" | "sin-rutina" | "sin-dieta" | "inactivos";
@@ -38,6 +39,7 @@ export default function ListaClientes({
 
   const [filtro, setFiltro] = useState<Filtro>("todos");
   const [mensajeVarios, setMensajeVarios] = useState(false);
+  const [anadiendo, setAnadiendo] = useState(false);
 
   /* Todo lo que pinta cada fila se calcula una vez, y los filtros
    * cuentan con lo mismo que se ve: si el chip dice "Sin dieta 3", al
@@ -115,11 +117,19 @@ export default function ListaClientes({
               <Megaphone size={17} />
             </button>
           )}
+          <button
+            className="ghost !py-2 !px-3 flex items-center gap-1.5 text-[13px] shrink-0"
+            onClick={() => setAnadiendo(true)}
+          >
+            <UserPlus size={15} /> Añadir
+          </button>
           <Link href="/invitaciones" className="cta cta-mini shrink-0">
             + Invitar
           </Link>
         </div>
       </div>
+
+      {anadiendo && <HojaAnadirCliente onCerrar={() => setAnadiendo(false)} />}
 
       {mensajeVarios && (
         <HojaMensajeVarios

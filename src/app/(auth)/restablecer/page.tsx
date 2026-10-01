@@ -1,7 +1,7 @@
 "use client";
 
 import { AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import { Logo } from "@/componentes/ui";
@@ -12,6 +12,24 @@ export default function PaginaRestablecer() {
   const [repetida, setRepetida] = useState("");
   const [error, setError] = useState("");
   const [cargando, setCargando] = useState(false);
+
+  /* El correo de acceso que manda el entrenador desde su panel trae la
+   * sesión en el propio enlace (#access_token=…), porque no lo pidió este
+   * navegador: se abre aquí antes de pedir la contraseña. El de "He
+   * olvidado mi contraseña" llega con ?code= y lo resuelve solo el
+   * cliente de Supabase. */
+  useEffect(() => {
+    const datos = new URLSearchParams(window.location.hash.slice(1));
+    const access_token = datos.get("access_token");
+    const refresh_token = datos.get("refresh_token");
+    if (!access_token || !refresh_token) return;
+    crearClienteNavegador()
+      .auth.setSession({ access_token, refresh_token })
+      .then(({ error: e }) => {
+        if (e) setError("El enlace ha caducado. Pídele a tu entrenador que te lo reenvíe.");
+        window.history.replaceState(null, "", window.location.pathname);
+      });
+  }, []);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();

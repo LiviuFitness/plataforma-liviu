@@ -22,6 +22,8 @@ import type {
 } from "@/lib/tipos";
 import type { PlantillaResumen } from "@/componentes/AsignarPlantilla";
 
+import { clienteServicio } from "@/lib/push";
+import { esSinAcceso } from "@/lib/accesoClientes";
 export const dynamic = "force-dynamic";
 
 /** Ficha de cliente: carga todos los datos y los pasa al componente de pestañas. */
@@ -215,8 +217,19 @@ export default async function PaginaFichaCliente({
     resolverProgresoEntreno(supabase, id),
   ]);
 
+  /* Acceso a la app: los que diste de alta tú pueden no tener aún su
+   * correo, o tenerlo y no haber entrado nunca */
+  let acceso: "ok" | "sin" | "pendiente" = "ok";
+  {
+    const { data: cuenta } = await clienteServicio().auth.admin.getUserById(id);
+    const correo = cuenta.user ? (cuenta.user.email ?? null) : (perfil.email as string | null);
+    if (esSinAcceso(correo)) acceso = "sin";
+    else if (cuenta.user && !cuenta.user.last_sign_in_at) acceso = "pendiente";
+  }
+
   return (
     <FichaCliente
+      acceso={acceso}
       perfil={perfil as Perfil}
       medidas={(medidas ?? []) as Medida[]}
       alertas={(alertas ?? []) as Alerta[]}

@@ -23,6 +23,7 @@ import {
   type RutinaUI,
 } from "@/lib/tipos";
 import { FACTORES_ACTIVIDAD } from "@/lib/macros";
+import { esSinAcceso } from "@/lib/accesoClientes";
 
 /** Pantalla principal de la ficha: alertas, cómo va, su plan, notas y datos. */
 export default function TabResumen({
@@ -287,7 +288,11 @@ export default function TabResumen({
             onChange={(e) => setNombre(e.target.value)}
           />
           <label className="text-[13px] text-texto-2 block mb-1">Email</label>
-          <input className="input opacity-60" value={perfil.email} disabled />
+          <input
+            className="input opacity-60"
+            value={esSinAcceso(perfil.email) ? "Sin acceso a la app todavía" : perfil.email}
+            disabled
+          />
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="text-[13px] text-texto-2 block mb-1">

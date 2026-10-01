@@ -10,6 +10,8 @@ import EditorDieta from "@/componentes/EditorDieta";
 import TabResumen from "./TabResumen";
 import TabProgreso from "./TabProgreso";
 import HistorialAjustes from "./HistorialAjustes";
+import AccesoApp from "./AccesoApp";
+import { esSinAcceso } from "@/lib/accesoClientes";
 import SiguienteMesociclo from "@/componentes/SiguienteMesociclo";
 import TabHabitos from "./TabHabitos";
 import HiloChat from "@/componentes/HiloChat";
@@ -64,6 +66,7 @@ function esVista(v: string | null): v is Vista {
  * clientes, y no se vuelven a pedir los datos al servidor al cambiar.
  */
 export default function FichaCliente({
+  acceso = "ok",
   perfil,
   medidas,
   alertas,
@@ -95,6 +98,8 @@ export default function FichaCliente({
   guias,
   adherenciaDieta,
 }: {
+  /** Acceso a la app (clientes dados de alta por el entrenador) */
+  acceso?: "ok" | "sin" | "pendiente";
   perfil: Perfil;
   medidas: Medida[];
   alertas: Alerta[];
@@ -216,6 +221,11 @@ export default function FichaCliente({
               {perfil.objetivo ?? "Sin objetivo"}
               {perfil.plan ? ` · plan ${perfil.plan}` : ""} · desde {desde}
             </div>
+            {acceso === "sin" && (
+              <span className="chip !cursor-default mt-2 mr-1.5 inline-flex !text-aviso !py-0.5 !text-[12px]">
+                Sin acceso a la app
+              </span>
+            )}
             {perfil.estado !== "activo" && (
               <span
                 className={`chip !cursor-default mt-2 inline-flex ${
@@ -234,6 +244,15 @@ export default function FichaCliente({
             </span>
           </div>
         </div>
+
+        {acceso !== "ok" && (
+          <AccesoApp
+            clienteId={perfil.id}
+            pila={nombrePila}
+            estado={acceso}
+            emailActual={esSinAcceso(perfil.email) ? null : perfil.email}
+          />
+        )}
 
         {perfil.estado === "activo" && diasDeAlta <= 60 && (
           <ListaArranque
