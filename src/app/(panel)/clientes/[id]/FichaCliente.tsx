@@ -309,6 +309,7 @@ export default function FichaCliente({
       {viendoComoCliente && (vista === "entreno" || vista === "dieta") && (
         <VistaComoCliente
           que={vista}
+          clienteId={perfil.id}
           nombreCliente={perfil.nombre}
           rutina={rutina}
           diasHechosSemana={diasHechosSemana}

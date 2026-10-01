@@ -74,7 +74,7 @@ export default async function PaginaSesion({
   if (!user) redirect("/login");
 
   // RLS garantiza que el cliente solo puede leer días de SU rutina
-  const [{ data: dia }, { data: previas }, { data: perfilComunidad }] = await Promise.all([
+  const [{ data: dia }, { data: previas }, { data: perfilComunidad }, { data: ultimoPeso }] = await Promise.all([
     supabase
       .from("rutina_dias")
       .select(
@@ -99,6 +99,15 @@ export default async function PaginaSesion({
       .order("fecha_inicio", { ascending: false })
       .limit(30),
     supabase.from("profiles").select("visible_en_comunidad").eq("id", user.id).maybeSingle(),
+    /* Su último peso: para estimar las kcal del entreno */
+    supabase
+      .from("medidas")
+      .select("peso")
+      .eq("cliente_id", user.id)
+      .not("peso", "is", null)
+      .order("fecha", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!dia) notFound();
@@ -256,6 +265,7 @@ export default async function PaginaSesion({
     <SesionEnCurso
       conIA={!!process.env.ANTHROPIC_API_KEY}
       visibleComunidad={perfilComunidad?.visible_en_comunidad === true}
+      pesoKg={ultimoPeso?.peso ? Number(ultimoPeso.peso) : null}
       clienteId={user.id}
       diaId={dia.id}
       nombreDia={dia.nombre}

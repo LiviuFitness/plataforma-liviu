@@ -23,6 +23,9 @@ export interface SesionParaSubir {
     sensacion: number | null;
     notas_cliente: string | null;
     expres?: boolean;
+    /** Calorías: estimadas o las del reloj (kcal_reloj) */
+    kcal?: number | null;
+    kcal_reloj?: boolean;
   };
   series: Record<string, unknown>[];
   /** Para el aviso: "Pierna A". */
@@ -42,7 +45,14 @@ function esFalloDeRed(error: { message?: string; code?: string } | null): boolea
 }
 
 export async function subirSesion(supabase: Supabase, p: SesionParaSubir): Promise<ResultadoSubida> {
-  const { data: sesion, error: e1 } = await supabase.from("sesiones").insert(p.sesion).select("id").single();
+  let { data: sesion, error: e1 } = await supabase.from("sesiones").insert(p.sesion).select("id").single();
+  /* Sin las columnas de kcal (SQL aún sin pegar): se guarda sin ellas */
+  if (e1 && (e1.code === "PGRST204" || e1.code === "42703") && "kcal" in p.sesion) {
+    const { kcal: _k, kcal_reloj: _r, ...sinKcal } = p.sesion;
+    void _k;
+    void _r;
+    ({ data: sesion, error: e1 } = await supabase.from("sesiones").insert(sinKcal).select("id").single());
+  }
 
   let sesionId = sesion?.id as string | undefined;
   if (e1) {

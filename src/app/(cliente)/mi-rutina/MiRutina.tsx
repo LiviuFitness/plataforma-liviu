@@ -53,6 +53,8 @@ export default function MiRutina({
   dias,
   hechosEstaSemana,
   idSiguiente,
+  hrefSesion,
+  textoEmpezar,
 }: {
   nombreRutina: string;
   notas: string;
@@ -60,6 +62,9 @@ export default function MiRutina({
   dias: DiaUI[];
   hechosEstaSemana: string[];
   idSiguiente: string | null;
+  /** El entrenador, en "Ver como": "Empezar" abre la sesión presencial */
+  hrefSesion?: (diaId: string) => string;
+  textoEmpezar?: string;
 }) {
   const hechos = new Set(hechosEstaSemana);
   // Abierto de partida el día que toca: entrar y ver ya qué te espera
@@ -208,10 +213,11 @@ export default function MiRutina({
                   ))}
 
                   <Link
-                    href={`/sesion/${dia.id}`}
+                    href={hrefSesion ? hrefSesion(dia.id) : `/sesion/${dia.id}`}
+                    data-presencial={hrefSesion ? "" : undefined}
                     className="cta anim-pulsable !mb-0 block text-center mt-3"
                   >
-                    {hecho ? "Repetir este entreno →" : "Empezar este entreno →"}
+                    {textoEmpezar ?? (hecho ? "Repetir este entreno →" : "Empezar este entreno →")}
                   </Link>
                 </div>
               </div>

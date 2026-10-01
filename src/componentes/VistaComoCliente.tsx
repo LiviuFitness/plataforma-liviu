@@ -21,12 +21,14 @@ function aPlan(dieta: Dieta | null): PlanDieta | null {
  * llega lo pautado sin pedirle capturas.
  *
  * Solo lectura en lo que importa: se puede abrir un día o una comida y
- * mirar equivalencias (estado local, no escribe nada), pero los enlaces
- * no navegan: "Empezar" llevaría a una sesión del cliente, y el panel
- * del entrenador no debe arrancar entrenos ajenos desde aquí.
+ * mirar equivalencias (estado local, no escribe nada), y los enlaces no
+ * navegan. La excepción es "Empezar": abre la sesión PRESENCIAL de ese
+ * cliente (la misma que "Entrenar" en la ficha), que es lo que se busca
+ * al pulsarlo con el cliente delante.
  */
 export default function VistaComoCliente({
   que,
+  clienteId,
   nombreCliente,
   rutina,
   diasHechosSemana,
@@ -37,6 +39,7 @@ export default function VistaComoCliente({
   onSalir,
 }: {
   que: "entreno" | "dieta";
+  clienteId: string;
   nombreCliente: string;
   rutina: RutinaUI | null;
   diasHechosSemana: string[];
@@ -79,7 +82,7 @@ export default function VistaComoCliente({
         <div className="banner banner-accion !mb-4 items-center sticky top-3 z-10">
           <Eye size={14} className="shrink-0" />
           <span className="flex-1 min-w-0">
-            Así lo ve {pila} en su móvil. Solo lectura.
+            Así lo ve {pila} en su móvil.{que === "entreno" ? " «Empezar» abre la sesión presencial." : " Solo lectura."}
           </span>
           <button className="underline underline-offset-2 font-semibold shrink-0 cursor-pointer" onClick={onSalir}>
             Salir
@@ -88,7 +91,8 @@ export default function VistaComoCliente({
 
         <div
           onClickCapture={(e) => {
-            if ((e.target as HTMLElement).closest("a")) e.preventDefault();
+            const enlace = (e.target as HTMLElement).closest("a");
+            if (enlace && !enlace.hasAttribute("data-presencial")) e.preventDefault();
           }}
         >
           {que === "entreno" ? (
@@ -100,6 +104,8 @@ export default function VistaComoCliente({
                 dias={dias}
                 hechosEstaSemana={diasHechosSemana}
                 idSiguiente={idSiguiente}
+                hrefSesion={(diaId) => `/clientes/${clienteId}/sesion/${diaId}`}
+                textoEmpezar={`Empezar presencial con ${pila} →`}
               />
             </>
           ) : (

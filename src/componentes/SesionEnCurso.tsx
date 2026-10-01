@@ -9,6 +9,7 @@ import {
   embedYoutube,
   esGif,
   parsearCarga,
+  parsearReps,
   parsearRepsRealizadas,
   parsearRir,
 } from "@/lib/rutinas";
@@ -46,7 +47,9 @@ import {
   Trophy,
   Video,
   X,
-  Zap, AlertCircle } from "lucide-react";
+  Zap, AlertCircle, Flame,
+  Watch,
+} from "lucide-react";
 import type { AlternativaSesion } from "@/lib/alternativasSesion";
 import type { VezEjercicio } from "@/lib/historialEjercicio";
 import { admiteExpres, duracionEstimada, versionExpres } from "@/lib/expres";
@@ -196,6 +199,24 @@ function FilaSerie({
   const kgMostrado = serie.kg || serie.kgPrescrito;
   const repsMostrado = serie.reps || serie.repsPrescrito;
 
+  /* Fuera del rango pautado: en cuanto se apuntan las reps (sin esperar
+   * al ✓), la casilla se pinta y debajo se dice por qué. Ámbar si se
+   * queda corto; azul si se pasa (toca subir el peso). */
+  const rango = parsearReps(serie.repsPrescrito);
+  const hechas = parsearRepsRealizadas(serie.reps);
+  let fuera: { tipo: "bajo" | "alto"; total: number; texto: string } | null = null;
+  if (serie.tipo !== "calentamiento" && serie.reps.trim() !== "" && rango.reps !== null && hechas.reps !== null) {
+    const max = rango.reps_max ?? rango.reps;
+    const total = hechas.reps + (hechas.reps_extra ?? 0);
+    const textoRango = max !== rango.reps ? `${rango.reps}-${max}` : `${rango.reps}`;
+    if (total < rango.reps) fuera = { tipo: "bajo", total, texto: textoRango };
+    else if (total > max) fuera = { tipo: "alto", total, texto: textoRango };
+  }
+  const colorFuera = fuera ? (fuera.tipo === "bajo" ? "var(--color-aviso)" : "var(--color-acento)") : null;
+  const estiloReps = colorFuera
+    ? { borderColor: colorFuera, background: `color-mix(in srgb, ${colorFuera} 14%, var(--color-campo))` }
+    : undefined;
+
   /* Las tres casillas (kg, reps, RIR) son la misma caja: mismo alto que
    * el check, mismo fondo y borde, y una etiqueta mínima encima del
    * valor. Antes, según el dato, el peso salía como texto suelto, las
@@ -254,15 +275,16 @@ function FilaSerie({
           <button
             type="button"
             className={`${caja} anim-pulsable`}
+            style={estiloReps}
             onClick={() => onAbrirEditor("reps")}
             aria-label={`Editar repeticiones: ${repsMostrado || "sin registrar"}`}
           >
-            <span className={etiqueta}>reps</span>
-            <span className={valor}>{repsMostrado}</span>
+            <span className={etiqueta} style={colorFuera ? { color: colorFuera } : undefined}>reps</span>
+            <span className={valor} style={colorFuera ? { color: colorFuera } : undefined}>{repsMostrado}</span>
           </button>
         ) : (
-          <label className={caja}>
-            <span className={`${etiqueta} absolute top-[7px]`}>reps</span>
+          <label className={caja} style={estiloReps}>
+            <span className={`${etiqueta} absolute top-[7px]`} style={colorFuera ? { color: colorFuera } : undefined}>reps</span>
             <input
               className={campo}
               placeholder={serie.repsPrescrito}
@@ -272,7 +294,7 @@ function FilaSerie({
             />
           </label>
         )}
-        {evaluacion === "superado" && (
+        {!fuera && evaluacion === "superado" && (
           <ArrowUp
             size={11}
             strokeWidth={3}
@@ -281,7 +303,7 @@ function FilaSerie({
             className="text-acento absolute top-1 right-1 pointer-events-none"
           />
         )}
-        {evaluacion === "no_alcanzado" && (
+        {!fuera && evaluacion === "no_alcanzado" && (
           <ArrowDown
             size={11}
             strokeWidth={3}
@@ -318,6 +340,23 @@ function FilaSerie({
       >
         <Check size={17} strokeWidth={3} />
       </button>
+
+      {fuera && (
+        <div
+          className="col-span-4 flex items-center gap-1.5 text-[12.5px] font-semibold pl-0.5 leading-snug"
+          style={{ color: colorFuera! }}
+        >
+          {fuera.tipo === "bajo" ? (
+            <ArrowDown size={13} strokeWidth={3} className="shrink-0" />
+          ) : (
+            <ArrowUp size={13} strokeWidth={3} className="shrink-0" />
+          )}
+          <span className="min-w-0">
+            {fuera.total} reps: {fuera.tipo === "bajo" ? "por debajo" : "por encima"} del rango ({fuera.texto})
+            {fuera.tipo === "alto" ? " · sube el peso la próxima" : ""}
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -345,6 +384,7 @@ export default function SesionEnCurso({
   avisarSiDuplicada = false,
   conIA = false,
   visibleComunidad,
+  pesoKg = null,
 }: {
   clienteId: string;
   diaId: string;
@@ -371,6 +411,8 @@ export default function SesionEnCurso({
   conIA?: boolean;
   /** Si es visible en la comunidad (solo el cliente: sin esto no se ofrece compartir) */
   visibleComunidad?: boolean;
+  /** Último peso del cliente, para estimar las kcal del entreno */
+  pesoKg?: number | null;
 }) {
   const router = useRouter();
   const [ejercicios, setEjercicios] = useState(ejerciciosIniciales);
@@ -406,6 +448,8 @@ export default function SesionEnCurso({
     typeof window === "undefined" ? { activo: true, kilos: false, mensaje: "" } : leerOpcionesCompartir()
   );
   const fechaGuardada = useRef<string | null>(null);
+  /* Kcal del reloj (Apple Watch…), si las apunta: mandan sobre la estimación */
+  const [kcalReloj, setKcalReloj] = useState("");
   /* Notas propias editadas en esta sesión (ejercicioId → texto) */
   const [notasEditadas, setNotasEditadas] = useState<Record<string, string | null>>({});
 
@@ -842,6 +886,20 @@ export default function SesionEnCurso({
   /** Una sola vez por sesión: si ya se está guardando (o se guardó bien),
    * se reutiliza la misma promesa en vez de insertar otra fila. Solo un
    * fallo la suelta, para que se pueda reintentar. */
+  /* Pesas, contando descansos: unas 4,5 MET (Compendium of Physical
+   * Activities). Es orientativo: el reloj, si lo hay, manda. */
+  const kcalEstimadas =
+    pesoKg && transcurrido > 60 ? Math.round((4.5 * pesoKg * transcurrido) / 3600) : null;
+
+  /** Kcal que se guardan: las del reloj si las ha apuntado; si no, la
+   * estimación (null si no hay peso con el que estimar). */
+  function kcalSesion(): { kcal: number; kcal_reloj: boolean } | null {
+    const reloj = Math.round(Number(kcalReloj.replace(",", ".")));
+    if (kcalReloj.trim() && reloj > 0 && reloj < 5000) return { kcal: reloj, kcal_reloj: true };
+    if (kcalEstimadas !== null) return { kcal: kcalEstimadas, kcal_reloj: false };
+    return null;
+  }
+
   async function guardarSesion(): Promise<boolean> {
     guardado.current ??= insertarSesion().then((ok) => {
       if (!ok) guardado.current = null;
@@ -901,6 +959,7 @@ export default function SesionEnCurso({
         prs_pre: prsPre,
         sensacion,
         notas_cliente: nota.trim() || null,
+        ...(kcalSesion() ?? {}),
         /* Solo si lo es: así una sesión normal se guarda igual que antes */
         ...(expres ? { expres: true } : {}),
       },
@@ -1096,8 +1155,9 @@ export default function SesionEnCurso({
           <div className="sub">{nombreDia}</div>
         </div>
 
-        {/* Hero: los dos números que más dicen de un vistazo */}
-        <div className="grid grid-cols-2 gap-3 mb-2 text-center">
+        {/* Hero: los números que más dicen de un vistazo (y las kcal si
+          * hay con qué calcularlas, o si las ha apuntado del reloj) */}
+        <div className={`grid ${kcalSesion() ? "grid-cols-3" : "grid-cols-2"} gap-3 mb-2 text-center`}>
           <div>
             <div className="num-grande !text-[32px] tabular-nums">
               {tonelaje >= 1000 ? `${(tonelaje / 1000).toFixed(1).replace(".", ",")} t` : tonelajeAnimado}
@@ -1110,6 +1170,15 @@ export default function SesionEnCurso({
             <div className="num-grande !text-[32px] tabular-nums">{fmt(transcurrido)}</div>
             <div className="texto-secundario mt-1">duración</div>
           </div>
+          {kcalSesion() && (
+            <div>
+              <div className="num-grande !text-[32px] tabular-nums text-naranja">
+                {kcalSesion()!.kcal_reloj ? "" : "≈ "}
+                {kcalSesion()!.kcal}
+              </div>
+              <div className="texto-secundario mt-1">kcal</div>
+            </div>
+          )}
         </div>
 
         {/* Secundarios: una línea fina, sin tarjetas de más */}
@@ -1198,6 +1267,31 @@ export default function SesionEnCurso({
             onCerrar={() => setTarjetaAbierta(false)}
           />
         )}
+
+        {/* Calorías: estimación, o lo que marca el reloj si lo apunta (una
+          * web no puede leer el Apple Watch ni la app Salud) */}
+        <section className="tarjeta tarjeta-naranja !p-3.5">
+          <div className="flex items-center gap-2 mb-1">
+            <Flame size={15} className="text-naranja shrink-0" />
+            <div className="font-bold text-[14px] flex-1">Calorías del entreno</div>
+          </div>
+          <div className="text-atenuado text-[12.5px] leading-snug mb-3">
+            {kcalEstimadas !== null
+              ? `Estimación con la duración y ${nombreCliente ? "su" : "tu"} peso (${String(pesoKg).replace(".", ",")} kg). Si ${nombreCliente ? "lleva" : "llevas"} reloj, apunta lo que marca y se guarda ese dato.`
+              : `Si ${nombreCliente ? "lleva" : "llevas"} reloj (Apple Watch…), apunta las kcal que marca y quedan guardadas con el entreno.`}
+          </div>
+          <label className="flex items-center gap-2">
+            <Watch size={17} className="text-texto-2 shrink-0" />
+            <input
+              className="flex-1 min-w-0 bg-campo border border-borde-2 rounded-[10px] text-white px-3 py-2.5 text-[16px] focus:outline-none focus:border-acento"
+              inputMode="numeric"
+              placeholder={`kcal ${nombreCliente ? "del" : "de tu"} reloj (opcional)`}
+              value={kcalReloj}
+              onChange={(e) => setKcalReloj(e.target.value.replace(/[^\d]/g, "").slice(0, 4))}
+              aria-label="Kcal del reloj"
+            />
+          </label>
+        </section>
 
         <section className="tarjeta">
           <div className="titulo-tarjeta">¿CÓMO HA IDO?</div>

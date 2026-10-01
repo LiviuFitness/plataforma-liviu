@@ -73,7 +73,7 @@ export default async function PaginaSesionPresencial({
   const { id, diaId } = await params;
   const supabase = await crearClienteServidor();
 
-  const [{ data: perfil }, { data: dia }, { data: previas }] = await Promise.all([
+  const [{ data: perfil }, { data: dia }, { data: previas }, { data: ultimoPeso }] = await Promise.all([
     supabase.from("profiles").select("nombre").eq("id", id).maybeSingle(),
     supabase
       .from("rutina_dias")
@@ -98,6 +98,15 @@ export default async function PaginaSesionPresencial({
       .eq("cliente_id", id)
       .order("fecha_inicio", { ascending: false })
       .limit(30),
+    /* Su último peso: para estimar las kcal del entreno */
+    supabase
+      .from("medidas")
+      .select("peso")
+      .eq("cliente_id", id)
+      .not("peso", "is", null)
+      .order("fecha", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   if (!dia || !perfil) notFound();
@@ -253,6 +262,7 @@ export default async function PaginaSesionPresencial({
 
   return (
     <SesionEnCurso
+      pesoKg={ultimoPeso?.peso ? Number(ultimoPeso.peso) : null}
       clienteId={id}
       diaId={dia.id}
       nombreDia={dia.nombre}
