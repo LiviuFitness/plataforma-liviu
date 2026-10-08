@@ -14,14 +14,19 @@ self.addEventListener("push", (evento) => {
     datos = { titulo: "LivFit", cuerpo: evento.data ? evento.data.text() : "" };
   }
   const titulo = datos.titulo || "LivFit";
+  /* Número sobre el icono de la app (iPhone y Android, con la app instalada) */
+  const insignia =
+    typeof datos.insignia === "number" && self.navigator.setAppBadge
+      ? self.navigator.setAppBadge(datos.insignia).catch(() => {})
+      : Promise.resolve();
   evento.waitUntil(
-    self.registration.showNotification(titulo, {
+    Promise.all([insignia, self.registration.showNotification(titulo, {
       body: datos.cuerpo || "",
       icon: "/icono-192.png",
       badge: "/icono-192.png",
       tag: datos.etiqueta || undefined,
       data: { url: datos.url || "/" },
-    })
+    })])
   );
 });
 

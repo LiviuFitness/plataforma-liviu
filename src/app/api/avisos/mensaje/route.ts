@@ -44,6 +44,23 @@ export async function POST(request: Request) {
     for (const m of ultimos ?? []) {
       if (!texto.has(m.cliente_id)) texto.set(m.cliente_id, resumenMensaje(m.texto, m.imagen));
     }
+    /* Para el número del icono: lo que cada uno tiene sin leer */
+    const { data: vistos } = await db.from("profiles").select("id, chat_visto_en").in("id", ids);
+    const vistoEn = new Map((vistos ?? []).map((p) => [p.id as string, (p.chat_visto_en as string | null) ?? "1970-01-01"]));
+    const desde = new Date(Date.now() - 60 * 86_400_000).toISOString();
+    const { data: recientes } = await db
+      .from("mensajes")
+      .select("cliente_id, creado_en")
+      .in("cliente_id", ids)
+      .eq("remitente", "entrenador")
+      .gte("creado_en", desde)
+      .limit(5000);
+    const sinLeer = new Map<string, number>();
+    for (const m of recientes ?? []) {
+      if (new Date(m.creado_en) > new Date(vistoEn.get(m.cliente_id) ?? "1970-01-01")) {
+        sinLeer.set(m.cliente_id, (sinLeer.get(m.cliente_id) ?? 0) + 1);
+      }
+    }
     const pila = String(yo.nombre ?? "Tu entrenador").split(" ")[0];
     enviados = await enviarAvisos(ids, "mensajes", (id) =>
       texto.has(id)
@@ -52,6 +69,7 @@ export async function POST(request: Request) {
             cuerpo: recortar(textoVisible(texto.get(id)!)),
             url: "/chat",
             etiqueta: "chat",
+            insignia: sinLeer.get(id) ?? 1,
           }
         : null
     );
@@ -66,6 +84,19 @@ export async function POST(request: Request) {
       .maybeSingle();
     if (!ultimo) return Response.json({ ok: true, enviados: 0 });
     const { data: entrenadores } = await db.from("profiles").select("id").eq("rol", "entrenador");
+    /* Para el número del icono: clientes cuyo último mensaje es suyo (como en el panel) */
+    const { data: ultimosHilos } = await db
+      .from("mensajes")
+      .select("cliente_id, remitente")
+      .order("creado_en", { ascending: false })
+      .limit(400);
+    const hilos = new Set<string>();
+    let esperando = 0;
+    for (const m of ultimosHilos ?? []) {
+      if (hilos.has(m.cliente_id)) continue;
+      hilos.add(m.cliente_id);
+      if (m.remitente === "cliente") esperando++;
+    }
     enviados = await enviarAvisos(
       (entrenadores ?? []).map((e) => e.id as string),
       "mensajes",
@@ -74,6 +105,7 @@ export async function POST(request: Request) {
         cuerpo: recortar(resumenMensaje(textoVisible(ultimo.texto), ultimo.imagen)),
         url: `/clientes/${usuario.id}?vista=chat`,
         etiqueta: `chat-${usuario.id}`,
+        insignia: Math.max(1, esperando),
       })
     );
   }

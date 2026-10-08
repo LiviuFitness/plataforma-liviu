@@ -20,6 +20,8 @@ export interface Aviso {
   url: string;
   /** Avisos con la misma etiqueta se sustituyen en vez de amontonarse */
   etiqueta?: string;
+  /** Número para el icono de la app (mensajes sin leer / esperando) */
+  insignia?: number;
 }
 
 let configurado: boolean | null = null;

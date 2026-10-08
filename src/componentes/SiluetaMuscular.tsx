@@ -24,7 +24,7 @@ function par(z: Zona): Zona[] {
   return [z, espejo(z)];
 }
 
-const FRONTAL: PiezaMuscular[] = [
+export const FRONTAL: PiezaMuscular[] = [
   { grupo: "Trapecio", zonas: [{ k: "rect", x: 62, y: 44, w: 76, h: 20, r: 8 }] },
   {
     grupo: "Deltoides Lateral",
@@ -49,7 +49,7 @@ const FRONTAL: PiezaMuscular[] = [
   { grupo: "Gemelos", zonas: par({ k: "rect", x: 62, y: 258, w: 38, h: 62, r: 14 }) },
 ];
 
-const POSTERIOR: PiezaMuscular[] = [
+export const POSTERIOR: PiezaMuscular[] = [
   { grupo: "Trapecio", zonas: [{ k: "rect", x: 68, y: 44, w: 64, h: 46, r: 14 }] },
   {
     grupo: "Deltoides Posterior",
@@ -67,7 +67,7 @@ const POSTERIOR: PiezaMuscular[] = [
   { grupo: "Gemelos", zonas: par({ k: "rect", x: 62, y: 258, w: 38, h: 62, r: 14 }) },
 ];
 
-function dibujar(z: Zona, key: string, fill: string) {
+export function dibujar(z: Zona, key: string, fill: string) {
   return z.k === "rect" ? (
     <rect key={key} x={z.x} y={z.y} width={z.w} height={z.h} rx={z.r} fill={fill} />
   ) : (

@@ -29,6 +29,7 @@ import { INFO_MACRO } from "@/lib/tipos";
 import { IconoTarjeta, type IconoApp } from "@/componentes/ui";
 import { calcularRachaSemanas } from "@/lib/racha";
 import { fotoEntreno } from "@/lib/fotoEntreno";
+import TarjetaInstalar from "@/componentes/TarjetaInstalar";
 
 export const dynamic = "force-dynamic";
 
@@ -509,6 +510,8 @@ export default async function PaginaInicio() {
         {saludoSegunHora()}
         {nombrePila ? `, ${nombrePila}` : ""}
       </h1>
+
+      <TarjetaInstalar />
 
       {/* 2. UNA tarjeta que contesta "qué hago hoy" y "cómo voy". La
         * semana y la racha iban cada una por su cuenta encima del

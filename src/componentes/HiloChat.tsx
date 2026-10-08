@@ -9,6 +9,7 @@ import VisorGuia from "@/componentes/VisorGuia";
 import { leerGuia, mensajeDeGuia } from "@/lib/guias";
 import { avisarMensaje } from "@/lib/avisos";
 import { reducirFoto } from "@/lib/fotoChat";
+import { esVideo, extensionDe, leerTecnica, prepararVideo } from "@/lib/videoChat";
 import type { Mensaje } from "@/lib/tipos";
 
 const INTERVALO_SONDEO_MS = 8000;
@@ -60,6 +61,9 @@ export default function HiloChat({
   const [fotoAbierta, setFotoAbierta] = useState<string | null>(null);
   const [subiendoFoto, setSubiendoFoto] = useState(false);
   const [errorFoto, setErrorFoto] = useState("");
+  /* Vídeos: los que aún son del móvil (blob:) y cómo va el que se prepara */
+  const [videosLocales, setVideosLocales] = useState<string[]>([]);
+  const [progresoVideo, setProgresoVideo] = useState<number | null>(null);
   const selectorFoto = useRef<HTMLInputElement>(null);
   /* Las respuestas rápidas se ven con el cuadro vacío y se van en cuanto
    * se escribe: así no roban sitio a lo que estás redactando. */
@@ -144,6 +148,8 @@ export default function HiloChat({
     setSubiendoFoto(true);
     const pie = texto.trim();
     const local = URL.createObjectURL(archivo);
+    const video = archivo.type.startsWith("video/");
+    if (video) setVideosLocales((prev) => [...prev, local]);
     const temporal: Mensaje = {
       id: `tmp-${Date.now()}`,
       cliente_id: clienteId,
@@ -155,11 +161,22 @@ export default function HiloChat({
     setPendientes((prev) => [...prev, temporal]);
     setTexto("");
     const supabase = crearClienteNavegador();
-    const ruta = `${clienteId}/${crypto.randomUUID()}.jpg`;
-    const reducida = await reducirFoto(archivo);
-    const { error: e1 } = await supabase.storage
-      .from("chat")
-      .upload(ruta, reducida, { contentType: reducida.type || "image/jpeg" });
+    let reducida: Blob;
+    try {
+      if (video) setProgresoVideo(0);
+      reducida = video ? await prepararVideo(archivo, setProgresoVideo) : await reducirFoto(archivo);
+    } catch (e) {
+      setProgresoVideo(null);
+      setSubiendoFoto(false);
+      setPendientes((prev) => prev.filter((m) => m.id !== temporal.id));
+      setTexto(pie);
+      setErrorFoto(e instanceof Error && e.message ? e.message : "No se pudo preparar el vídeo.");
+      return;
+    }
+    setProgresoVideo(null);
+    const tipo = reducida.type || archivo.type || (video ? "video/mp4" : "image/jpeg");
+    const ruta = `${clienteId}/${crypto.randomUUID()}.${video ? extensionDe(tipo, archivo.name) : "jpg"}`;
+    const { error: e1 } = await supabase.storage.from("chat").upload(ruta, reducida, { contentType: tipo });
     const { error: e2 } = e1
       ? { error: e1 }
       : await supabase
@@ -169,7 +186,7 @@ export default function HiloChat({
     if (e1 || e2) {
       setPendientes((prev) => prev.filter((m) => m.id !== temporal.id));
       setTexto(pie);
-      setErrorFoto("No se pudo enviar la foto. Inténtalo de nuevo.");
+      setErrorFoto(`No se pudo enviar ${video ? "el vídeo" : "la foto"}. Inténtalo de nuevo.`);
       return;
     }
     /* La del móvil sirve mientras llega la firmada */
@@ -259,7 +276,27 @@ export default function HiloChat({
                   : "self-start bg-campo border border-borde-2 text-texto-2"
               }`}
             >
-              {m.imagen && (
+              {m.imagen && (esVideo(m.imagen) || videosLocales.includes(m.imagen)) && (
+                <div className="relative -mx-2 -mt-0.5 mb-1">
+                  {urlDe(m.imagen) ? (
+                    <video
+                      src={`${urlDe(m.imagen)}#t=0.1`}
+                      controls
+                      playsInline
+                      preload="metadata"
+                      className="w-[220px] max-w-full aspect-[4/5] object-cover rounded-[12px] bg-black"
+                    />
+                  ) : (
+                    <span className="block w-[220px] max-w-full aspect-[4/5] rounded-[12px] bg-black/20" />
+                  )}
+                  {leerTecnica(m.texto) && (
+                    <span className="absolute top-2 left-2 text-[11.5px] font-bold text-white bg-black/65 rounded-full px-2 py-0.5 inline-flex items-center gap-1 pointer-events-none">
+                      <Camera size={11} /> Técnica
+                    </span>
+                  )}
+                </div>
+              )}
+              {m.imagen && !(esVideo(m.imagen) || videosLocales.includes(m.imagen)) && (
                 <button
                   type="button"
                   className="block -mx-2 -mt-0.5 mb-1 cursor-zoom-in"
@@ -279,6 +316,15 @@ export default function HiloChat({
                 </button>
               )}
               {(() => {
+                const tecnica = leerTecnica(m.texto);
+                if (tecnica) {
+                  return (
+                    <>
+                      <span className={`block font-bold ${esPropio ? "" : "text-white"}`}>{tecnica.titulo}</span>
+                      {tecnica.nota}
+                    </>
+                  );
+                }
                 const guia = leerGuia(m.texto);
                 if (!guia) return m.texto;
                 return (
@@ -384,6 +430,11 @@ export default function HiloChat({
             ))}
           </div>
         )}
+        {progresoVideo !== null && (
+          <div className="text-atenuado text-[12.5px] bg-fondo/95 pt-1.5 animate-pulse">
+            Preparando el vídeo… {Math.round(progresoVideo * 100)} %
+          </div>
+        )}
         {errorFoto && (
           <div className="text-peligro text-[12.5px] bg-fondo/95 pt-1.5">{errorFoto}</div>
         )}
@@ -391,7 +442,7 @@ export default function HiloChat({
           <input
             ref={selectorFoto}
             type="file"
-            accept="image/*"
+            accept="image/*,video/*"
             className="hidden"
             onChange={(e) => {
               const archivo = e.target.files?.[0];
@@ -403,8 +454,8 @@ export default function HiloChat({
             className="mini !w-11 !h-11 shrink-0"
             onClick={() => selectorFoto.current?.click()}
             disabled={subiendoFoto}
-            aria-label="Mandar una foto"
-            title="Mandar una foto"
+            aria-label="Mandar una foto o un vídeo"
+            title="Mandar una foto o un vídeo"
           >
             <Camera size={17} className={subiendoFoto ? "animate-pulse" : ""} />
           </button>

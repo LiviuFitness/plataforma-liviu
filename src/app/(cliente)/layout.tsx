@@ -7,6 +7,7 @@ import { Logo } from "@/componentes/ui";
 import BarraCliente from "@/componentes/BarraCliente";
 import BarraLateralCliente from "@/componentes/BarraLateralCliente";
 import BotonSalir from "@/componentes/BotonSalir";
+import InsigniaApp from "@/componentes/InsigniaApp";
 
 /** Armazón de la app del cliente (móvil primero). */
 export default async function LayoutCliente({
@@ -86,6 +87,7 @@ export default async function LayoutCliente({
           {children}
         </main>
 
+        <InsigniaApp n={mensajesSinLeer ?? 0} />
         <BarraCliente chatSinLeer={mensajesSinLeer ?? 0} revisionSinLeer={hayRevisionSinLeer} />
       </div>
     </div>

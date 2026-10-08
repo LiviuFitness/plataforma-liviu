@@ -33,5 +33,6 @@ export async function reducirFoto(archivo: File): Promise<Blob> {
 /** Texto para avisos y vistas previas de un mensaje que puede ser solo foto. */
 export function resumenMensaje(texto: string, imagen: string | null | undefined): string {
   if (texto.trim()) return texto;
-  return imagen ? "📷 Foto" : "";
+  if (!imagen) return "";
+  return /\.(mp4|mov|m4v|webm|3gp)$/i.test(imagen) ? "🎥 Vídeo" : "📷 Foto";
 }

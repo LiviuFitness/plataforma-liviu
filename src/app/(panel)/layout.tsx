@@ -4,6 +4,7 @@ import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
 import { Logo } from "@/componentes/ui";
 import BarraInferior from "@/componentes/BarraInferior";
 import BotonSalir from "@/componentes/BotonSalir";
+import InsigniaApp from "@/componentes/InsigniaApp";
 
 /**
  * Armazón del panel de entrenador. Comprueba el rol en servidor:
@@ -65,6 +66,7 @@ export default async function LayoutPanel({
         {children}
       </main>
 
+      <InsigniaApp n={esperando} />
       <BarraInferior esperando={esperando} />
     </div>
   );

@@ -22,6 +22,7 @@ import CalculadoraDiscos from "@/componentes/CalculadoraDiscos";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import BarraDescanso from "@/componentes/BarraDescanso";
 import HojaCoachEntreno from "@/componentes/HojaCoachEntreno";
+import HojaTecnicaVideo from "@/componentes/HojaTecnicaVideo";
 import CompartirComunidad, { leerOpcionesCompartir, type OpcionesCompartir } from "@/componentes/CompartirComunidad";
 import HojaTarjetaEntreno from "@/componentes/HojaTarjetaEntreno";
 import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
@@ -29,6 +30,7 @@ import {
   ArrowDown,
   ArrowLeft,
   ArrowUp,
+  Camera,
   Check,
   ChevronRight,
   CloudOff,
@@ -442,6 +444,8 @@ export default function SesionEnCurso({
   const [historialPara, setHistorialPara] = useState<number | null>(null);
   const [notaPara, setNotaPara] = useState<number | null>(null);
   const [coachPara, setCoachPara] = useState<number | null>(null);
+  /* Vídeo de técnica para el entrenador (solo el cliente) */
+  const [videoTecnicaPara, setVideoTecnicaPara] = useState<number | null>(null);
   /* Compartir en la comunidad al guardar (lo último elegido en este móvil) */
   const [visible, setVisible] = useState(!!visibleComunidad);
   const [compartir, setCompartir] = useState<OpcionesCompartir>(() =>
@@ -1616,6 +1620,17 @@ export default function SesionEnCurso({
                     )}
 
                     <div className="flex items-center gap-3 ml-auto shrink-0">
+                      {!nombreCliente && (
+                        <button
+                          type="button"
+                          className="text-acento hover:text-white transition-colors anim-pulsable"
+                          onClick={() => setVideoTecnicaPara(ei)}
+                          title="Mándame tu técnica"
+                          aria-label="Grabarte y mandarle el vídeo de tu técnica a tu entrenador"
+                        >
+                          <Camera size={15} />
+                        </button>
+                      )}
                       {conIA && !nombreCliente && (
                         <button
                           type="button"
@@ -1777,6 +1792,14 @@ export default function SesionEnCurso({
         <HojaHistorialEjercicio
           ejercicio={ejercicios[historialPara]}
           onCerrar={() => setHistorialPara(null)}
+        />
+      )}
+
+      {videoTecnicaPara !== null && ejercicios[videoTecnicaPara] && (
+        <HojaTecnicaVideo
+          clienteId={clienteId}
+          ejercicio={ejercicios[videoTecnicaPara]}
+          onCerrar={() => setVideoTecnicaPara(null)}
         />
       )}
 
