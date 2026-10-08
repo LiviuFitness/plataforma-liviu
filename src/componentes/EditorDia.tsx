@@ -5,6 +5,7 @@ import { AlertTriangle, Copy, Link2, Plus, Unlink, AlertCircle } from "lucide-re
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
+import FiltroMusculos from "@/componentes/FiltroMusculos";
 import { agruparPorSuperserie, limpiarGruposSolitarios } from "@/lib/rutinas";
 import {
   GRUPOS_MUSCULARES,
@@ -562,16 +563,8 @@ function HojaBiblioteca({
           autoFocus
         />
 
-        <div className="flex gap-1.5 overflow-x-auto scroll-sin-barra pb-2.5">
-          {["Todos", ...GRUPOS_MUSCULARES].map((m) => (
-            <button
-              key={m}
-              className={filtro === m ? "chip chip-activo" : "chip"}
-              onClick={() => setFiltro(m)}
-            >
-              {m}
-            </button>
-          ))}
+        <div className="shrink-0">
+          <FiltroMusculos activo={filtro} onCambio={setFiltro} />
         </div>
 
         <div className="overflow-y-auto flex-1">

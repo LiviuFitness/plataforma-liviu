@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ExternalLink, Pencil, Plus, Repeat, X, AlertCircle } from "lucide-react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
+import FiltroMusculos from "@/componentes/FiltroMusculos";
 import { esGif, miniaturaYoutube } from "@/lib/rutinas";
 import type { Ejercicio } from "@/lib/tipos";
 
@@ -32,11 +33,13 @@ export default function CatalogoEjercicios({
     iniciales.some((e) => !e.video_url) ? "sin" : "todos"
   );
   const [busqueda, setBusqueda] = useState("");
+  const [musculo, setMusculo] = useState("Todos");
   const [editando, setEditando] = useState<Ejercicio | null>(null);
 
   const sinVideo = ejercicios.filter((e) => !e.video_url).length;
 
-  const filtrados = useMemo(() => {
+  /* Pestaña y búsqueda; el músculo va aparte para contar cuántos hay de cada */
+  const candidatos = useMemo(() => {
     const q = busqueda.toLowerCase().trim();
     return ejercicios.filter(
       (e) =>
@@ -44,6 +47,12 @@ export default function CatalogoEjercicios({
         (!q || e.nombre.toLowerCase().includes(q) || e.grupo_muscular.toLowerCase().includes(q))
     );
   }, [ejercicios, filtro, busqueda]);
+  const cuentas = useMemo(() => {
+    const c: Record<string, number> = { Todos: candidatos.length };
+    for (const e of candidatos) c[e.grupo_muscular] = (c[e.grupo_muscular] ?? 0) + 1;
+    return c;
+  }, [candidatos]);
+  const filtrados = musculo === "Todos" ? candidatos : candidatos.filter((e) => e.grupo_muscular === musculo);
 
   return (
     <>
@@ -69,6 +78,7 @@ export default function CatalogoEjercicios({
         value={busqueda}
         onChange={(e) => setBusqueda(e.target.value)}
       />
+      <FiltroMusculos activo={musculo} onCambio={setMusculo} cuentas={cuentas} />
 
       {filtrados.map((e) => (
         <button
@@ -93,7 +103,7 @@ export default function CatalogoEjercicios({
       ))}
       {filtrados.length === 0 && (
         <div className="text-atenuado text-[13.5px] p-3 text-center">
-          {filtro === "sin" && !busqueda ? "Todos tienen vídeo. 🎉" : "Sin resultados."}
+          {filtro === "sin" && !busqueda && musculo === "Todos" ? "Todos tienen vídeo. 🎉" : "Sin resultados."}
         </div>
       )}
 
