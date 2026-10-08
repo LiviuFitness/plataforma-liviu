@@ -24,7 +24,22 @@ export default function PoliticaPrivacidad() {
           <b>Datos de salud (categoría especial, art. 9 RGPD):</b> peso,
           medidas corporales, registros de entrenamiento, pautas y registros de
           alimentación, sensaciones tras el ejercicio y, si las aportas, fotos
-          de progreso.
+          de progreso, las kcal de tu reloj y los mensajes, fotos y vídeos que
+          mandes por el chat (por ejemplo, un vídeo de tu técnica o la foto de
+          una comida).
+        </li>
+        <li>
+          <b>Comunidad:</b> si eres visible en la comunidad, los demás clientes
+          ven tu nombre, los entrenos que compartes (día, duración, series y
+          récords; los kilos solo si tú lo eliges), tus logros, tu puesto en el
+          reto del mes y las reacciones. Puedes dejar de ser visible desde tu
+          perfil en cualquier momento. [REVISAR: base jurídica y si debe estar
+          desactivado de inicio].
+        </li>
+        <li>
+          <b>Avisos:</b> si activas las notificaciones, guardamos el identificador
+          que tu navegador nos da para poder enviártelas y qué tipos de aviso
+          quieres recibir.
         </li>
         <li>
           <b>Datos técnicos:</b> los estrictamente necesarios para mantener la
@@ -99,9 +114,26 @@ export default function PoliticaPrivacidad() {
           IA para preparar tu revisión semanal, tu dieta o un mensaje: en ese
           caso recibe los datos de tu plan y tu progreso que hacen falta, y tu
           entrenador revisa siempre el resultado. No usa tus datos para
-          entrenar sus modelos.
+          entrenar sus modelos. Las preguntas al asistente y sus respuestas se
+          guardan en tu historial, que también puede ver tu entrenador.
+        </li>
+        <li>
+          <b>Servicios de notificaciones</b> de Apple, Google o Mozilla
+          (según tu navegador), que solo transportan el aviso hasta tu móvil.
+        </li>
+        <li>
+          <b>Open Food Facts</b> (base de datos abierta de alimentos): al
+          escanear un producto solo se le envía el código de barras, ningún
+          dato tuyo.
         </li>
       </ul>
+      <p>
+        <b>Transferencias fuera de la Unión Europea:</b> Anthropic y Vercel son
+        empresas de Estados Unidos, por lo que algunos datos pueden tratarse
+        allí. Se hace con las garantías que exige el RGPD (Marco de Privacidad
+        de Datos UE-EE. UU. y/o cláusulas contractuales tipo de la Comisión
+        Europea). [REVISAR: confirmar la garantía concreta de cada proveedor].
+      </p>
       <p>No se utilizan herramientas de analítica de terceros ni píxeles publicitarios.</p>
 
       <h2>6. Tus derechos</h2>

@@ -25,7 +25,12 @@ export default function Terminos() {
 
       <h2>2. Alta y cuenta</h2>
       <ul>
-        <li>El alta se realiza únicamente por invitación del entrenador.</li>
+        <li>
+          El alta se realiza únicamente por invitación del entrenador, o la crea
+          él mismo y te da acceso por email. En ambos casos, antes de usar la
+          plataforma debes aceptar estos términos y la política de privacidad.
+        </li>
+        <li>Debes tener al menos [EDAD MÍNIMA, p. ej. 18 años] para usar la plataforma.</li>
         <li>
           Eres responsable de la confidencialidad de tu contraseña y del uso de
           tu cuenta.
