@@ -18,7 +18,7 @@ export default async function PaginaOnboarding() {
   const [{ data: perfil }, { data: preguntasAlta }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("rol, nombre, fecha_nacimiento, altura_cm, sexo")
+      .select("rol, nombre, consentimiento_salud, fecha_nacimiento, altura_cm, sexo")
       .eq("id", user.id)
       .maybeSingle(),
     supabase
@@ -30,6 +30,8 @@ export default async function PaginaOnboarding() {
 
   if (!perfil) redirect("/login");
   if (perfil.rol === "entrenador") redirect("/hoy");
+  // El onboarding ya pide datos de salud: primero el consentimiento
+  if (!perfil.consentimiento_salud) redirect("/consentimiento");
   // Ya completó sus datos: no repetir el onboarding
   if (perfil.fecha_nacimiento && perfil.altura_cm && perfil.sexo) {
     redirect("/inicio");

@@ -22,12 +22,14 @@ export default async function LayoutCliente({
 
   const { data: perfil } = await supabase
     .from("profiles")
-    .select("rol, estado, fecha_nacimiento, altura_cm, sexo, chat_visto_en, revisiones_visto_en")
+    .select("rol, estado, consentimiento_salud, fecha_nacimiento, altura_cm, sexo, chat_visto_en, revisiones_visto_en")
     .eq("id", user.id)
     .maybeSingle();
 
   // El entrenador tiene su panel; los clientes de baja no acceden
   if (perfil?.rol === "entrenador") redirect("/hoy");
+  // Sin consentimiento de datos de salud (altas desde el panel o importadas) no entra a nada
+  if (perfil && !perfil.consentimiento_salud) redirect("/consentimiento");
   // Primera vez del cliente: completa sus datos físicos antes de entrar
   if (!perfil?.fecha_nacimiento || !perfil?.altura_cm || !perfil?.sexo) {
     redirect("/onboarding");

@@ -80,6 +80,9 @@ export default function FormularioAlta({
       setPendienteConfirmar(true);
       return;
     }
+    /* La comunidad empieza apagada (privacidad por defecto): la enciende
+     * él desde su perfil si quiere */
+    await supabase.rpc("cambiar_visible_comunidad", { p_visible: false });
     /* Un cliente recién creado no pinta nada en /hoy, que es el panel
      * del entrenador: acababa rebotando de ahí a /inicio y de /inicio a
      * /onboarding. Se va directo a donde tiene que ir. */
