@@ -30,13 +30,13 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://app.livfit.es"),
   title: "LivFit",
   description: "Plataforma de coaching de LIVIU Fitness Studio",
-  manifest: "/manifest.webmanifest",
+  manifest: "/manifest.webmanifest?v=2",
   icons: {
     icon: [
-      { url: "/icono-192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icono-512.png", sizes: "512x512", type: "image/png" },
+      { url: "/icono-192.png?v=2", sizes: "192x192", type: "image/png" },
+      { url: "/icono-512.png?v=2", sizes: "512x512", type: "image/png" },
     ],
-    apple: "/icono-192.png",
+    apple: "/icono-192.png?v=2",
   },
   appleWebApp: {
     capable: true,
