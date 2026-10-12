@@ -26,3 +26,24 @@ export interface RespuestaCoachIA {
   alternativa: string | null;
   derivar: boolean;
 }
+
+export interface SerieRutinaIA {
+  reps: number;
+  /** 0 si es un número fijo de repeticiones */
+  reps_max: number;
+  /** null si la serie lleva técnica en vez de RIR */
+  rir: number | null;
+  /** "P", "myo"… o "" */
+  tecnica: string;
+}
+
+export interface BorradorRutinaIA {
+  dias: {
+    nombre: string;
+    ejercicios: { ejercicioId: string; nombre: string; grupo: string; series: SerieRutinaIA[] }[];
+  }[];
+  semanas: number;
+  /** Series efectivas por semana de cada músculo, de más a menos */
+  volumen: [string, number][];
+  explicacion: string;
+}

@@ -12,6 +12,7 @@ import TabProgreso from "./TabProgreso";
 import HistorialAjustes from "./HistorialAjustes";
 import AccesoApp from "./AccesoApp";
 import { esSinAcceso } from "@/lib/accesoClientes";
+import RutinaConIA from "@/componentes/RutinaConIA";
 import SiguienteMesociclo from "@/componentes/SiguienteMesociclo";
 import TabHabitos from "./TabHabitos";
 import HiloChat from "@/componentes/HiloChat";
@@ -343,6 +344,10 @@ export default function FichaCliente({
 
       {vista === "entreno" && rutina && !editandoDia && (
         <SiguienteMesociclo rutina={rutina} clienteId={perfil.id} />
+      )}
+
+      {vista === "entreno" && !editandoDia && (
+        <RutinaConIA clienteId={perfil.id} nombreCliente={perfil.nombre} rutinaActivaId={rutina?.id ?? null} />
       )}
 
       {vista === "entreno" && (
