@@ -8,7 +8,9 @@ export const maxDuration = 60;
  * Mensajes redactados con la voz de Liviu, que él revisa antes de enviar:
  *  · "responder": la respuesta al último mensaje del cliente en el chat;
  *  · "reenganche": un mensaje para alguien que se está enfriando (o para
- *    felicitarle), a partir del motivo que ha detectado Hoy.
+ *    felicitarle), a partir del motivo que ha detectado Hoy;
+ *  · "varios": un mismo mensaje para varios clientes (Clientes › megáfono),
+ *    a partir de la idea que escribe Liviu, con {nombre} para personalizarlo.
  */
 
 const FORMATO = {
@@ -34,10 +36,39 @@ export async function POST(request: Request) {
 
   const cuerpo = (await request.json().catch(() => ({}))) as {
     clienteId?: string;
-    modo?: keyof typeof MODOS;
+    modo?: keyof typeof MODOS | "varios";
     motivo?: string;
     anterior?: string;
   };
+
+  /* Para varios: sin datos de ningún cliente, solo su voz y su idea */
+  if (cuerpo.modo === "varios") {
+    const idea = String(cuerpo.motivo ?? "").trim().slice(0, 600);
+    if (!idea) return Response.json({ error: "Escribe primero la idea del mensaje." }, { status: 400 });
+    const estilo = await textoEstiloLiviu(supabase);
+    const r = await pedirIA<{ mensaje: string }>({
+      etiqueta: "mensaje-varios",
+      effort: "low",
+      schema: FORMATO,
+      system: [
+        {
+          type: "text",
+          text: `${BASE.split("\n\n")[0]}\n\nEste mensaje se manda igual a varios clientes a la vez, cada uno en su chat. Escribe «{nombre}» (tal cual, con las llaves) donde vaya el nombre de pila: la app lo cambia por el de cada uno. No menciones nada personal de nadie ni digas que es un mensaje para varios.`,
+        },
+        ...(estilo ? [{ type: "text" as const, text: estilo }] : []),
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `Lo que Liviu quiere decirles: ${idea}${
+            cuerpo.anterior ? `\n\nYa le propusiste esto y quiere otra versión distinta:\n"${cuerpo.anterior.slice(0, 1000)}"` : ""
+          }\n\nEscribe el mensaje.`,
+        },
+      ],
+    });
+    if (!r.ok || !String(r.datos.mensaje ?? "").trim()) return Response.json({ error: ERROR_IA }, { status: 502 });
+    return Response.json({ mensaje: String(r.datos.mensaje).trim() });
+  }
   if (!cuerpo.clienteId || !cuerpo.modo || !(cuerpo.modo in MODOS)) {
     return Response.json({ error: "Faltan datos" }, { status: 400 });
   }

@@ -82,6 +82,15 @@ export default async function PaginaClientes() {
     }
   }
 
+  /* Para el mensaje a varios: quién no ha entrenado desde el lunes */
+  const diasDesdeLunes = (new Date(ahora).getDay() + 6) % 7;
+  const sinEntrenarSemana = (clientes ?? [])
+    .filter((c) => {
+      const d = diasSinEntrenar.get(c.id);
+      return d === undefined || d > diasDesdeLunes;
+    })
+    .map((c) => c.id as string);
+
   // Días desde el alta — para no marcar "riesgo" a quien acaba de entrar
   // y todavía no ha tenido tiempo de registrar su primera sesión.
   const diasDesdeAlta = new Map<string, number>();
@@ -102,6 +111,7 @@ export default async function PaginaClientes() {
       diasSinEntrenar={Object.fromEntries(diasSinEntrenar)}
       diasDesdeAlta={Object.fromEntries(diasDesdeAlta)}
       chatSinLeer={Object.fromEntries(chatSinLeer)}
+      sinEntrenarSemana={sinEntrenarSemana}
       conRutina={[...new Set((rutinasActivas ?? []).map((r) => r.cliente_id as string))]}
       conDieta={[...new Set((dietasActivas ?? []).map((d) => d.cliente_id as string))]}
     />

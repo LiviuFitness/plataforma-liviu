@@ -22,6 +22,7 @@ export default function ListaClientes({
   chatSinLeer,
   conRutina,
   conDieta,
+  sinEntrenarSemana,
 }: {
   clientes: Perfil[];
   adherencias: Record<string, number>;
@@ -34,6 +35,8 @@ export default function ListaClientes({
   /** Clientes con rutina activa / con dieta de entreno activa. */
   conRutina: string[];
   conDieta: string[];
+  /** No han entrenado desde el lunes (para el mensaje a varios) */
+  sinEntrenarSemana: string[];
 }) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -135,7 +138,14 @@ export default function ListaClientes({
         <HojaMensajeVarios
           clientes={filas
             .filter((f) => f.activo)
-            .map((f) => ({ id: f.c.id, nombre: f.c.nombre, foto: f.c.avatar_url }))}
+            .map((f) => ({
+              id: f.c.id,
+              nombre: f.c.nombre,
+              foto: f.c.avatar_url,
+              plan: f.c.plan,
+              diasSinEntrenar: f.dias,
+              sinEntrenarSemana: sinEntrenarSemana.includes(f.c.id),
+            }))}
           /* Viene marcado lo que estabas viendo: con el filtro "Sin dieta"
            * puesto, el mensaje es para esos. Sin filtro, para todos. */
           preseleccion={filtrados.filter((f) => f.activo).map((f) => f.c.id)}
