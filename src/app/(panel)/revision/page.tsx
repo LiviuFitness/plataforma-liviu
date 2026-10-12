@@ -54,7 +54,7 @@ export default async function PaginaRevision() {
     supabase.from("sesiones").select("cliente_id, fecha_inicio, sensacion").gte("fecha_inicio", hace14dias),
     supabase
       .from("rutinas")
-      .select("cliente_id, semana_actual, rutina_dias ( semana )")
+      .select("cliente_id, semana_actual, rutina_dias ( semana, opcional )")
       .eq("activa", true)
       .not("cliente_id", "is", null),
     /* Las dos dietas completas: el ajuste propone gramos concretos */
@@ -112,7 +112,9 @@ export default async function PaginaRevision() {
     const sens = pasada.map((s) => s.sensacion).filter((v): v is number => v !== null);
     const rutina = (rutinas ?? []).find((r) => r.cliente_id === c.id);
     const objetivo = rutina
-      ? ((rutina.rutina_dias ?? []) as { semana: number }[]).filter((d) => d.semana === rutina.semana_actual).length
+      ? ((rutina.rutina_dias ?? []) as { semana: number; opcional?: boolean }[]).filter(
+          (d) => d.semana === rutina.semana_actual && !d.opcional
+        ).length
       : 0;
     const susDietas = ((dietas ?? []) as unknown as Dieta[]).filter((d) => d.cliente_id === c.id);
     const plan = (tipo: "entreno" | "descanso") => {

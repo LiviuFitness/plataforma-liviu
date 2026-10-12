@@ -173,8 +173,7 @@ export default async function PaginaFichaCliente({
       .eq("cliente_id", id)
       .not("dia_id", "is", null)
       .order("fecha_inicio", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(20),
     supabase.from("alimento_alternativas").select("alimento_id, nombre, gramos, orden").order("orden"),
     /* Si la tabla aún no existe (migración sin aplicar) esto devuelve
      * error y data null: el chat sale sin respuestas rápidas, sin más. */
@@ -258,7 +257,7 @@ export default async function PaginaFichaCliente({
       diasHechosSemana={(sesionesSemana ?? [])
         .map((s) => s.dia_id as string | null)
         .filter((d): d is string => !!d)}
-      ultimoDiaId={(ultimaConDia?.dia_id as string | undefined) ?? null}
+      ultimosDiaIds={(ultimaConDia ?? []).map((s) => s.dia_id as string)}
       alternativas={(alternativas ?? []) as Alternativa[]}
       respuestasRapidas={(respuestasRapidas ?? []).map((r) => r.texto as string)}
       notas={(notas ?? []) as NotaCliente[]}

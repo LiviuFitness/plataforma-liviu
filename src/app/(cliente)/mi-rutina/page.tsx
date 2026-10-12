@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
-import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
+import { aRutinaUI, diaQueToca, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { inicioSemana } from "@/lib/habitos";
 import MiRutina from "./MiRutina";
 
@@ -49,11 +49,8 @@ export default async function PaginaMiRutina() {
     listaSesiones.filter((s) => s.fecha_inicio >= lunes && s.dia_id).map((s) => s.dia_id as string)
   );
 
-  // El siguiente sugerido: el que va detrás del último que entrenó.
-  let indiceSiguiente = 0;
-  const ultimoDiaId = listaSesiones.find((s) => s.dia_id)?.dia_id;
-  const indiceUltimo = dias.findIndex((d) => d.id === ultimoDiaId);
-  if (indiceUltimo >= 0) indiceSiguiente = (indiceUltimo + 1) % dias.length;
+  // El siguiente sugerido: el obligatorio que va detrás del último que entrenó.
+  const siguiente = diaQueToca(dias, listaSesiones);
 
   return (
     <MiRutina
@@ -62,7 +59,7 @@ export default async function PaginaMiRutina() {
       semana={completa?.semana_actual ?? 1}
       dias={dias}
       hechosEstaSemana={[...hechosEstaSemana]}
-      idSiguiente={dias[indiceSiguiente]?.id ?? null}
+      idSiguiente={siguiente?.id ?? null}
     />
   );
 }

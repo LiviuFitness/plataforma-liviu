@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, Sparkles } from "lucide-react";
 import AvatarEjercicio from "@/componentes/AvatarEjercicio";
 import IconoMancuerna from "@/componentes/IconoMancuerna";
 import EstadoVacio from "@/componentes/EstadoVacio";
@@ -100,18 +100,32 @@ export default function MiRutina({
         </div>
       )}
 
-      {dias.map((dia) => {
+      {[...dias.filter((d) => !d.opcional), ...dias.filter((d) => d.opcional)].map((dia, i, lista) => {
         const efectivas = seriesEfectivas(dia.ejercicios);
+        const extra = !!dia.opcional;
+        /* Los opcionales van aparte, debajo: no cuentan en su semana */
+        const primerExtra = extra && !lista[i - 1]?.opcional;
         const hecho = hechos.has(dia.id);
         const esSiguiente = dia.id === idSiguiente;
         const estaAbierto = abierto === dia.id;
 
         return (
+          <div key={dia.id}>
+          {primerExtra && (
+            <>
+              <div className="flex items-center gap-2 mt-5 mb-2">
+                <span className="text-[11px] font-bold tracking-[0.12em] text-naranja">EXTRA · CUANDO QUIERAS</span>
+                <span className="flex-1 h-px bg-borde" />
+              </div>
+              <p className="text-atenuado text-[12.5px] leading-snug mb-2.5">
+                No cuenta en tu objetivo de la semana. Si lo haces, suma como entreno.
+              </p>
+            </>
+          )}
           <section
-            key={dia.id}
             className={`tarjeta !p-0 overflow-hidden !mb-2.5 ${
               esSiguiente ? "tarjeta-acento" : ""
-            }`}
+            } ${extra ? "!border-dashed !border-naranja/55" : ""}`}
           >
             <button
               className="relative overflow-hidden w-full flex items-center gap-3 px-4 py-3.5 text-left anim-pulsable"
@@ -144,11 +158,13 @@ export default function MiRutina({
               {/* Marca de estado: hecho esta semana, o el día que toca. */}
               <span
                 className={`relative w-9 h-9 rounded-full grid place-items-center shrink-0 ${
-                  hecho ? "bg-verde/15" : esSiguiente ? "bg-acento/15" : "bg-campo"
+                  hecho ? "bg-verde/15" : esSiguiente ? "bg-acento/15" : extra ? "bg-naranja/15" : "bg-campo"
                 }`}
               >
                 {hecho ? (
                   <Check size={17} className="text-verde" />
+                ) : extra ? (
+                  <Sparkles size={16} className="text-naranja" />
                 ) : (
                   <IconoMancuerna
                     size={17}
@@ -170,7 +186,7 @@ export default function MiRutina({
                 </span>
                 <span className="block text-atenuado text-[12.5px] mt-0.5">
                   {dia.ejercicios.length} ejercicios · {efectivas} series ·{" "}
-                  {Math.round(efectivas * 2.5)}–{Math.round(efectivas * 3.2)} min
+                  {extra ? "cuando quieras" : `${Math.round(efectivas * 2.5)}–${Math.round(efectivas * 3.2)} min`}
                 </span>
                 <span className="flex flex-wrap gap-1 mt-1.5">
                   {gruposPrincipales(dia.ejercicios).map((g) => (
@@ -223,6 +239,7 @@ export default function MiRutina({
               </div>
             </div>
           </section>
+          </div>
         );
       })}
     </>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { crearClienteServidor, obtenerUsuario } from "@/lib/supabase/servidor";
-import { aRutinaUI, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
+import { aRutinaUI, diaQueToca, SELECT_RUTINA_COMPLETA, type FilaRutina } from "@/lib/rutinas";
 import { fraseDelDia, saludoSegunHora } from "@/lib/frases";
 import {
   Bell,
@@ -252,7 +252,8 @@ export default async function PaginaInicio() {
       diasEntrenados[(fecha.getDay() + 6) % 7] = true;
     }
   }
-  const objetivoSemana = rutina?.dias.length ?? 0;
+  /* Los días opcionales (MMA, cardio…) no cuentan en el objetivo */
+  const objetivoSemana = rutina?.dias.filter((d) => !d.opcional).length ?? 0;
 
   const rachaSemanas = calcularRachaSemanas(
     (fechasSesiones ?? []).map((s) => s.fecha_inicio),
@@ -308,16 +309,8 @@ export default async function PaginaInicio() {
       ? grupoMasDescuidado(volumenMuscular, gruposEnRutina)
       : null;
 
-  // Próximo día sugerido: el siguiente al de la última sesión
-  let proximoIndice = 0;
-  if (rutina && rutina.dias.length > 0) {
-    const ultimoDiaId = listaSesiones.find((s) => s.dia_id)?.dia_id;
-    const indiceUltimo = rutina.dias.findIndex((d) => d.id === ultimoDiaId);
-    if (indiceUltimo >= 0) {
-      proximoIndice = (indiceUltimo + 1) % rutina.dias.length;
-    }
-  }
-  const proximoDia = rutina?.dias[proximoIndice] ?? null;
+  // Próximo día sugerido: el siguiente obligatorio al último que entrenó
+  const proximoDia = rutina ? diaQueToca(rutina.dias, listaSesiones) : null;
 
   // Duración estimada: no existe como dato en el modelo, se aproxima a
   // partir de las series efectivas (~2.5-3.2 min por serie, cambio de

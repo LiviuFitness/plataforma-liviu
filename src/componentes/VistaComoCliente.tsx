@@ -6,6 +6,7 @@ import MiRutina from "@/app/(cliente)/mi-rutina/MiRutina";
 import VistaDietas, { type PlanDieta } from "@/app/(cliente)/mi-dieta/VistaDietas";
 import type { Alternativa, ComidaEstructurada } from "@/lib/dietas";
 import type { Dieta, RutinaUI } from "@/lib/tipos";
+import { diaQueToca } from "@/lib/rutinas";
 
 function aPlan(dieta: Dieta | null): PlanDieta | null {
   if (!dieta) return null;
@@ -32,7 +33,7 @@ export default function VistaComoCliente({
   nombreCliente,
   rutina,
   diasHechosSemana,
-  ultimoDiaId,
+  ultimosDiaIds,
   dieta,
   dietaDescanso,
   alternativas,
@@ -43,7 +44,7 @@ export default function VistaComoCliente({
   nombreCliente: string;
   rutina: RutinaUI | null;
   diasHechosSemana: string[];
-  ultimoDiaId: string | null;
+  ultimosDiaIds: string[];
   dieta: Dieta | null;
   dietaDescanso: Dieta | null;
   alternativas: Alternativa[];
@@ -63,9 +64,7 @@ export default function VistaComoCliente({
   /* Mismo cálculo que su pantalla: solo la semana en curso, y el día que
    * toca es el siguiente al último que entrenó. */
   const dias = rutina ? rutina.dias.filter((d) => d.semana === rutina.semana_actual) : [];
-  const indiceUltimo = dias.findIndex((d) => d.id === ultimoDiaId);
-  const idSiguiente =
-    dias.length > 0 ? dias[indiceUltimo >= 0 ? (indiceUltimo + 1) % dias.length : 0].id : null;
+  const idSiguiente = diaQueToca(dias, ultimosDiaIds.map((dia_id) => ({ dia_id })))?.id ?? null;
 
   const equivalencias = new Map<string, Alternativa[]>();
   for (const a of alternativas) {

@@ -91,7 +91,7 @@ export default function FichaCliente({
   respuestasAlta,
   ahora,
   diasHechosSemana,
-  ultimoDiaId,
+  ultimosDiaIds,
   alternativas,
   respuestasRapidas,
   notas,
@@ -127,7 +127,8 @@ export default function FichaCliente({
   ahora: number;
   /** Para "Ver como el cliente" */
   diasHechosSemana: string[];
-  ultimoDiaId: string | null;
+  /** Días de sus últimas sesiones, de la más reciente a la más vieja */
+  ultimosDiaIds: string[];
   alternativas: Alternativa[];
   respuestasRapidas: string[];
   notas: NotaCliente[];
@@ -332,7 +333,7 @@ export default function FichaCliente({
           nombreCliente={perfil.nombre}
           rutina={rutina}
           diasHechosSemana={diasHechosSemana}
-          ultimoDiaId={ultimoDiaId}
+          ultimosDiaIds={ultimosDiaIds}
           dieta={dieta}
           dietaDescanso={dietaDescanso}
           alternativas={alternativas}

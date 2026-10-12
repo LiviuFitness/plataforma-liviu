@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, Copy, Link2, Plus, Unlink, AlertCircle } from "lucide-react";
+import { AlertTriangle, Copy, Link2, Plus, Sparkles, Unlink, AlertCircle } from "lucide-react";
+import Switch from "@/componentes/Switch";
 
 import { useMemo, useState } from "react";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -215,6 +216,28 @@ export default function EditorDia({
       <div className="text-atenuado text-[12.5px] mb-2">
         {borrador.ejercicios.length} ejercicios · {totalEfectivas} series
         efectivas
+      </div>
+
+      <div
+        className={`rounded-[14px] border p-3.5 flex items-start gap-3 mb-3 ${
+          borrador.opcional ? "border-naranja/55 bg-naranja/[0.08]" : "border-borde-2"
+        }`}
+      >
+        <span className="icono-tarjeta w-9 h-9 shrink-0 text-naranja bg-naranja/15">
+          <Sparkles size={17} />
+        </span>
+        <div className="flex-1 min-w-0">
+          <div className="font-bold text-[14.5px]">Día opcional</div>
+          <div className="text-atenuado text-[12.5px] leading-snug mt-0.5">
+            No cuenta en su objetivo semanal ni le sale como «entreno de hoy». Lo verá aparte, como extra, para hacerlo
+            cuando quiera. Vale para todas las semanas.
+          </div>
+        </div>
+        <Switch
+          checked={!!borrador.opcional}
+          onChange={(v) => cambiar({ ...borrador, opcional: v })}
+          label="Día opcional"
+        />
       </div>
 
       {/* Corregir un día y tener que repetirlo semana por semana era el

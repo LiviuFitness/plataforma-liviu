@@ -261,6 +261,9 @@ export interface DiaUI {
   orden: number;
   nombre: string;
   semana: number;
+  /** Día extra (cardio, MMA…): no cuenta en el objetivo semanal ni entra
+   * en la rotación de "el que toca"; si se hace, suma como entreno. */
+  opcional?: boolean;
   ejercicios: EjercicioUI[];
 }
 

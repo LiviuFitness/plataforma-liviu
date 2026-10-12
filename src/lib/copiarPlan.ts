@@ -35,6 +35,7 @@ interface FilaDia {
   orden: number;
   nombre: string;
   semana: number;
+  opcional?: boolean | null;
   rutina_ejercicios: FilaEjercicio[];
 }
 
@@ -55,7 +56,7 @@ export async function copiarRutina(
     .from("rutinas")
     .select(
       `notas, semana_actual,
-       rutina_dias ( orden, nombre, semana,
+       rutina_dias ( orden, nombre, semana, opcional,
          rutina_ejercicios ( ejercicio_id, orden, descanso_seg, notas, grupo_superserie,
            series_prescritas ( orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto ) ) )`
     )
@@ -91,7 +92,7 @@ export async function copiarRutina(
 
   const { data: diasNuevos, error: e2 } = await supabase
     .from("rutina_dias")
-    .insert(dias.map((d) => ({ rutina_id: nueva.id, orden: d.orden, nombre: d.nombre, semana: d.semana })))
+    .insert(dias.map((d) => ({ rutina_id: nueva.id, orden: d.orden, nombre: d.nombre, semana: d.semana, opcional: !!d.opcional })))
     .select("id, orden, semana");
   if (e2 || !diasNuevos || diasNuevos.length !== dias.length) return deshacer();
   /* Postgres devuelve las filas en el orden en que se insertaron; se

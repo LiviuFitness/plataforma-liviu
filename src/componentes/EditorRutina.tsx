@@ -3,7 +3,7 @@
 import { avisarCambio } from "@/lib/avisos";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowLeftRight, BookmarkPlus, CalendarRange, Check, GripVertical, Play, AlertCircle, X } from "lucide-react";
+import { ArrowLeftRight, BookmarkPlus, CalendarRange, Check, GripVertical, Play, AlertCircle, Sparkles, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
 import {
@@ -381,8 +381,16 @@ export default function EditorRutina({
 
     const { error: e1 } = await supabase
       .from("rutina_dias")
-      .update({ nombre: dia.nombre })
+      .update({ nombre: dia.nombre, opcional: !!dia.opcional })
       .eq("id", dia.id);
+    /* "Opcional" vale para ese día en todas las semanas (misma posición) */
+    if (!e1 && rutina && !!dia.opcional !== !!dias[indice]?.opcional) {
+      await supabase
+        .from("rutina_dias")
+        .update({ opcional: !!dia.opcional })
+        .eq("rutina_id", rutina.id)
+        .eq("orden", dia.orden);
+    }
 
     const { error: e2 } = await supabase
       .from("rutina_ejercicios")
@@ -439,7 +447,10 @@ export default function EditorRutina({
       setError("No se pudo guardar el día. Revisa la conexión e inténtalo de nuevo.");
       return false;
     }
-    setDias((d) => d.map((x, i) => (i === indice ? dia : x)));
+    /* El opcional se ve ya en todas las semanas, sin recargar */
+    setDias((d) =>
+      d.map((x, i) => (i === indice ? dia : x.orden === dia.orden ? { ...x, opcional: !!dia.opcional } : x))
+    );
     if (clienteId) avisarCambio(clienteId, "rutina");
     return true;
   }
@@ -729,14 +740,29 @@ export default function EditorRutina({
         return (
           <div
             key={dia.id}
-            className={`tarjeta !mb-2.5 flex items-center gap-3 ${recienMovido ? "!border-acento/50" : ""}`}
+            className={`tarjeta !mb-2.5 flex items-center gap-3 ${recienMovido ? "!border-acento/50" : ""} ${
+              dia.opcional ? "!border-dashed !border-naranja/55" : ""
+            }`}
           >
-            {numero}
+            {dia.opcional ? (
+              <span className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 border border-naranja/60 bg-naranja/12 text-naranja">
+                <Sparkles size={14} />
+              </span>
+            ) : (
+              numero
+            )}
             <button
               className="flex-1 min-w-0 text-left cursor-pointer"
               onClick={() => abrirDia(indiceGlobal)}
             >
-              <div className="font-bold text-[15.5px] leading-tight break-words">{dia.nombre}</div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-[15.5px] leading-tight break-words">{dia.nombre}</span>
+                {dia.opcional && (
+                  <span className="text-[10.5px] font-bold tracking-[0.08em] rounded-full px-2 py-0.5 text-naranja bg-naranja/15">
+                    OPCIONAL
+                  </span>
+                )}
+              </div>
               <div className="text-atenuado text-[12.5px]">
                 {dia.ejercicios.length} ejercicios · {efectivas} series efectivas
               </div>

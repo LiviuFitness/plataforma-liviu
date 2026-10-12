@@ -4,7 +4,7 @@ import type { DiaUI, RutinaUI, SerieUI, TipoSerie } from "./tipos";
 export const SELECT_RUTINA_COMPLETA = `
   id, nombre, notas, semana_actual,
   rutina_dias (
-    id, orden, nombre, semana,
+    id, orden, nombre, semana, opcional,
     rutina_ejercicios (
       id, orden, descanso_seg, notas, ejercicio_id, grupo_superserie,
       ejercicios ( nombre, grupo_muscular, video_url ),
@@ -38,6 +38,7 @@ interface FilaDia {
   id: string;
   orden: number;
   nombre: string;
+  opcional?: boolean | null;
   semana: number;
   rutina_ejercicios: FilaRutinaEjercicio[];
 }
@@ -112,6 +113,23 @@ export function parsearRepsRealizadas(texto: string): { reps: number | null; rep
   return { reps: unico ? Number(limpio) : null, reps_extra: null };
 }
 
+/**
+ * El día que toca: el siguiente día obligatorio al último obligatorio que
+ * entrenó. Los opcionales no entran en la rotación (hacer el día de MMA
+ * no se salta el Torso B). `sesiones` va de la más reciente a la más vieja.
+ */
+export function diaQueToca<T extends { id: string; opcional?: boolean }>(
+  dias: T[],
+  sesiones: { dia_id: string | null }[]
+): T | null {
+  const obligatorios = dias.filter((d) => !d.opcional);
+  if (obligatorios.length === 0) return null;
+  const ids = new Set(obligatorios.map((d) => d.id));
+  const ultimo = sesiones.find((s) => s.dia_id && ids.has(s.dia_id))?.dia_id;
+  const i = obligatorios.findIndex((d) => d.id === ultimo);
+  return obligatorios[i >= 0 ? (i + 1) % obligatorios.length : 0];
+}
+
 /** Convierte la fila anidada de Supabase en la estructura del editor. */
 export function aRutinaUI(fila: FilaRutina): RutinaUI {
   const dias: DiaUI[] = (fila.rutina_dias ?? [])
@@ -122,6 +140,7 @@ export function aRutinaUI(fila: FilaRutina): RutinaUI {
       orden: d.orden,
       nombre: d.nombre,
       semana: d.semana ?? 1,
+      opcional: !!d.opcional,
       ejercicios: (d.rutina_ejercicios ?? [])
         .slice()
         .sort((a, b) => a.orden - b.orden)

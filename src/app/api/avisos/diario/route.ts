@@ -198,7 +198,7 @@ export async function GET(request: Request) {
   if (idsEntrenador.length > 0) {
     const { data: rutinasMeso } = await db
       .from("rutinas")
-      .select("id, nombre, semana_actual, cliente_id, aviso_fin_meso_en, rutina_dias ( id, semana )")
+      .select("id, nombre, semana_actual, cliente_id, aviso_fin_meso_en, rutina_dias ( id, semana, opcional )")
       .eq("activa", true)
       .eq("es_plantilla", false)
       .not("cliente_id", "is", null)
@@ -217,7 +217,10 @@ export async function GET(request: Request) {
       for (const r of candidatas) {
         const dias = (r.rutina_dias ?? []) as { id: string; semana: number }[];
         const total = Math.max(...dias.map((d) => d.semana));
-        const penultima = dias.filter((d) => d.semana === total - 1);
+        /* Los días opcionales no hacen falta para dar la semana por hecha */
+        const penultima = (dias as { id: string; semana: number; opcional?: boolean }[]).filter(
+          (d) => d.semana === total - 1 && !d.opcional
+        );
         const terminada = Number(r.semana_actual) >= total || (penultima.length > 0 && penultima.every((d) => conSesion.has(d.id)));
         if (!terminada) continue;
         const n = await enviarAvisos(idsEntrenador, "revision", () => ({
