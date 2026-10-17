@@ -29,6 +29,9 @@ export interface Perfil {
   factor_actividad: number;
   objetivo_ritmo_semanal_pct: number | null;
   visible_en_comunidad: boolean;
+  /** Agenda de revisiones del entrenador (el cliente no lo ve) */
+  proxima_revision?: string | null;
+  revision_cada_semanas?: number;
 }
 
 export interface Invitacion {

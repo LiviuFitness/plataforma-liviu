@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertTriangle, CalendarCheck, ChevronDown, AlertCircle, StickyNote, UserRound } from "lucide-react";
 import GrupoPanel from "@/componentes/GrupoPanel";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
+import ProximaRevision from "@/componentes/ProximaRevision";
 import ResumenPlan from "./ResumenPlan";
 import PreguntasAsistente from "@/componentes/PreguntasAsistente";
 import type { SesionHistorial } from "@/lib/progresoEntreno";
@@ -220,6 +221,14 @@ export default function TabResumen({
         abrir={abrir}
         adherenciaDieta={adherenciaDieta}
         extraSeguimiento={<PreguntasAsistente clienteId={perfil.id} />}
+        extraPlan={
+          <ProximaRevision
+            clienteId={perfil.id}
+            fecha={perfil.proxima_revision ?? null}
+            cadaSemanas={perfil.revision_cada_semanas ?? 4}
+            ahora={ahora}
+          />
+        }
       />
 
       <GrupoPanel titulo="TUS NOTAS" Icono={StickyNote} color="var(--color-dorado)">

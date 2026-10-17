@@ -2,14 +2,18 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Megaphone, MessageCircle, Search, UserPlus } from "lucide-react";
-import { Avatar, PuntoEstado } from "@/componentes/ui";
+import { CalendarClock, Megaphone, MessageCircle, Search, UserPlus } from "lucide-react";
+import { Avatar } from "@/componentes/ui";
+import { claseTono, estadoRevision } from "@/lib/revisionCliente";
 import { estadoCliente } from "@/lib/estadoCliente";
 import HojaMensajeVarios from "@/componentes/HojaMensajeVarios";
 import HojaAnadirCliente from "./HojaAnadirCliente";
 import type { Perfil } from "@/lib/tipos";
 
-type Filtro = "todos" | "atencion" | "sin-rutina" | "sin-dieta" | "inactivos";
+type Filtro = "todos" | "atencion" | "revision" | "sin-rutina" | "sin-dieta" | "inactivos";
+
+const ANILLO = { riesgo: "var(--color-peligro)", atencion: "var(--color-aviso)", "al-dia": "var(--color-verde)" } as const;
+const ORDEN_NIVEL = { riesgo: 0, atencion: 1, "al-dia": 2 } as const;
 
 /** Listado de clientes con buscador y filtros. Las invitaciones tienen
  * su propia pantalla, en la segunda fila de navegación. */
@@ -23,6 +27,7 @@ export default function ListaClientes({
   conRutina,
   conDieta,
   sinEntrenarSemana,
+  hoy,
 }: {
   clientes: Perfil[];
   adherencias: Record<string, number>;
@@ -37,6 +42,8 @@ export default function ListaClientes({
   conDieta: string[];
   /** No han entrenado desde el lunes (para el mensaje a varios) */
   sinEntrenarSemana: string[];
+  /** "AAAA-MM-DD" de hoy en Madrid, calculado en el servidor */
+  hoy: string;
 }) {
   const [busqueda, setBusqueda] = useState("");
 
@@ -58,7 +65,9 @@ export default function ListaClientes({
       adherencia: adh ?? 0,
     });
     const activo = c.estado === "activo";
+    const revision = c.proxima_revision ? estadoRevision(c.proxima_revision, hoy) : null;
     return {
+      revision,
       c,
       dias,
       adh,
@@ -72,13 +81,15 @@ export default function ListaClientes({
   });
 
   const FILTROS: { clave: Filtro; etiqueta: string; n: number }[] = [
-    { clave: "todos", etiqueta: "Activos", n: filas.filter((f) => f.activo).length },
-    { clave: "atencion", etiqueta: "Atención", n: filas.filter((f) => f.atencion).length },
+    { clave: "todos", etiqueta: "Todos", n: filas.filter((f) => f.activo).length },
+    { clave: "atencion", etiqueta: "Necesitan algo", n: filas.filter((f) => f.atencion).length },
+    { clave: "revision", etiqueta: "Revisión pronto", n: filas.filter((f) => f.activo && f.revision && f.revision.dias <= 3).length },
     { clave: "sin-rutina", etiqueta: "Sin rutina", n: filas.filter((f) => f.sinRutina).length },
     { clave: "sin-dieta", etiqueta: "Sin dieta", n: filas.filter((f) => f.sinDieta).length },
     { clave: "inactivos", etiqueta: "Inactivos", n: filas.filter((f) => !f.activo).length },
   ];
 
+  const nInactivos = filas.filter((f) => !f.activo).length;
   const texto = busqueda.trim().toLowerCase();
   const filtrados = filas.filter((f) => {
     /* Buscando por nombre se busca en todos: si escribes "Dani" es que
@@ -87,6 +98,8 @@ export default function ListaClientes({
     switch (filtro) {
       case "atencion":
         return f.atencion;
+      case "revision":
+        return f.activo && !!f.revision && f.revision.dias <= 3;
       case "sin-rutina":
         return f.sinRutina;
       case "sin-dieta":
@@ -106,7 +119,7 @@ export default function ListaClientes({
           <h1 className="h1">Clientes</h1>
           <div className="sub !mb-0">
             {FILTROS[0].n} {FILTROS[0].n === 1 ? "activo" : "activos"}
-            {FILTROS[4].n > 0 ? ` · ${FILTROS[4].n} pausados o de baja` : ""}
+            {nInactivos > 0 ? ` · ${nInactivos} ${nInactivos === 1 ? "pausado o de baja" : "pausados o de baja"}` : ""}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -126,9 +139,6 @@ export default function ListaClientes({
           >
             <UserPlus size={15} /> Añadir
           </button>
-          <Link href="/invitaciones" className="cta cta-mini shrink-0">
-            + Invitar
-          </Link>
         </div>
       </div>
 
@@ -195,55 +205,84 @@ export default function ListaClientes({
       )}
 
       {filtrados.length > 0 && (
-        <div className="superficie px-4 mb-6">
-          {filtrados.map(({ c, dias, adh, estado, activo, sinRutina, sinDieta }) => {
-            const actividad =
-              dias === undefined
-                ? "Sin sesiones"
-                : dias === 0
-                  ? "Entrenó hoy"
-                  : dias === 1
-                    ? "Entrenó ayer"
-                    : `Hace ${dias} días`;
-            const plan =
-              c.plan === "mensual" ? "Mensual" : c.plan === "trimestral" ? "Trimestral" : "Sin plan";
-            return (
-              <Link
-                key={c.id}
-                href={`/clientes/${c.id}`}
-                className={`fila anim-pulsable ${activo ? "" : "opacity-60"}`}
-              >
-                <Avatar nombre={c.nombre} tamano={38} foto={c.avatar_url} />
-                <div className="flex-1 min-w-0">
-                  <div className="font-bold text-[14.5px] flex items-center gap-2 leading-tight">
-                    <span className="break-words min-w-0">{c.nombre}</span>
-                    {activo && (
-                      <PuntoEstado nivel={estado.nivel} titulo={estado.motivo ?? "Al día"} />
-                    )}
-                  </div>
-                  <div className="text-atenuado text-[12.5px] leading-snug break-words mt-0.5">
-                    {activo ? (estado.motivo ?? actividad) : c.estado === "baja" ? "De baja" : "Pausado"}
-                    {adh !== undefined && activo ? ` · ${adh}%` : ""} · {plan}
-                  </div>
-                  {(sinRutina || sinDieta) && (
-                    <div className="text-aviso text-[12px] font-semibold mt-0.5">
-                      {sinRutina && sinDieta
-                        ? "Sin rutina ni dieta"
-                        : sinRutina
-                          ? "Sin rutina"
-                          : "Sin dieta"}
+        <div className="grid grid-cols-2 gap-2.5 mb-6">
+          {filtrados
+            .slice()
+            .sort((a, b) => Number(b.activo) - Number(a.activo) || ORDEN_NIVEL[a.estado.nivel] - ORDEN_NIVEL[b.estado.nivel])
+            .map(({ c, dias, adh, estado, activo, sinRutina, sinDieta, revision }) => {
+              const actividad =
+                dias === undefined ? "Sin sesiones" : dias === 0 ? "Entrenó hoy" : dias === 1 ? "Entrenó ayer" : `Hace ${dias} días`;
+              const aviso = !activo
+                ? c.estado === "baja"
+                  ? "De baja"
+                  : "Pausado"
+                : sinRutina && sinDieta
+                  ? "Sin rutina ni dieta"
+                  : sinRutina
+                    ? "Sin rutina"
+                    : sinDieta
+                      ? "Sin dieta"
+                      : estado.nivel !== "al-dia" && estado.motivo && dias !== undefined && dias >= 3
+                        ? `${dias} días sin entrenar`
+                        : estado.nivel !== "al-dia"
+                          ? estado.motivo
+                          : null;
+              const pct = adh ?? 0;
+              return (
+                <Link
+                  key={c.id}
+                  href={`/clientes/${c.id}`}
+                  className={`tarjeta !mb-0 !p-3 flex flex-col items-center text-center relative anim-pulsable ${activo ? "" : "opacity-60"}`}
+                >
+                  {chatSinLeer[c.id] && (
+                    <span title="Te ha escrito" className="absolute top-2.5 right-2.5">
+                      <MessageCircle size={15} className="text-acento" fill="currentColor" />
+                    </span>
+                  )}
+                  {(alertas[c.id] ?? 0) > 0 && <span className="badge absolute top-2 left-2">{alertas[c.id]}</span>}
+                  <span
+                    className="rounded-full"
+                    style={{ boxShadow: activo ? `0 0 0 2px var(--color-fondo), 0 0 0 4px ${ANILLO[estado.nivel]}` : "none" }}
+                    title={estado.motivo ?? "Al día"}
+                  >
+                    <Avatar nombre={c.nombre} tamano={52} foto={c.avatar_url} />
+                  </span>
+                  <div className="font-bold text-[14px] leading-tight mt-2.5 break-words w-full">{c.nombre}</div>
+                  <div className="text-atenuado text-[11.5px] mt-0.5">{actividad}</div>
+                  {activo && adh !== undefined && (
+                    <>
+                      <div className="w-full h-1.5 rounded bg-borde-2 overflow-hidden mt-2">
+                        <div
+                          className="h-full rounded"
+                          style={{
+                            width: `${Math.max(3, Math.min(100, pct))}%`,
+                            background: pct >= 85 ? "var(--color-verde)" : pct >= 60 ? "var(--color-aviso)" : "var(--color-peligro)",
+                          }}
+                        />
+                      </div>
+                      <div className="text-[11px] text-atenuado mt-1">{pct} % cumplido</div>
+                    </>
+                  )}
+                  {activo && revision && (
+                    <span
+                      className={`mt-2 text-[11px] font-bold rounded-full px-2 py-0.5 inline-flex items-center gap-1 ${claseTono[revision.tono]}`}
+                      title="Próxima revisión"
+                    >
+                      <CalendarClock size={11} /> {revision.tono === "atrasada" ? `revisión ${revision.corto}` : revision.corto}
+                    </span>
+                  )}
+                  {aviso && (
+                    <div
+                      className={`text-[11.5px] font-semibold mt-1.5 leading-tight break-words ${
+                        !activo ? "text-atenuado" : estado.nivel === "riesgo" ? "text-peligro" : "text-aviso"
+                      }`}
+                    >
+                      {aviso}
                     </div>
                   )}
-                </div>
-                {chatSinLeer[c.id] && (
-                  <span title="Mensaje sin responder" className="shrink-0">
-                    <MessageCircle size={16} className="text-acento" fill="currentColor" />
-                  </span>
-                )}
-                {(alertas[c.id] ?? 0) > 0 && <span className="badge shrink-0">{alertas[c.id]}</span>}
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })}
         </div>
       )}
     </>

@@ -112,6 +112,7 @@ export default async function PaginaClientes() {
       diasDesdeAlta={Object.fromEntries(diasDesdeAlta)}
       chatSinLeer={Object.fromEntries(chatSinLeer)}
       sinEntrenarSemana={sinEntrenarSemana}
+      hoy={new Date(ahora).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" })}
       conRutina={[...new Set((rutinasActivas ?? []).map((r) => r.cliente_id as string))]}
       conDieta={[...new Set((dietasActivas ?? []).map((d) => d.cliente_id as string))]}
     />

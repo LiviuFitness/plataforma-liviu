@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AlertCircle, X } from "lucide-react";
@@ -115,6 +116,9 @@ export default function HojaAnadirCliente({ onCerrar }: { onCerrar: () => void }
         <button className="cta !mb-0" type="submit" disabled={creando || !nombre.trim()}>
           {creando ? "Creando…" : "Añadir cliente"}
         </button>
+        <Link href="/invitaciones" className="block text-center text-acento text-[13px] mt-3">
+          ¿Prefieres mandarle una invitación para que se registre él? →
+        </Link>
       </form>
     </div>
   );

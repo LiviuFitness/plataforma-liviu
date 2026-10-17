@@ -17,6 +17,7 @@ import {
 import GaleriaFotosProgreso from "@/componentes/GaleriaFotosProgreso";
 import ComparadorFotos from "@/componentes/ComparadorFotos";
 import GraficaPeso from "@/componentes/GraficaPeso";
+import CalendarioEntrenos from "@/componentes/CalendarioEntrenos";
 import HistorialProgreso from "@/componentes/HistorialProgreso";
 import MapaMuscular from "@/componentes/MapaMuscular";
 import PanelMedidas from "@/componentes/PanelMedidas";
@@ -43,6 +44,7 @@ export default function TabProgreso({
   progresoEntreno,
   revisiones,
   respuestasCuestionario,
+  diasPorSemana = 0,
 }: {
   clienteId: string;
   medidas: Medida[];
@@ -55,6 +57,8 @@ export default function TabProgreso({
   progresoEntreno: ProgresoEntreno;
   revisiones: RevisionKcal[];
   respuestasCuestionario: RespuestaRevisionConPregunta[];
+  /** Días obligatorios de su rutina (para el % del calendario) */
+  diasPorSemana?: number;
 }) {
   const router = useRouter();
   const [ritmo, setRitmo] = useState(
@@ -289,6 +293,8 @@ export default function TabProgreso({
       </section>
 
       <MapaMuscular volumen={progresoEntreno.volumenMuscular} />
+
+      <CalendarioEntrenos historial={progresoEntreno.historial} diasPorSemana={diasPorSemana} />
 
       <HistorialProgreso
         prs={progresoEntreno.prs}

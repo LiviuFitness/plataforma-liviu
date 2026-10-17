@@ -53,6 +53,7 @@ export default function ResumenPlan({
   abrir,
   adherenciaDieta = null,
   extraSeguimiento,
+  extraPlan,
 }: {
   medidas: Medida[];
   diasEntrenados: boolean[];
@@ -70,6 +71,8 @@ export default function ResumenPlan({
   adherenciaDieta?: number | null;
   /** Lo que va al final de Seguimiento (las preguntas al asistente) */
   extraSeguimiento?: React.ReactNode;
+  /** Arriba del todo en «Su plan» (la próxima revisión) */
+  extraPlan?: React.ReactNode;
 }) {
   const conPeso = medidas.filter((m) => m.peso !== null);
   const pesos = conPeso.map((m) => Number(m.peso));
@@ -164,6 +167,7 @@ export default function ResumenPlan({
       </GrupoPanel>
 
       <GrupoPanel titulo="SU PLAN" Icono={ClipboardList} color="var(--color-verde)">
+        {extraPlan}
         {/* Lo que tiene pautado — cada fila abre su pestaña */}
         <div className="superficie px-4 mb-3.5">
           <button className="fila w-full text-left anim-pulsable" onClick={() => abrir("entreno")}>

@@ -454,6 +454,7 @@ export default function FichaCliente({
             progresoEntreno={progresoEntreno}
             revisiones={revisiones}
             respuestasCuestionario={respuestasCuestionario}
+            diasPorSemana={rutina ? rutina.dias.filter((d) => d.semana === rutina.semana_actual && !d.opcional).length : 0}
           />
           <div className="titulo-seccion mt-6">Hábitos</div>
           <TabHabitos habitos={habitos} registros={registrosHabitos} />

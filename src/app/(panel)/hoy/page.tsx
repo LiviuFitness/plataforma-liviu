@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
 import { Avatar, IconoTarjeta, PuntoEstado } from "@/componentes/ui";
+import { claseTono, estadoRevision, fechaRevision, hoyMadrid } from "@/lib/revisionCliente";
 import type { Alerta } from "@/lib/tipos";
 import { calcularRevisionSemanal } from "@/lib/revision";
 import { cuandoRenueva, proximaRenovacion } from "@/lib/renovaciones";
@@ -82,7 +83,7 @@ export default async function PaginaHoy() {
   ] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, nombre, fecha_alta, objetivo, plan, avatar_url")
+      .select("id, nombre, fecha_alta, objetivo, plan, avatar_url, proxima_revision")
       .eq("rol", "cliente")
       .eq("estado", "activo")
       .order("nombre"),
@@ -377,6 +378,15 @@ export default async function PaginaHoy() {
    * kcal. Si nunca se ha ajustado, cuenta desde que se le puso la dieta:
    * así un cliente recién llegado no sale aquí el primer día. */
   const ahora = new Date().getTime();
+
+  /* Revisiones de esta semana (hasta el domingo) y las atrasadas */
+  const hoyIso = hoyMadrid(ahora);
+  const hastaDomingo = 6 - ((new Date(`${hoyIso}T12:00:00Z`).getUTCDay() + 6) % 7);
+  const revisionesSemana = listaClientes
+    .filter((c) => c.proxima_revision)
+    .map((c) => ({ id: c.id as string, nombre: c.nombre as string, fecha: c.proxima_revision as string, ...estadoRevision(c.proxima_revision as string, hoyIso) }))
+    .filter((r) => r.dias <= hastaDomingo)
+    .sort((a, b) => a.dias - b.dias);
   const ultimoAjuste = new Map<string, string>();
   for (const r of revisiones ?? []) {
     if (!ultimoAjuste.has(r.cliente_id)) ultimoAjuste.set(r.cliente_id, r.creado_en);
@@ -630,7 +640,22 @@ export default async function PaginaHoy() {
               </Link>
             )}
             <div className="superficie px-4 mb-6">
-              {enRiesgo.length === 0 && listosParaAvanzar.length === 0 && (
+              {revisionesSemana.map((r) => (
+                <Link key={`rev-${r.id}`} href={`/clientes/${r.id}`} className="fila">
+                  <Avatar nombre={r.nombre} tamano={34} foto={fotoDe.get(r.id)} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-bold text-[14.5px] leading-tight break-words">{r.nombre}</div>
+                    <div className="text-texto-2 text-[12.5px] break-words first-letter:uppercase">
+                      Revisión {r.tono === "atrasada" ? `atrasada (era ${fechaRevision(r.fecha)})` : fechaRevision(r.fecha)}
+                    </div>
+                  </div>
+                  <span className={`text-[11.5px] font-bold rounded-full px-2 py-0.5 shrink-0 inline-flex items-center gap-1 ${claseTono[r.tono]}`}>
+                    <CalendarClock size={11} /> {r.corto}
+                  </span>
+                </Link>
+              ))}
+
+              {enRiesgo.length === 0 && listosParaAvanzar.length === 0 && revisionesSemana.length === 0 && (
                 <div className="text-atenuado text-[13.5px] py-4 text-center">
                   Nada pendiente: todos al día.
                 </div>

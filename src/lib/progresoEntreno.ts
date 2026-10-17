@@ -31,6 +31,16 @@ export interface SesionHistorial {
   prsPre: number | null;
   /** Hecho en versión exprés (recortada). */
   expres: boolean;
+  /** Para el calendario del entrenador: */
+  fin?: string | null;
+  /** Lo que escribió el cliente al terminar */
+  nota?: string | null;
+  /** Día opcional de su rutina (MMA, cardio…) */
+  opcional?: boolean;
+  /** Marcas nuevas de ese día: mejor que todo lo anterior en ese ejercicio */
+  records?: { ejercicio: string; kg: number }[];
+  /** Lo que hizo, ejercicio a ejercicio ("70×10 · 70×9") */
+  ejercicios?: { nombre: string; series: string }[];
 }
 
 export interface ProgresoEntreno {
@@ -41,6 +51,7 @@ export interface ProgresoEntreno {
 }
 
 interface FilaSerieRealizada {
+  orden?: number;
   kg: number | null;
   reps: number | null;
   completada: boolean;
@@ -48,6 +59,7 @@ interface FilaSerieRealizada {
   /** Hecha con otro ejercicio ("máquina ocupada"): no es marca del pautado. */
   ejercicio_sustituto_id: string | null;
   rutina_ejercicios: {
+    orden?: number;
     ejercicios: { nombre: string; grupo_muscular: string } | null;
   } | null;
 }
@@ -58,8 +70,27 @@ interface FilaSesion {
   sensacion: number | null;
   prs_pre: number | null;
   expres: boolean | null;
-  rutina_dias: { nombre: string } | null;
+  fecha_fin?: string | null;
+  notas_cliente?: string | null;
+  rutina_dias: { nombre: string; opcional?: boolean | null } | null;
   series_realizadas: FilaSerieRealizada[];
+}
+
+/** "70×10 · 70×9" por ejercicio, en el orden de la rutina (solo lo hecho) */
+function resumenEjercicios(series: FilaSerieRealizada[]): { nombre: string; series: string }[] {
+  const porEjercicio = new Map<string, { orden: number; partes: { orden: number; txt: string }[] }>();
+  for (const x of series) {
+    const nombre = x.rutina_ejercicios?.ejercicios?.nombre;
+    if (!nombre || !x.completada || x.tipo === "calentamiento") continue;
+    const kg = x.kg === null ? null : String(Number(x.kg)).replace(".", ",");
+    const txt = kg && x.reps ? `${kg}×${x.reps}` : x.reps ? `${x.reps} reps` : "hecha";
+    const g = porEjercicio.get(nombre) ?? { orden: x.rutina_ejercicios?.orden ?? 99, partes: [] };
+    g.partes.push({ orden: x.orden ?? 0, txt });
+    porEjercicio.set(nombre, g);
+  }
+  return [...porEjercicio.entries()]
+    .sort((a, b) => a[1].orden - b[1].orden)
+    .map(([nombre, g]) => ({ nombre, series: g.partes.sort((a, b) => a.orden - b.orden).map((p) => p.txt).join(" · ") }));
 }
 
 /** Récords personales, progresión por ejercicio e historial de sesiones
@@ -73,10 +104,10 @@ export async function resolverProgresoEntreno(
   const { data: sesiones } = await supabase
     .from("sesiones")
     .select(
-      `id, fecha_inicio, sensacion, prs_pre, expres,
-       rutina_dias ( nombre ),
-       series_realizadas ( kg, reps, completada, tipo, ejercicio_sustituto_id,
-         rutina_ejercicios ( ejercicios ( nombre, grupo_muscular ) ) )`
+      `id, fecha_inicio, fecha_fin, notas_cliente, sensacion, prs_pre, expres,
+       rutina_dias ( nombre, opcional ),
+       series_realizadas ( orden, kg, reps, completada, tipo, ejercicio_sustituto_id,
+         rutina_ejercicios ( orden, ejercicios ( nombre, grupo_muscular ) ) )`
     )
     .eq("cliente_id", clienteId)
     .order("fecha_inicio", { ascending: false })
@@ -115,6 +146,9 @@ export async function resolverProgresoEntreno(
   const cronologico = listaSesiones
     .slice()
     .sort((a, b) => a.fecha_inicio.localeCompare(b.fecha_inicio));
+  /* Récords de cada sesión: superar lo mejor de las sesiones anteriores */
+  const mejorHastaAhora = new Map<string, number>();
+  const recordsDe = new Map<string, { ejercicio: string; kg: number }[]>();
   for (const sesion of cronologico) {
     const mejorEnSesion = new Map<string, number>();
     for (const serie of sesion.series_realizadas ?? []) {
@@ -135,6 +169,11 @@ export async function resolverProgresoEntreno(
       if (Number(serie.kg) > actual) mejorEnSesion.set(nombre, Number(serie.kg));
     }
     for (const [nombre, kg] of mejorEnSesion) {
+      const antes = mejorHastaAhora.get(nombre);
+      if (antes !== undefined && kg > antes) {
+        recordsDe.set(sesion.id, [...(recordsDe.get(sesion.id) ?? []), { ejercicio: nombre, kg }]);
+      }
+      if (antes === undefined || kg > antes) mejorHastaAhora.set(nombre, kg);
       const lista = progresionesMap.get(nombre) ?? [];
       lista.push({ fecha: sesion.fecha_inicio, kg });
       progresionesMap.set(nombre, lista);
@@ -150,6 +189,11 @@ export async function resolverProgresoEntreno(
     sensacion: s.sensacion,
     prsPre: s.prs_pre,
     expres: !!s.expres,
+    fin: s.fecha_fin ?? null,
+    nota: s.notas_cliente?.trim() || null,
+    opcional: !!s.rutina_dias?.opcional,
+    records: recordsDe.get(s.id) ?? [],
+    ejercicios: resumenEjercicios(s.series_realizadas ?? []),
   }));
 
   const volumenMuscular = calcularVolumenMuscular(
