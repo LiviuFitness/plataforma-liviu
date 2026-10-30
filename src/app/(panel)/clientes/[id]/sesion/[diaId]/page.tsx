@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { crearClienteServidor } from "@/lib/supabase/servidor";
-import { componerCarga, componerReps, componerRir } from "@/lib/rutinas";
+import { componerCarga, componerReps, componerRir, textoRepsRealizadas } from "@/lib/rutinas";
 import SesionEnCurso, {
   type EjercicioSesion,
   type SesionAnterior,
@@ -45,6 +45,8 @@ interface FilaSerieRealizada {
   carga_texto: string | null;
   reps: number | null;
   reps_extra: number | null;
+  /** Puede no venir si el SQL de parciales aún no está pegado */
+  reps_parciales?: number | null;
   rir: number | null;
   completada: boolean;
   tipo: string;
@@ -91,7 +93,7 @@ export default async function PaginaSesionPresencial({
       .from("sesiones")
       .select(
         `fecha_inicio, fecha_fin, rutina_dias ( nombre, rutina_id ),
-         series_realizadas ( orden, kg, carga_texto, reps, reps_extra, rir, completada, tipo, ejercicio_sustituto_id,
+         series_realizadas ( *,
            rutina_ejercicios ( ejercicio_id,
              series_prescritas ( orden, tipo, kg, reps, rir, reps_max, tecnica, carga_texto ) ) )`
       )
@@ -144,12 +146,7 @@ export default async function PaginaSesionPresencial({
             s.kg === null ? null : Number(s.kg),
             s.carga_texto
           );
-          const reps =
-            s.reps === null
-              ? "?"
-              : s.reps_extra
-                ? `${s.reps}+${s.reps_extra}`
-                : String(s.reps);
+          const reps = textoRepsRealizadas(s.reps, s.reps_extra, s.reps_parciales);
           const prescrita = s.rutina_ejercicios?.series_prescritas?.find(
             (p) => p.orden === s.orden && p.tipo === s.tipo
           );
@@ -219,10 +216,12 @@ export default async function PaginaSesionPresencial({
   /* Sus notas propias de estos ejercicios ("respaldo en el 4") */
   const { data: notasEj } = await supabase
     .from("notas_ejercicio")
-    .select("ejercicio_id, texto")
+    .select("*")
     .eq("cliente_id", id)
     .in("ejercicio_id", filasDia.map((e) => e.ejercicio_id));
-  const notaDe = new Map((notasEj ?? []).map((n) => [n.ejercicio_id as string, n.texto as string]));
+  const notaDe = new Map(
+    (notasEj ?? []).map((n) => [n.ejercicio_id as string, { texto: n.texto as string, fija: n.fija === true }])
+  );
 
   const alternativas = await cargarAlternativas(
     supabase,
@@ -243,7 +242,8 @@ export default async function PaginaSesionPresencial({
       videoUrl: e.ejercicios?.video_url ?? null,
       anterior: anterior.get(e.ejercicio_id) ?? null,
       historial: historial.get(e.ejercicio_id) ?? [],
-      notaPropia: notaDe.get(e.ejercicio_id) ?? null,
+      notaPropia: notaDe.get(e.ejercicio_id)?.texto ?? null,
+      notaFija: notaDe.get(e.ejercicio_id)?.fija ?? false,
       mejorKgAnterior: mejorHistorico.get(e.ejercicio_id) ?? null,
       series: (e.series_prescritas ?? [])
         .slice()

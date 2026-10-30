@@ -70,9 +70,19 @@ export async function subirSesion(supabase: Supabase, p: SesionParaSubir): Promi
     sesionId = existente.id as string;
   }
 
-  const { error: e3 } = await supabase
+  let { error: e3 } = await supabase
     .from("series_realizadas")
     .insert(p.series.map((s) => ({ ...s, sesion_id: sesionId })));
+  /* Sin la columna de reps parciales (SQL aún sin pegar): sin ellas */
+  if (e3 && (e3.code === "PGRST204" || e3.code === "42703")) {
+    ({ error: e3 } = await supabase.from("series_realizadas").insert(
+      p.series.map((s) => {
+        const { reps_parciales: _p, ...resto } = s;
+        void _p;
+        return { ...resto, sesion_id: sesionId };
+      })
+    ));
+  }
   if (e3) {
     const red = esFalloDeRed(e3);
     /* Sin series no vale: se deshace para que el reintento empiece limpio

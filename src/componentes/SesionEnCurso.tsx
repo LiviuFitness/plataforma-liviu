@@ -56,6 +56,7 @@ import type { AlternativaSesion } from "@/lib/alternativasSesion";
 import type { VezEjercicio } from "@/lib/historialEjercicio";
 import { admiteExpres, duracionEstimada, versionExpres } from "@/lib/expres";
 import { encolar, subirSesion, type SesionParaSubir } from "@/lib/subirSesion";
+import Switch from "@/componentes/Switch";
 
 export interface SerieSesion {
   tipo: TipoSerie;
@@ -86,8 +87,11 @@ export interface EjercicioSesion {
   ejercicioId?: string;
   /** Las últimas veces que lo hizo (la primera es "anterior"). */
   historial?: VezEjercicio[];
-  /** Su nota propia de este ejercicio ("respaldo en el 4"). */
+  /** Su nota propia de este ejercicio ("3ª serie no hacer"). */
   notaPropia?: string | null;
+  /** Fija = sale siempre ("respaldo en el 4"); si no, se borra al
+   * guardar la siguiente sesión con este ejercicio. */
+  notaFija?: boolean;
   /** "¿Máquina ocupada?": por cuáles se puede cambiar hoy. */
   alternativas?: AlternativaSesion[];
   /** Cambiado hoy por otro: se guarda en sus series y no cuenta como
@@ -292,7 +296,7 @@ function FilaSerie({
               placeholder={serie.repsPrescrito}
               value={serie.reps}
               onChange={(e) => onCambiarReps(e.target.value)}
-              aria-label="Repeticiones (admite 8+3)"
+              aria-label="Repeticiones (admite 8+3 y parciales 8 [3])"
             />
           </label>
         )}
@@ -455,7 +459,7 @@ export default function SesionEnCurso({
   /* Kcal del reloj (Apple Watch…), si las apunta: mandan sobre la estimación */
   const [kcalReloj, setKcalReloj] = useState("");
   /* Notas propias editadas en esta sesión (ejercicioId → texto) */
-  const [notasEditadas, setNotasEditadas] = useState<Record<string, string | null>>({});
+  const [notasEditadas, setNotasEditadas] = useState<Record<string, { texto: string; fija: boolean } | null>>({});
 
   /* Pantalla fija (Wake Lock): opcional, apagada por defecto. Cada uno
    * decide: hay quien entrena con el móvil bloqueado y quien lo quiere
@@ -912,6 +916,23 @@ export default function SesionEnCurso({
     return guardado.current;
   }
 
+  /** Las notas no fijas de los ejercicios que ha hecho hoy ya se usaron:
+   * se borran. Las escritas durante esta misma sesión se quedan para la
+   * siguiente. Si falla no pasa nada: se borrarán la próxima vez. */
+  function borrarNotasUsadas(supabase: ReturnType<typeof crearClienteNavegador>, fechaInicio: string) {
+    const hechos = ejercicios
+      .filter((e) => e.ejercicioId && !e.sustituto && e.series.some((s) => s.completada))
+      .map((e) => e.ejercicioId!);
+    if (hechos.length === 0) return;
+    void supabase
+      .from("notas_ejercicio")
+      .delete()
+      .eq("cliente_id", clienteId)
+      .eq("fija", false)
+      .in("ejercicio_id", hechos)
+      .lt("actualizada_en", fechaInicio);
+  }
+
   async function insertarSesion(): Promise<boolean> {
     setError("");
     const supabase = crearClienteNavegador();
@@ -980,6 +1001,8 @@ export default function SesionEnCurso({
             carga_texto: carga.carga_texto,
             reps: reps.reps,
             reps_extra: reps.reps_extra,
+            /* Solo si las hay: así se guarda igual si falta la columna */
+            ...(reps.reps_parciales !== null ? { reps_parciales: reps.reps_parciales } : {}),
             rir: rir.rir,
             tecnica: rir.tecnica,
             completada: s.completada,
@@ -1003,6 +1026,7 @@ export default function SesionEnCurso({
       return false;
     }
     borrarAutosave(clienteId, diaId);
+    borrarNotasUsadas(supabase, fechaInicio);
     return true;
   }
 
@@ -1352,8 +1376,13 @@ export default function SesionEnCurso({
 
   /** La nota propia vigente: la editada en esta sesión o la guardada */
   function notaDe(ex: EjercicioSesion): string | null {
-    if (ex.ejercicioId && ex.ejercicioId in notasEditadas) return notasEditadas[ex.ejercicioId];
+    if (ex.ejercicioId && ex.ejercicioId in notasEditadas) return notasEditadas[ex.ejercicioId]?.texto ?? null;
     return ex.notaPropia ?? null;
+  }
+
+  function notaEsFija(ex: EjercicioSesion): boolean {
+    if (ex.ejercicioId && ex.ejercicioId in notasEditadas) return notasEditadas[ex.ejercicioId]?.fija ?? false;
+    return ex.notaFija ?? false;
   }
 
   /* --------- Pantalla de entreno --------- */
@@ -1819,8 +1848,9 @@ export default function SesionEnCurso({
           clienteId={clienteId}
           ejercicio={ejercicios[notaPara]}
           nota={notaDe(ejercicios[notaPara]) ?? ""}
-          onGuardada={(texto) => {
-            setNotasEditadas((prev) => ({ ...prev, [ejercicios[notaPara].ejercicioId!]: texto }));
+          fija={notaEsFija(ejercicios[notaPara])}
+          onGuardada={(nota) => {
+            setNotasEditadas((prev) => ({ ...prev, [ejercicios[notaPara].ejercicioId!]: nota }));
             setNotaPara(null);
           }}
           onCerrar={() => setNotaPara(null)}
@@ -2180,16 +2210,19 @@ function HojaNotaEjercicio({
   clienteId,
   ejercicio,
   nota,
+  fija: fijaInicial,
   onGuardada,
   onCerrar,
 }: {
   clienteId: string;
   ejercicio: EjercicioSesion;
   nota: string;
-  onGuardada: (texto: string | null) => void;
+  fija: boolean;
+  onGuardada: (nota: { texto: string; fija: boolean } | null) => void;
   onCerrar: () => void;
 }) {
   const [texto, setTexto] = useState(nota);
+  const [fija, setFija] = useState(fijaInicial);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState("");
 
@@ -2198,24 +2231,29 @@ function HojaNotaEjercicio({
     setGuardando(true);
     setError("");
     const supabase = crearClienteNavegador();
-    const { error } = limpio
-      ? await supabase.from("notas_ejercicio").upsert({
-          cliente_id: clienteId,
-          ejercicio_id: ejercicio.ejercicioId!,
-          texto: limpio,
-          actualizada_en: new Date().toISOString(),
-        })
+    const fila = {
+      cliente_id: clienteId,
+      ejercicio_id: ejercicio.ejercicioId!,
+      texto: limpio,
+      actualizada_en: new Date().toISOString(),
+    };
+    let { error } = limpio
+      ? await supabase.from("notas_ejercicio").upsert({ ...fila, fija })
       : await supabase
           .from("notas_ejercicio")
           .delete()
           .eq("cliente_id", clienteId)
           .eq("ejercicio_id", ejercicio.ejercicioId!);
+    /* Sin la columna "fija" (SQL aún sin pegar): se guarda como antes */
+    if (error && limpio && (error.code === "PGRST204" || error.code === "42703")) {
+      ({ error } = await supabase.from("notas_ejercicio").upsert(fila));
+    }
     setGuardando(false);
     if (error) {
       setError("No se pudo guardar. Inténtalo de nuevo.");
       return;
     }
-    onGuardada(limpio || null);
+    onGuardada(limpio ? { texto: limpio, fija } : null);
   }
 
   return (
@@ -2237,7 +2275,9 @@ function HojaNotaEjercicio({
           </button>
         </div>
         <div className="text-atenuado text-[12.5px] mb-3 break-words">
-          Te saldrá cada vez que hagas {ejercicio.nombre}.
+          {fija
+            ? `Te saldrá cada vez que hagas ${ejercicio.nombre}.`
+            : `Te saldrá la próxima vez que hagas ${ejercicio.nombre} y luego se borra sola.`}
         </div>
         <textarea
           className="w-full bg-campo border border-borde-2 focus:border-dorado outline-none rounded-[10px] text-white p-2.5 px-3 text-[14px] resize-none font-cuerpo mb-3"
@@ -2248,6 +2288,10 @@ function HojaNotaEjercicio({
           onChange={(e) => setTexto(e.target.value)}
           autoFocus
         />
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <span className="text-[13.5px] min-w-0">Que se quede siempre</span>
+          <Switch checked={fija} onChange={setFija} label="Que la nota se quede siempre" />
+        </div>
         {error && <div className="text-peligro text-[13px] mb-2">{error}</div>}
         <button className="cta !mb-0" onClick={guardar} disabled={guardando}>
           {guardando ? "Guardando…" : texto.trim() ? "Guardar nota" : nota ? "Borrar nota" : "Guardar nota"}

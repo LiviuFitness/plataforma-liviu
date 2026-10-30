@@ -104,13 +104,33 @@ export function componerRir(rir: number | null, tecnica: string | null): string 
   return tecnica ?? "";
 }
 
-/** Reps realizadas: "8+3" o "8 (+3)" → reps 8 con 3 extra de rest-pause */
-export function parsearRepsRealizadas(texto: string): { reps: number | null; reps_extra: number | null } {
-  const limpio = texto.trim();
-  const restPause = limpio.match(/^(\d+)\s*\(?\+\s*(\d+)\)?$/);
-  if (restPause) return { reps: Number(restPause[1]), reps_extra: Number(restPause[2]) };
-  const unico = limpio.match(/^\d+$/);
-  return { reps: unico ? Number(limpio) : null, reps_extra: null };
+/**
+ * Reps realizadas: "8+3" o "8 (+3)" → reps 8 con 3 extra de rest-pause;
+ * "8 [3]" → 8 completas y 3 parciales (no cuentan como reps). Se pueden
+ * juntar: "8+2 [3]".
+ */
+export function parsearRepsRealizadas(texto: string): {
+  reps: number | null;
+  reps_extra: number | null;
+  reps_parciales: number | null;
+} {
+  const m = texto.trim().match(/^(\d+)(?:\s*\(?\+\s*(\d+)\)?)?(?:\s*\[\s*(\d+)\s*\])?$/);
+  if (!m) return { reps: null, reps_extra: null, reps_parciales: null };
+  return {
+    reps: Number(m[1]),
+    reps_extra: m[2] ? Number(m[2]) : null,
+    reps_parciales: m[3] ? Number(m[3]) : null,
+  };
+}
+
+/** Lo contrario: "8+2 [3]" a partir de lo guardado, "?" si no hay reps */
+export function textoRepsRealizadas(
+  reps: number | null,
+  extra: number | null,
+  parciales: number | null | undefined
+): string {
+  if (reps === null) return "?";
+  return `${reps}${extra ? `+${extra}` : ""}${parciales ? ` [${parciales}]` : ""}`;
 }
 
 /**
