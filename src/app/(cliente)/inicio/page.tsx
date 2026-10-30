@@ -30,6 +30,7 @@ import { IconoTarjeta, type IconoApp } from "@/componentes/ui";
 import { calcularRachaSemanas } from "@/lib/racha";
 import { fotoEntreno } from "@/lib/fotoEntreno";
 import TarjetaInstalar from "@/componentes/TarjetaInstalar";
+import TarjetaVisto from "./TarjetaVisto";
 
 export const dynamic = "force-dynamic";
 
@@ -505,6 +506,7 @@ export default async function PaginaInicio() {
       </h1>
 
       <TarjetaInstalar />
+      <TarjetaVisto clienteId={user.id} />
 
       {/* 2. UNA tarjeta que contesta "qué hago hoy" y "cómo voy". La
         * semana y la racha iban cada una por su cuenta encima del

@@ -30,6 +30,7 @@ import ListosSubir from "./ListosSubir";
 import MensajesSugeridos from "./MensajesSugeridos";
 import Recordatorios, { type Recordatorio } from "./Recordatorios";
 import GrupoPanel from "@/componentes/GrupoPanel";
+import EntrenosPorVer from "./EntrenosPorVer";
 
 interface RecordSemana {
   cliente_id: string;
@@ -331,6 +332,11 @@ export default async function PaginaHoy() {
   // Avisos positivos: semanas completadas listas para avanzar
   const listosParaAvanzar = listaAlertas.filter((a) => a.tipo === "semana_completa");
   const recordsSemana = (records ?? []) as RecordSemana[];
+  /* El mejor récord de la semana de cada uno (vienen de mayor a menor kg) */
+  const recordPorCliente = new Map<string, { ejercicio: string; kg: number }>();
+  for (const r of recordsSemana) {
+    if (!recordPorCliente.has(r.cliente_id)) recordPorCliente.set(r.cliente_id, { ejercicio: r.ejercicio, kg: Number(r.kg_nuevo) });
+  }
 
   /* Chat pendiente: el último mensaje del hilo lo mandó el cliente.
    * Mismo criterio que la lista de clientes, para que no digan cosas
@@ -639,6 +645,11 @@ export default async function PaginaHoy() {
                 <ChevronRight size={16} className="text-atenuado shrink-0" />
               </Link>
             )}
+            <EntrenosPorVer
+              nombres={new Map(listaClientes.map((c) => [c.id as string, c.nombre as string]))}
+              fotos={fotoDe}
+              records={recordPorCliente}
+            />
             <div className="superficie px-4 mb-6">
               {revisionesSemana.map((r) => (
                 <Link key={`rev-${r.id}`} href={`/clientes/${r.id}`} className="fila">

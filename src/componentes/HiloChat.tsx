@@ -10,6 +10,7 @@ import { leerGuia, mensajeDeGuia } from "@/lib/guias";
 import { avisarMensaje } from "@/lib/avisos";
 import { reducirFoto } from "@/lib/fotoChat";
 import { esVideo, extensionDe, leerTecnica, prepararVideo } from "@/lib/videoChat";
+import ReproductorVoz, { esNotaVoz } from "@/componentes/ReproductorVoz";
 import type { Mensaje } from "@/lib/tipos";
 
 const INTERVALO_SONDEO_MS = 8000;
@@ -276,7 +277,12 @@ export default function HiloChat({
                   : "self-start bg-campo border border-borde-2 text-texto-2"
               }`}
             >
-              {m.imagen && (esVideo(m.imagen) || videosLocales.includes(m.imagen)) && (
+              {m.imagen && esNotaVoz(m.imagen) && (
+                <div className="-mx-1.5 mb-1 w-[230px] max-w-full">
+                  <ReproductorVoz url={urlDe(m.imagen)} claro={esPropio} />
+                </div>
+              )}
+              {m.imagen && !esNotaVoz(m.imagen) && (esVideo(m.imagen) || videosLocales.includes(m.imagen)) && (
                 <div className="relative -mx-2 -mt-0.5 mb-1">
                   {urlDe(m.imagen) ? (
                     <video
@@ -296,7 +302,7 @@ export default function HiloChat({
                   )}
                 </div>
               )}
-              {m.imagen && !(esVideo(m.imagen) || videosLocales.includes(m.imagen)) && (
+              {m.imagen && !esNotaVoz(m.imagen) && !(esVideo(m.imagen) || videosLocales.includes(m.imagen)) && (
                 <button
                   type="button"
                   className="block -mx-2 -mt-0.5 mb-1 cursor-zoom-in"
