@@ -25,7 +25,6 @@ import HojaCoachEntreno from "@/componentes/HojaCoachEntreno";
 import HojaTecnicaVideo from "@/componentes/HojaTecnicaVideo";
 import CompartirComunidad, { leerOpcionesCompartir, type OpcionesCompartir } from "@/componentes/CompartirComunidad";
 import HojaTarjetaEntreno from "@/componentes/HojaTarjetaEntreno";
-import StepperNumero, { esSteppeable } from "@/componentes/StepperNumero";
 import {
   ArrowDown,
   ArrowLeft,
@@ -171,15 +170,14 @@ const ESTADO_PREVIO = [
  * Una serie, siempre en una sola línea de una rejilla: mismo alto, mismas
  * columnas, en todas las filas por igual (nada de un modo "compacto" y
  * otro "con controles" — eso fue justo lo que sobrecargaba la fila la
- * vez anterior). El peso y las repeticiones son texto plano: tocarlos
- * abre el editor grande en un sheet, la fila en sí nunca lleva botones
- * pegados al número. La serie activa solo se distingue por un fondo
- * apenas más claro — sin bordes ni elementos de más.
+ * vez anterior). Peso, repeticiones y RIR se escriben ahí mismo, sin
+ * abrir nada. La serie activa solo se distingue por un fondo apenas más
+ * claro — sin bordes ni elementos de más.
  */
 function FilaSerie({
   serie,
   activa,
-  onAbrirEditor,
+  onEnfocar,
   onCompletar,
   onCambiarKg,
   onCambiarReps,
@@ -187,7 +185,7 @@ function FilaSerie({
 }: {
   serie: SerieSesion;
   activa: boolean;
-  onAbrirEditor: (campo: "kg" | "reps") => void;
+  onEnfocar: () => void;
   onCompletar: () => void;
   onCambiarKg: (v: string) => void;
   onCambiarReps: (v: string) => void;
@@ -202,8 +200,6 @@ function FilaSerie({
   // se atenúa mucho para no competir con nada; calentamiento/dropset/
   // fallo son la excepción y sí necesitan destacar.
   const colorBarra = serie.tipo === "efectiva" ? `${info.color}30` : info.color;
-  const kgMostrado = serie.kg || serie.kgPrescrito;
-  const repsMostrado = serie.reps || serie.repsPrescrito;
 
   /* Fuera del rango pautado: en cuanto se apuntan las reps (sin esperar
    * al ✓), la casilla se pinta y debajo se dice por qué. Ámbar si se
@@ -232,13 +228,11 @@ function FilaSerie({
     "relative h-10 w-full min-w-0 rounded-[10px] border border-borde-2 bg-campo flex flex-col items-center justify-center focus-within:outline focus-within:outline-2 focus-within:outline-acento focus-within:outline-offset-1";
   const etiqueta =
     "text-[8.5px] font-bold uppercase tracking-[0.08em] text-atenuado leading-none";
-  const valor = `text-[15px] font-bold tabular-nums leading-tight ${
-    serie.completada ? "text-texto-2" : ""
-  }`;
   /* Campo de texto dentro de la caja: transparente, la caja pone el
-   * aspecto. El padding de arriba deja sitio a la etiqueta. */
+   * aspecto. El padding de arriba deja sitio a la etiqueta. A 16 px: con
+   * menos, el iPhone amplía la pantalla al tocar la casilla. */
   const campo =
-    "absolute inset-0 w-full h-full bg-transparent border-0 outline-none text-center pt-3 text-[15px] font-bold tabular-nums text-white placeholder:text-atenuado/45 placeholder:font-semibold placeholder:text-[13px]";
+    "absolute inset-0 w-full h-full bg-transparent border-0 outline-none text-center pt-3 text-[16px] font-bold tabular-nums text-white placeholder:text-atenuado/45 placeholder:font-semibold placeholder:text-[13px]";
 
   return (
     <div
@@ -248,58 +242,35 @@ function FilaSerie({
       style={{ borderLeftColor: colorBarra }}
     >
       {/* Peso */}
-      {esSteppeable(serie.kgPrescrito) ? (
-        <button
-          type="button"
-          className={`${caja} anim-pulsable`}
-          onClick={() => onAbrirEditor("kg")}
-          aria-label={`Editar peso: ${kgMostrado || "sin registrar"} kg`}
-        >
-          <span className={etiqueta}>kg</span>
-          <span className={valor}>{kgMostrado}</span>
-        </button>
-      ) : (
-        <label className={caja}>
-          <span className={`${etiqueta} absolute top-[7px]`}>kg</span>
-          <input
-            className={campo}
-            placeholder={serie.kgPrescrito}
-            inputMode="decimal"
-            value={serie.kg}
-            onChange={(e) => onCambiarKg(e.target.value)}
-            aria-label="Carga"
-          />
-        </label>
-      )}
+      <label className={caja}>
+        <span className={`${etiqueta} absolute top-[7px]`}>kg</span>
+        <input
+          className={campo}
+          placeholder={serie.kgPrescrito}
+          inputMode="decimal"
+          value={serie.kg}
+          onChange={(e) => onCambiarKg(e.target.value)}
+          onFocus={onEnfocar}
+          aria-label="Carga"
+        />
+      </label>
 
       {/* Repeticiones. La flechita de evaluación (serie ya hecha:
        * prescrito vs. realizado) va en la esquina de esta caja: azul si
        * se superó el objetivo, ámbar si se quedó corto, nada si salió
        * tal cual. */}
       <div className="relative min-w-0">
-        {esSteppeable(serie.repsPrescrito) ? (
-          <button
-            type="button"
-            className={`${caja} anim-pulsable`}
-            style={estiloReps}
-            onClick={() => onAbrirEditor("reps")}
-            aria-label={`Editar repeticiones: ${repsMostrado || "sin registrar"}`}
-          >
-            <span className={etiqueta} style={colorFuera ? { color: colorFuera } : undefined}>reps</span>
-            <span className={valor} style={colorFuera ? { color: colorFuera } : undefined}>{repsMostrado}</span>
-          </button>
-        ) : (
-          <label className={caja} style={estiloReps}>
-            <span className={`${etiqueta} absolute top-[7px]`} style={colorFuera ? { color: colorFuera } : undefined}>reps</span>
-            <input
-              className={campo}
-              placeholder={serie.repsPrescrito}
-              value={serie.reps}
-              onChange={(e) => onCambiarReps(e.target.value)}
-              aria-label="Repeticiones (admite 8+3 y parciales 8 [3])"
-            />
-          </label>
-        )}
+        <label className={caja} style={estiloReps}>
+          <span className={`${etiqueta} absolute top-[7px]`} style={colorFuera ? { color: colorFuera } : undefined}>reps</span>
+          <input
+            className={campo}
+            placeholder={serie.repsPrescrito}
+            value={serie.reps}
+            onChange={(e) => onCambiarReps(e.target.value)}
+            onFocus={onEnfocar}
+            aria-label="Repeticiones (admite 8+3 y parciales 8 [3])"
+          />
+        </label>
         {!fuera && evaluacion === "superado" && (
           <ArrowUp
             size={11}
@@ -330,6 +301,7 @@ function FilaSerie({
           placeholder={serie.rirPrescrito}
           value={serie.rir}
           onChange={(e) => onCambiarRir(e.target.value)}
+          onFocus={onEnfocar}
           aria-label={esTecnica ? "Técnica" : "RIR"}
         />
       </label>
@@ -513,9 +485,6 @@ export default function SesionEnCurso({
     setAvisoPantalla(nuevo ? "Pantalla fija: no se apagará mientras entrenas" : "Pantalla normal: se apagará como siempre");
     setTimeout(() => setAvisoPantalla(""), 2600);
   }
-  const [editor, setEditor] = useState<{ ei: number; si: number; campo: "kg" | "reps" } | null>(
-    null
-  );
   const avisado = useRef(false);
   const hidratado = useRef(false);
   /* Guarda contra el doble guardado: los dos botones del resumen final
@@ -699,13 +668,6 @@ export default function SesionEnCurso({
     if (manual !== undefined && manual < ex.series.length) return manual;
     const primeraIncompleta = ex.series.findIndex((s) => !s.completada);
     return primeraIncompleta === -1 ? null : primeraIncompleta;
-  }
-
-  /** Abre el sheet grande de kg/reps para esta serie y, de paso, la deja
-   * marcada como la fila en foco (mismo resaltado que la "activa"). */
-  function abrirEditor(ei: number, si: number, exId: string, campo: "kg" | "reps") {
-    setActivaManual((prev) => ({ ...prev, [exId]: si }));
-    setEditor({ ei, si, campo });
   }
 
   function ajustarDescanso(deltaSeg: number) {
@@ -1788,9 +1750,7 @@ export default function SesionEnCurso({
                         key={si}
                         serie={s}
                         activa={indiceActivo(ex) === si}
-                        onAbrirEditor={(campo) =>
-                          abrirEditor(ei, si, ex.rutinaEjercicioId, campo)
-                        }
+                        onEnfocar={() => setActivaManual((prev) => ({ ...prev, [ex.rutinaEjercicioId]: si }))}
                         onCompletar={() => alternarCompletada(ei, si)}
                         onCambiarKg={(v) => parchearSerie(ei, si, { kg: v })}
                         onCambiarReps={(v) => parchearSerie(ei, si, { reps: v })}
@@ -1878,52 +1838,6 @@ export default function SesionEnCurso({
           }
           onCerrar={() => setCalculadoraPara(null)}
         />
-      )}
-
-      {/* Sheet grande de edición de peso/reps — mismo patrón que la
-       * calculadora de discos. La fila de la serie nunca lleva botones
-       * pegados al número; los steppers viven aquí, a demanda. */}
-      {editor && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-50 flex items-end justify-center anim-fondo-aparece"
-          onClick={() => setEditor(null)}
-        >
-          <div
-            className="w-full max-w-[480px] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] anim-hoja-sube"
-            role="dialog"
-            aria-modal="true"
-            aria-label={editor.campo === "kg" ? "Editar peso" : "Editar repeticiones"}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-5">
-              <div className="titulo-tarjeta !m-0">
-                {editor.campo === "kg" ? "PESO" : "REPETICIONES"}
-              </div>
-              <button className="ghost" onClick={() => setEditor(null)}>
-                Listo
-              </button>
-            </div>
-            <div className="py-2 flex justify-center">
-              {editor.campo === "kg" ? (
-                <StepperNumero
-                  valor={ejercicios[editor.ei].series[editor.si].kg}
-                  placeholder={ejercicios[editor.ei].series[editor.si].kgPrescrito}
-                  onChange={(v) => parchearSerie(editor.ei, editor.si, { kg: v })}
-                  paso={2.5}
-                  etiqueta="Peso en kilos"
-                />
-              ) : (
-                <StepperNumero
-                  valor={ejercicios[editor.ei].series[editor.si].reps}
-                  placeholder={ejercicios[editor.ei].series[editor.si].repsPrescrito}
-                  onChange={(v) => parchearSerie(editor.ei, editor.si, { reps: v })}
-                  paso={1}
-                  etiqueta="Repeticiones"
-                />
-              )}
-            </div>
-          </div>
-        </div>
       )}
 
       {ejercicios.length > 0 &&
