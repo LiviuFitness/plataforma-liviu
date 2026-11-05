@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
+
 /**
  * Cuenta atrás del descanso entre series.
  *
@@ -11,6 +13,9 @@
  * Los últimos segundos cambian a ámbar y laten: es el aviso de
  * "prepárate" que antes solo llegaba por el pitido — y el pitido no
  * sirve de nada en un gimnasio con música.
+ *
+ * Con el teclado abierto, abajo quedaría tapada: pasa a una línea fina
+ * arriba de lo que se ve, con el tiempo y el progreso.
  */
 
 const AVISO_SEG = 10;
@@ -30,6 +35,49 @@ export default function BarraDescanso({
   const color = urgente ? "var(--color-aviso)" : "var(--color-acento)";
   const fmt = (s: number) =>
     `${Math.floor(s / 60)}:${String(Math.max(0, s) % 60).padStart(2, "0")}`;
+
+  /* null = teclado cerrado; si no, dónde empieza lo visible de la pantalla */
+  const [arribaTeclado, setArribaTeclado] = useState<number | null>(null);
+  useEffect(() => {
+    const vista = window.visualViewport;
+    if (!vista) return;
+    const medir = () => setArribaTeclado(window.innerHeight - vista.height > 120 ? vista.offsetTop : null);
+    vista.addEventListener("resize", medir);
+    vista.addEventListener("scroll", medir);
+    return () => {
+      vista.removeEventListener("resize", medir);
+      vista.removeEventListener("scroll", medir);
+    };
+  }, []);
+
+  if (arribaTeclado !== null) {
+    return (
+      <div
+        className="fixed left-1/2 -translate-x-1/2 w-full max-w-[480px] z-40 px-3 pt-1.5"
+        style={{ top: `calc(${arribaTeclado}px + env(safe-area-inset-top))` }}
+        role="timer"
+        aria-live="off"
+      >
+        <div
+          className="rounded-[12px] border overflow-hidden bg-[#0E1215]"
+          style={{ borderColor: urgente ? "var(--color-aviso)" : "rgba(41,171,226,0.5)" }}
+        >
+          <div className="flex items-center justify-between px-3 py-1">
+            <span className="text-atenuado text-[10px] tracking-[0.12em] uppercase">Descanso</span>
+            <span className="font-bold text-[17px] tabular-nums leading-tight" style={{ color }}>
+              {fmt(restante)}
+            </span>
+          </div>
+          <div className="h-[2px] bg-borde-2">
+            <div
+              className="h-full transition-[width] duration-300 ease-linear"
+              style={{ width: `${Math.max(0, Math.min(100, (restante / total) * 100))}%`, background: color }}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

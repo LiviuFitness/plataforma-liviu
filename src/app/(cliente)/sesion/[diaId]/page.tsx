@@ -159,7 +159,7 @@ export default async function PaginaSesion({
                 rirRealizado: s.rir,
               })
             : null;
-          return { texto: carga ? `${carga}×${reps}` : `${reps} reps`, estado };
+          return { texto: carga ? `${carga}×${reps}` : `${reps} reps`, estado, carga };
         });
       if (items.length === 0) continue;
       if (!anterior.has(id)) anterior.set(id, items);

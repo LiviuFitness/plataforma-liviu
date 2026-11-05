@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { crearClienteNavegador } from "@/lib/supabase/cliente";
@@ -38,6 +38,7 @@ import {
   History,
   Link2,
   Plus,
+  MoreHorizontal,
   Pencil,
   Repeat,
   Scale,
@@ -177,6 +178,7 @@ const ESTADO_PREVIO = [
 function FilaSerie({
   serie,
   activa,
+  kgSugerido,
   onEnfocar,
   onCompletar,
   onCambiarKg,
@@ -185,6 +187,8 @@ function FilaSerie({
 }: {
   serie: SerieSesion;
   activa: boolean;
+  /** Lo que hizo la última vez en esta serie: sale en gris en la casilla */
+  kgSugerido: string;
   onEnfocar: () => void;
   onCompletar: () => void;
   onCambiarKg: (v: string) => void;
@@ -200,6 +204,42 @@ function FilaSerie({
   // se atenúa mucho para no competir con nada; calentamiento/dropset/
   // fallo son la excepción y sí necesitan destacar.
   const colorBarra = serie.tipo === "efectiva" ? `${info.color}30` : info.color;
+
+  const refReps = useRef<HTMLInputElement>(null);
+  const refRir = useRef<HTMLInputElement>(null);
+  const [enReps, setEnReps] = useState(false);
+
+  /* Al tocar una casilla ya escrita, se selecciona: se corrige escribiendo
+   * encima. En el iPhone hay que esperar a que acabe de enfocarse. */
+  function alEnfocar(e: FocusEvent<HTMLInputElement>) {
+    const campo = e.currentTarget;
+    onEnfocar();
+    setTimeout(() => campo.select(), 0);
+  }
+
+  /** Intro avanza: kg → reps → RIR → serie hecha */
+  function alPulsarTecla(e: KeyboardEvent<HTMLInputElement>, siguiente: "reps" | "rir" | "hecha") {
+    if (e.key !== "Enter") return;
+    e.preventDefault();
+    if (siguiente === "reps") refReps.current?.focus();
+    else if (siguiente === "rir") refRir.current?.focus();
+    else {
+      e.currentTarget.blur();
+      if (!serie.completada) onCompletar();
+    }
+  }
+
+  /** Los corchetes están escondidos en el teclado del iPhone: este botón
+   * los pone y deja el cursor dentro. */
+  function ponerParciales() {
+    const texto = `${serie.reps.trim()} []`;
+    onCambiarReps(texto);
+    setTimeout(() => {
+      refReps.current?.focus();
+      refReps.current?.setSelectionRange(texto.length - 1, texto.length - 1);
+    }, 0);
+  }
+  const verParciales = enReps && /^\d/.test(serie.reps.trim()) && !serie.reps.includes("[");
 
   /* Fuera del rango pautado: en cuanto se apuntan las reps (sin esperar
    * al ✓), la casilla se pinta y debajo se dice por qué. Ámbar si se
@@ -246,11 +286,13 @@ function FilaSerie({
         <span className={`${etiqueta} absolute top-[7px]`}>kg</span>
         <input
           className={campo}
-          placeholder={serie.kgPrescrito}
+          placeholder={serie.kgPrescrito || kgSugerido}
           inputMode="decimal"
+          enterKeyHint="next"
           value={serie.kg}
           onChange={(e) => onCambiarKg(e.target.value)}
-          onFocus={onEnfocar}
+          onFocus={alEnfocar}
+          onKeyDown={(e) => alPulsarTecla(e, "reps")}
           aria-label="Carga"
         />
       </label>
@@ -263,11 +305,18 @@ function FilaSerie({
         <label className={caja} style={estiloReps}>
           <span className={`${etiqueta} absolute top-[7px]`} style={colorFuera ? { color: colorFuera } : undefined}>reps</span>
           <input
+            ref={refReps}
             className={campo}
             placeholder={serie.repsPrescrito}
+            enterKeyHint="next"
             value={serie.reps}
             onChange={(e) => onCambiarReps(e.target.value)}
-            onFocus={onEnfocar}
+            onFocus={(e) => {
+              setEnReps(true);
+              alEnfocar(e);
+            }}
+            onBlur={() => setEnReps(false)}
+            onKeyDown={(e) => alPulsarTecla(e, "rir")}
             aria-label="Repeticiones (admite 8+3 y parciales 8 [3])"
           />
         </label>
@@ -297,11 +346,15 @@ function FilaSerie({
       <label className={caja}>
         <span className={`${etiqueta} absolute top-[7px]`}>{esTecnica ? "técnica" : "rir"}</span>
         <input
+          ref={refRir}
           className={campo}
           placeholder={serie.rirPrescrito}
+          inputMode={esTecnica ? undefined : "numeric"}
+          enterKeyHint="done"
           value={serie.rir}
           onChange={(e) => onCambiarRir(e.target.value)}
-          onFocus={onEnfocar}
+          onFocus={alEnfocar}
+          onKeyDown={(e) => alPulsarTecla(e, "hecha")}
           aria-label={esTecnica ? "Técnica" : "RIR"}
         />
       </label>
@@ -318,6 +371,19 @@ function FilaSerie({
       >
         <Check size={17} strokeWidth={3} />
       </button>
+
+      {verParciales && (
+        <button
+          type="button"
+          className="col-span-4 justify-self-center text-[12.5px] font-semibold text-acento bg-acento/10 border border-acento/30 rounded-full px-3 py-1 cursor-pointer"
+          /* Sin esto, el toque le quita el foco a la casilla y el botón se va */
+          onPointerDown={(e) => e.preventDefault()}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={ponerParciales}
+        >
+          [ ] Añadir parciales
+        </button>
+      )}
 
       {fuera && (
         <div
@@ -419,6 +485,7 @@ export default function SesionEnCurso({
   const [sinRed, setSinRed] = useState(false);
   const [historialPara, setHistorialPara] = useState<number | null>(null);
   const [notaPara, setNotaPara] = useState<number | null>(null);
+  const [masPara, setMasPara] = useState<{ ei: number; conTecnica: boolean } | null>(null);
   const [coachPara, setCoachPara] = useState<number | null>(null);
   /* Vídeo de técnica para el entrenador (solo el cliente) */
   const [videoTecnicaPara, setVideoTecnicaPara] = useState<number | null>(null);
@@ -688,6 +755,29 @@ export default function SesionEnCurso({
     setDescanso(null);
   }
 
+  /** Los kg de esta serie la última vez: la 1ª efectiva con la 1ª de
+   * entonces, y así. Si hoy hay más series que aquel día, la última. */
+  function kgSugeridoDe(ex: EjercicioSesion, si: number): string {
+    if (ex.sustituto || ex.series[si]?.tipo === "calentamiento" || !ex.anterior?.length) return "";
+    const puesto = ex.series.slice(0, si).filter((s) => s.tipo !== "calentamiento").length;
+    return ex.anterior[Math.min(puesto, ex.anterior.length - 1)]?.carga ?? "";
+  }
+
+  /** Al acabar un ejercicio (o superserie), baja al siguiente pendiente */
+  function bajarAlSiguiente(ei: number, si: number) {
+    const tras = ejercicios.map((e, i) =>
+      i !== ei ? e : { ...e, series: e.series.map((s, j) => (j === si ? { ...s, completada: true } : s)) }
+    );
+    const grupos = agruparPorSuperserie(tras.map((e, i) => ({ ...e, indiceGlobal: i }))) as EjercicioConIndice[][];
+    const hecho = (g: EjercicioConIndice[]) => g.every((e) => e.series.every((s) => s.completada));
+    const actual = grupos.findIndex((g) => g.some((e) => e.indiceGlobal === ei));
+    if (actual === -1 || !hecho(grupos[actual])) return;
+    const siguiente = grupos.findIndex((g, gi) => gi > actual && !hecho(g));
+    if (siguiente === -1) return;
+    /* Tras plegarse el ejercicio, o caería en mal sitio */
+    setTimeout(() => gruposRefs.current[siguiente]?.scrollIntoView({ behavior: "smooth", block: "start" }), 350);
+  }
+
   function alternarCompletada(ei: number, si: number) {
     desbloquear(); // gesto real del usuario: aprovecha para desbloquear el audio en iOS
     const serie = ejercicios[ei].series[si];
@@ -696,7 +786,7 @@ export default function SesionEnCurso({
     // (si las reps son un rango "6-10", se usa el mínimo)
     const relleno: Partial<SerieSesion> = { completada: ahoraCompletada };
     if (ahoraCompletada) {
-      if (serie.kg.trim() === "") relleno.kg = serie.kgPrescrito;
+      if (serie.kg.trim() === "") relleno.kg = serie.kgPrescrito || kgSugeridoDe(ejercicios[ei], si);
       if (serie.rir.trim() === "") relleno.rir = serie.rirPrescrito;
       if (serie.reps.trim() === "") {
         const rango = serie.repsPrescrito.match(/^(\d+)\s*-\s*\d+$/);
@@ -707,6 +797,7 @@ export default function SesionEnCurso({
 
     if (ahoraCompletada) {
       if ("vibrate" in navigator) navigator.vibrate(12);
+      bajarAlSiguiente(ei, si);
       const ejercicio = ejercicios[ei];
       if (ejercicio.mejorKgAnterior !== null && serie.tipo !== "calentamiento") {
         const kgFinal = parsearCarga(relleno.kg ?? serie.kg).kg;
@@ -1611,28 +1702,6 @@ export default function SesionEnCurso({
                     )}
 
                     <div className="flex items-center gap-3 ml-auto shrink-0">
-                      {!nombreCliente && (
-                        <button
-                          type="button"
-                          className="text-acento hover:text-white transition-colors anim-pulsable"
-                          onClick={() => setVideoTecnicaPara(ei)}
-                          title="Mándame tu técnica"
-                          aria-label="Grabarte y mandarle el vídeo de tu técnica a tu entrenador"
-                        >
-                          <Camera size={15} />
-                        </button>
-                      )}
-                      {conIA && !nombreCliente && (
-                        <button
-                          type="button"
-                          className="text-morado hover:text-white transition-colors anim-pulsable"
-                          onClick={() => setCoachPara(ei)}
-                          title="Pregúntame"
-                          aria-label="Preguntar sobre este ejercicio: peso, técnica o molestias"
-                        >
-                          <Sparkles size={15} />
-                        </button>
-                      )}
                       {!ex.sustituto && !notaDe(ex) && ex.ejercicioId && (
                         <button
                           type="button"
@@ -1655,23 +1724,6 @@ export default function SesionEnCurso({
                           <Repeat size={15} />
                         </button>
                       )}
-                      {(ex.tecnica || notasPlegadas) && (
-                        <button
-                          type="button"
-                          className="hover:text-texto-2 transition-colors anim-pulsable"
-                          onClick={() =>
-                            setTecnicaAbierta((prev) => ({
-                              ...prev,
-                              [ex.rutinaEjercicioId]: !prev[ex.rutinaEjercicioId],
-                            }))
-                          }
-                          aria-expanded={!!tecnicaAbierta[ex.rutinaEjercicioId]}
-                          title="Técnica"
-                          aria-label="Ver la técnica del ejercicio"
-                        >
-                          <FileText size={15} />
-                        </button>
-                      )}
                       {ex.videoUrl && (
                         <button
                           type="button"
@@ -1688,12 +1740,13 @@ export default function SesionEnCurso({
                         </button>
                       )}
                       <button
+                        type="button"
                         className="hover:text-acento transition-colors anim-pulsable"
-                        onClick={() => setCalculadoraPara(ei)}
-                        title="Calculadora de discos"
-                        aria-label="Calculadora de discos"
+                        onClick={() => setMasPara({ ei, conTecnica: !!(ex.tecnica || notasPlegadas) })}
+                        title="Más"
+                        aria-label="Más opciones de este ejercicio"
                       >
-                        <Scale size={15} />
+                        <MoreHorizontal size={17} />
                       </button>
                     </div>
                   </div>
@@ -1750,6 +1803,7 @@ export default function SesionEnCurso({
                         key={si}
                         serie={s}
                         activa={indiceActivo(ex) === si}
+                        kgSugerido={kgSugeridoDe(ex, si)}
                         onEnfocar={() => setActivaManual((prev) => ({ ...prev, [ex.rutinaEjercicioId]: si }))}
                         onCompletar={() => alternarCompletada(ei, si)}
                         onCambiarKg={(v) => parchearSerie(ei, si, { kg: v })}
@@ -1801,6 +1855,70 @@ export default function SesionEnCurso({
           }}
           onCerrar={() => setCoachPara(null)}
         />
+      )}
+
+      {masPara !== null && ejercicios[masPara.ei] && (
+        <div
+          className="fixed inset-0 bg-black/60 backdrop-blur-[3px] z-50 flex items-end justify-center anim-fondo-aparece"
+          onClick={() => setMasPara(null)}
+        >
+          <div
+            className="w-full max-w-[480px] bg-[#0E1215] border border-borde rounded-t-[20px] p-[18px] pb-7 anim-hoja-sube"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Más opciones de ${ejercicios[masPara.ei].nombre}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center gap-3 mb-2">
+              <div className="titulo-seccion !mb-0 break-words min-w-0">{ejercicios[masPara.ei].nombre}</div>
+              <button className="ghost shrink-0" onClick={() => setMasPara(null)}>
+                Cerrar
+              </button>
+            </div>
+            {(
+              [
+                !nombreCliente && {
+                  Icono: Camera,
+                  texto: "Mándame tu técnica",
+                  color: "text-acento",
+                  accion: () => setVideoTecnicaPara(masPara.ei),
+                },
+                conIA && !nombreCliente && {
+                  Icono: Sparkles,
+                  texto: "Pregúntame",
+                  color: "text-morado",
+                  accion: () => setCoachPara(masPara.ei),
+                },
+                masPara.conTecnica && {
+                  Icono: FileText,
+                  texto: "Ver la técnica",
+                  color: "text-texto-2",
+                  accion: () =>
+                    setTecnicaAbierta((prev) => ({ ...prev, [ejercicios[masPara.ei].rutinaEjercicioId]: true })),
+                },
+                {
+                  Icono: Scale,
+                  texto: "Calculadora de discos",
+                  color: "text-texto-2",
+                  accion: () => setCalculadoraPara(masPara.ei),
+                },
+              ].filter(Boolean) as { Icono: typeof Scale; texto: string; color: string; accion: () => void }[]
+            ).map(({ Icono, texto, color, accion }) => (
+              <button
+                key={texto}
+                type="button"
+                className="w-full flex items-center gap-3 py-3 border-t border-borde first:border-t-0 text-left text-[14.5px] font-semibold cursor-pointer"
+                onClick={() => {
+                  setMasPara(null);
+                  accion();
+                }}
+              >
+                <Icono size={18} className={`${color} shrink-0`} />
+                {texto}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       {notaPara !== null && ejercicios[notaPara]?.ejercicioId && (

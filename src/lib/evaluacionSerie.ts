@@ -23,6 +23,8 @@ export const INFO_EVALUACION_SERIE: Record<
 export interface UltimaSerieItem {
   texto: string;
   estado: EstadoEvaluacion | null;
+  /** Solo la carga ("145"): sale en gris en la casilla de kg */
+  carga?: string;
 }
 
 interface DatosEvaluacion {

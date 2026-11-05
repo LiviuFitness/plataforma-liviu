@@ -158,7 +158,7 @@ export default async function PaginaSesionPresencial({
                 rirRealizado: s.rir,
               })
             : null;
-          return { texto: carga ? `${carga}×${reps}` : `${reps} reps`, estado };
+          return { texto: carga ? `${carga}×${reps}` : `${reps} reps`, estado, carga };
         });
       if (items.length === 0) continue;
       if (!anterior.has(ejercicioId)) anterior.set(ejercicioId, items);

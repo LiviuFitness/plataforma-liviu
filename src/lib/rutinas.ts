@@ -114,7 +114,7 @@ export function parsearRepsRealizadas(texto: string): {
   reps_extra: number | null;
   reps_parciales: number | null;
 } {
-  const m = texto.trim().match(/^(\d+)(?:\s*\(?\+\s*(\d+)\)?)?(?:\s*\[\s*(\d+)\s*\])?$/);
+  const m = texto.trim().match(/^(\d+)(?:\s*\(?\+\s*(\d+)\)?)?(?:\s*\[\s*(\d*)\s*\])?$/);
   if (!m) return { reps: null, reps_extra: null, reps_parciales: null };
   return {
     reps: Number(m[1]),
